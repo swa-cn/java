@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>欢迎回来 · 账号登录</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="fx" aria-hidden="true"></canvas>
+
+  <!-- 背景装饰：云朵 / 星星 / 爱心 -->
+  <div class="scene" aria-hidden="true">
+    <div class="cloud c1"><i></i><i></i><i></i></div>
+    <div class="cloud c2"><i></i><i></i><i></i></div>
+    <div class="cloud c3"><i></i><i></i><i></i></div>
+    <span class="star s1"></span>
+    <span class="star s2"></span>
+    <span class="star s3"></span>
+    <span class="star s4"></span>
+    <span class="star s5"></span>
+    <span class="heart h1">♥</span>
+    <span class="heart h2">♥</span>
+    <span class="heart h3">♥</span>
+  </div>
+
+  <main class="auth-shell">
+    <section class="auth-card" id="authCard">
+
+      <!-- Q版猫咪吉祥物：输入密码时会捂住眼睛 -->
+      <div class="mascot" id="mascot" aria-hidden="true">
+        <svg viewBox="0 0 120 112">
+          <!-- 耳朵 -->
+          <path d="M24 40 Q16 10 44 24 Z"  fill="#ffe3c2" stroke="#4a3540" stroke-width="4" stroke-linejoin="round"/>
+          <path d="M96 40 Q104 10 76 24 Z" fill="#ffe3c2" stroke="#4a3540" stroke-width="4" stroke-linejoin="round"/>
+          <path d="M28 34 Q24 20 38 26 Z"  fill="#ffb3c8"/>
+          <path d="M92 34 Q96 20 82 26 Z"  fill="#ffb3c8"/>
+          <!-- 脸 -->
+          <ellipse cx="60" cy="64" rx="42" ry="38" fill="#ffe3c2" stroke="#4a3540" stroke-width="4"/>
+          <!-- 眼睛 -->
+          <g class="eyes">
+            <ellipse cx="44" cy="60" rx="6.5" ry="9" fill="#4a3540"/>
+            <circle  cx="46.5" cy="56.5" r="2.4" fill="#fff"/>
+            <ellipse cx="76" cy="60" rx="6.5" ry="9" fill="#4a3540"/>
+            <circle  cx="78.5" cy="56.5" r="2.4" fill="#fff"/>
+          </g>
+          <!-- 腮红 -->
+          <ellipse cx="28" cy="74" rx="8" ry="5" fill="#ffb3c8" opacity="0.85"/>
+          <ellipse cx="92" cy="74" rx="8" ry="5" fill="#ffb3c8" opacity="0.85"/>
+          <!-- 嘴 -->
+          <path d="M53 76 q3.5 5 7 0 q3.5 5 7 0" fill="none" stroke="#4a3540" stroke-width="3" stroke-linecap="round"/>
+          <!-- 胡须 -->
+          <path d="M14 62 h12 M14 70 h11" stroke="#4a3540" stroke-width="2.4" stroke-linecap="round"/>
+          <path d="M106 62 h-12 M106 70 h-11" stroke="#4a3540" stroke-width="2.4" stroke-linecap="round"/>
+          <!-- 小手（捂眼时出现） -->
+          <g class="paws">
+            <ellipse cx="44" cy="62" rx="11" ry="9.5" fill="#ffe9cf" stroke="#4a3540" stroke-width="3.5"/>
+            <ellipse cx="76" cy="62" rx="11" ry="9.5" fill="#ffe9cf" stroke="#4a3540" stroke-width="3.5"/>
+            <ellipse cx="44" cy="64.5" rx="3.4" ry="2.4" fill="#ffb3c8"/>
+            <ellipse cx="76" cy="64.5" rx="3.4" ry="2.4" fill="#ffb3c8"/>
+          </g>
+        </svg>
+      </div>
+
+      <header class="brand">
+        <h1 class="brand-name">欢迎回来<span class="tilde">~</span></h1>
+        <p class="brand-sub" id="brandSub">登录你的小窝，继续未完成的事</p>
+      </header>
+
+      <div class="tabs" role="tablist" aria-label="登录或注册">
+        <button class="tab is-active" data-tab="login" role="tab" aria-selected="true">登录</button>
+        <button class="tab" data-tab="register" role="tab" aria-selected="false">注册</button>
+        <span class="tab-indicator" aria-hidden="true"></span>
+      </div>
+
+      <!-- 登录 -->
+      <form id="loginForm" class="form" novalidate>
+        <div class="field">
+          <label for="loginAccount">邮箱或用户名</label>
+          <input id="loginAccount" name="account" type="text" autocomplete="username"
+                 inputmode="email" required maxlength="120" placeholder="你注册时用的名字" />
+          <small class="error" data-error></small>
+        </div>
+
+        <div class="field">
+          <label for="loginPassword">密码</label>
+          <div class="input-wrap">
+            <input id="loginPassword" name="password" type="password" autocomplete="current-password"
+                   required maxlength="128" placeholder="悄悄输入，小猫不会偷看" />
+            <button type="button" class="toggle-pw" data-target="loginPassword" aria-label="显示或隐藏密码">显示</button>
+          </div>
+          <small class="error" data-error></small>
+        </div>
+
+        <label class="checkbox">
+          <input type="checkbox" id="rememberMe" />
+          <span>30 天内记住我</span>
+        </label>
+
+        <button type="submit" class="btn-primary">登录</button>
+        <p class="form-msg" data-msg aria-live="polite"></p>
+      </form>
+
+      <!-- 注册 -->
+      <form id="registerForm" class="form is-hidden" novalidate>
+        <div class="field">
+          <label for="regUsername">用户名</label>
+          <input id="regUsername" name="username" type="text" autocomplete="username"
+                 required maxlength="32" placeholder="3-20 位字母、数字或下划线" />
+          <small class="error" data-error></small>
+        </div>
+
+        <div class="field">
+          <label for="regEmail">邮箱</label>
+          <input id="regEmail" name="email" type="email" autocomplete="email"
+                 required maxlength="120" placeholder="you@example.com" />
+          <small class="error" data-error></small>
+        </div>
+
+        <div class="field">
+          <label for="regPassword">密码</label>
+          <div class="input-wrap">
+            <input id="regPassword" name="password" type="password" autocomplete="new-password"
+                   required maxlength="128" placeholder="至少 8 位，含字母和数字" />
+            <button type="button" class="toggle-pw" data-target="regPassword" aria-label="显示或隐藏密码">显示</button>
+          </div>
+          <div class="strength" aria-hidden="true">
+            <span class="strength-bar"><i></i><i></i><i></i><i></i></span>
+            <em class="strength-label">强度</em>
+          </div>
+          <small class="error" data-error></small>
+        </div>
+
+        <div class="field">
+          <label for="regConfirm">确认密码</label>
+          <input id="regConfirm" name="confirm" type="password" autocomplete="new-password"
+                 required maxlength="128" placeholder="再输一遍" />
+          <small class="error" data-error></small>
+        </div>
+
+        <button type="submit" class="btn-primary">创建账号</button>
+        <p class="form-msg" data-msg aria-live="polite"></p>
+      </form>
+
+      <p class="legal">继续即表示你同意 <a href="javascript:void(0)">服务条款</a> 与 <a href="javascript:void(0)">隐私政策</a></p>
+    </section>
+
+    <!-- 登录成功面板 -->
+    <section class="auth-card dashboard is-hidden" id="dashboard">
+      <div class="avatar" id="dashAvatar" aria-hidden="true">喵</div>
+      <h2 class="dash-title">欢迎回家~</h2>
+      <p class="dash-sub">好久不见，<span id="dashName">朋友</span>！今天也超努力哦</p>
+
+      <dl class="dash-info">
+        <div><dt>用户名</dt><dd id="dashUser"></dd></div>
+        <div><dt>邮箱</dt><dd id="dashEmail"></dd></div>
+        <div><dt>加入日期</dt><dd id="dashSince"></dd></div>
+      </dl>
+
+      <button type="button" class="btn-ghost" id="logoutBtn">退出登录</button>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
