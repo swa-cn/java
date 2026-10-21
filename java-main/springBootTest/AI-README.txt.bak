@@ -1,0 +1,44 @@
+============================================================
+AI 助手备忘录 (写给未来的 AI 会话: 接到"启动项目"类请求时, 请先读完本文件再动手, 可跳过所有排查步骤)
+============================================================
+
+[项目概况]
+- 位置: C:\Users\Administrator\Desktop\springBootTest
+- 技术栈: Spring Boot 3.4.5 + Java 21 (Zulu) + MyBatis-Plus + MySQL
+- 数据库: localhost:3306, 用户 root, 密码 123456, 库名 aurora (表 app_user / email_code 会自动初始化)
+- 启动后端口 8081, profile=dev, 访问 http://127.0.0.1:8081/
+- 前端项目(独立目录): C:\Users\Administrator\Desktop\java-main\login-vue (Vue 3 + Vite, 端口 5173, /api 已代理到后端 8081)
+- 本机每次开机重置: node_modules 和 target 会被删除, 脚本不依赖这两个文件夹 (前端缺 node_modules 时 start-all.bat 会自动 npm install)
+
+[最快启动方式 - 直接照做, 不要再排查]
+前后端一起启动 (cmd 或 bash 都可以): 在项目目录执行 start-all.bat (bash 里直接 ./start-all.bat)
+只启动后端: 执行 start.bat (bash 里直接 ./start.bat)
+只启动前端 (bash):
+  cd "C:/Users/Administrator/Desktop/java-main/login-vue" && npm run dev
+  (node_modules 缺失时先 npm install --registry=https://registry.npmmirror.com)
+bash 手动启动后端:
+  cd "C:/Users/Administrator/Desktop/springBootTest"
+  env -u SERVER__PORT -u SERVER__HOST ./mvnw.cmd spring-boot:run
+  (若 mvnw.cmd 失败, 改用缓存 Maven: C:/Users/Administrator/.m2/wrapper/dists/apache-maven-3.9.9/3477a4f1/bin/mvn.cmd)
+停止项目: 在项目目录执行 stop.bat (同时结束后端 8081 和前端 5173)
+验证: 后端 curl http://127.0.0.1:8081/ 返回 200; 前端访问 http://127.0.0.1:5173/
+
+[已踩过的坑 - 不要重复排查]
+0. 本目录的 .bat/.txt 文件必须保持 GBK 编码 + CRLF 换行; 若需修改, 先转成 UTF-8 改完再转回, 直接用 LF 换行会导致批处理解析错乱('m' 不是内部或外部命令)
+1. 环境变量 SERVER__PORT=58483 / SERVER__HOST 会被 WorkBuddy 注入, Spring 宽松绑定把它当成 server.port, 导致报 "Port 58483 was already in use"(该端口是 WorkBuddy 自己在用). 解决: 启动前清除这些环境变量 (start.bat 已内置; bash 用 env -u SERVER__PORT -u SERVER__HOST).
+2. bash 里直接跑 ./mvnw (shell 版) 可能报 classworlds ClassNotFound; Windows 下要用 mvnw.cmd (batch 版), 它依赖 .mvn/wrapper/maven-wrapper.properties (官方 3.9.9 URL), 能命中 ~/.m2 的本地缓存, 无需重新下载.
+3. 依赖走 aliyun 镜像, 冷启动首次下载约 1 分钟, 属正常现象, 不是卡死.
+4. 曾出现 Desktop 下项目文件夹"暂时消失"的文件系统抖动, 稍等重试即可, 不要当作项目被删.
+5. Java 在 PATH 里: C:\Program Files\Zulu\zulu-21
+6. 批处理里调用 npm / mvnw.cmd 等另一批处理程序时必须加 call 前缀; 不加 call 会移交控制权, 脚本从那一行开始静默中止(现象: 窗口一闪而过、无任何输出). 检查存在性用 where npm, 不要用 npm --version
+
+[启动成功的判断标准]
+- 后端日志出现 "Started SpringBootTestApplication" 和 "Tomcat started on port 8081"
+- 后端 curl http://127.0.0.1:8081/ 返回 HTTP 200
+- 前端日志出现 "Local: http://localhost:5173/", 访问 http://127.0.0.1:5173/ 能看到登录页
+
+[其他]
+- 项目里 scripts/test_auth.sh 是接口测试脚本
+- D:\workSpace\springBootTest 是另一份相似项目, 别搞混
+- java-main\login-site 是纯静态版登录页(无需构建), java-main\login-vue 是正式前端
+- 前端首次 npm install 走 npmmirror 镜像, 约 1-2 分钟, 属正常

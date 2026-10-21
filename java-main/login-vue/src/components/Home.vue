@@ -1,0 +1,1049 @@
+<template>
+  <div class="home">
+    <!-- 顶部导航栏 -->
+    <nav class="nav">
+      <div class="nav-inner">
+        <div class="nav-brand">
+          <CatMascot class="nav-cat" />
+          <span class="nav-logo">萌宠星球</span>
+        </div>
+
+        <ul class="nav-links">
+          <li :class="{ active: activeNav === 'home' }" @click="goNav('home')">首页</li>
+          <li :class="{ active: activeNav === 'discover' }" @click="goNav('discover')">发现</li>
+          <li :class="{ active: activeNav === 'message' }" @click="goNav('message')">消息</li>
+          <li :class="{ active: activeNav === 'me' }" @click="goNav('me')">我的</li>
+        </ul>
+
+        <div class="nav-user">
+          <button
+            type="button"
+            class="nav-avatar"
+            title="回到首页"
+            aria-label="回到首页"
+            @click="goNav('home')"
+          >{{ avatarLetter }}</button>
+          <button type="button" class="nav-logout" @click="$emit('logout')">退出</button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ============ 用户主页（点头像进入，覆盖在导航下方） ============ -->
+    <section v-if="pageUser" class="me-wrap">
+      <UserProfile
+        :person="pageUser"
+        :user="user"
+        @back="pageUser = null"
+        @chat="openChatWith"
+        @open-post="openUserPost"
+        @friend-added="onFriendAdded"
+        @toast="showToast"
+      />
+    </section>
+
+    <template v-else>
+    <!-- 首页：搜索 + 分类 + 动态 -->
+    <template v-if="activeNav === 'home'">
+      <!-- 搜索结果页：搜索框 / 热门词 / 品种详情「搜索相关动态」→ 整页跳转 -->
+      <SearchPage
+        v-if="pageSearch"
+        :keyword="pageSearch.keyword"
+        @back="pageSearch = null"
+        @search="onSearchFromPage"
+        @open-category="openSearchCategory"
+        @open-breed="openBreed"
+        @open-post="openMyPost"
+        @open-user="openUserProfile"
+      />
+
+      <!-- 分类详情页：点击分类后整页跳转 -->
+      <CategoryPage
+        v-else-if="pageCategory"
+        :category="pageCategory"
+        @back="pageCategory = null"
+        @select-breed="openBreed"
+      />
+
+      <template v-else>
+      <!-- ================= 首屏：左文右猫 对称布局 ================= -->
+      <section class="hero">
+        <div class="hero-inner">
+          <div class="hero-left">
+            <span class="hero-tag">MENGCHONG PLANET</span>
+            <h1 class="hero-title">
+              欢迎回家，{{ displayName }}<span class="tilde">~</span>
+            </h1>
+            <p class="hero-sub">今天想找点什么萌物呀？</p>
+
+            <form class="search" @submit.prevent="onSearch">
+              <svg class="search-ico" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2.4" />
+                <line x1="16.2" y1="16.2" x2="21" y2="21" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+              </svg>
+              <input
+                v-model="keyword"
+                class="search-input"
+                type="text"
+                placeholder="搜索萌宠 / 用户 / 动态…"
+              />
+              <button type="submit" class="search-btn">搜索</button>
+            </form>
+
+            <div class="chips">
+              <span class="chips-label">热门</span>
+              <button
+                v-for="c in hotChips"
+                :key="c"
+                type="button"
+                class="chip"
+                @click="pickChip(c)"
+              >{{ c }}</button>
+            </div>
+          </div>
+
+          <div class="hero-right">
+            <span class="hero-bubble">
+              <i class="bubble-line"></i>
+              今天也要被萌到哦
+            </span>
+            <CatMascot class="hero-cat" />
+            <span class="hero-ring" aria-hidden="true"></span>
+          </div>
+        </div>
+
+        <!-- 数据条：四等分 完全对称 -->
+        <ul class="hero-stats">
+          <li v-for="s in heroStats" :key="s.label">
+            <strong>{{ s.value }}</strong>
+            <span>{{ s.label }}</span>
+          </li>
+        </ul>
+      </section>
+
+      <!-- ================= 萌宠分类 ================= -->
+      <section class="categories">
+        <header class="section-head">
+          <h2 class="section-title">
+            <span class="section-dot">分</span>
+            萌宠分类
+          </h2>
+          <p class="section-desc">五大类萌宠，点开看品种图鉴</p>
+        </header>
+
+        <div class="category-grid">
+          <article
+            v-for="cat in petCategories"
+            :key="cat.id"
+            class="category-card"
+            :style="{ '--cat-color': cat.color }"
+            @click="openCategory(cat)"
+          >
+            <div class="category-media">
+              <img class="category-cover" :src="cat.image" :alt="cat.name" loading="lazy" />
+              <span class="category-icon">{{ cat.icon }}</span>
+            </div>
+            <div class="category-info">
+              <h3 class="category-name">{{ cat.name }}</h3>
+              <p class="category-count">{{ cat.breeds.length }} 个品种</p>
+              <div class="category-breeds">
+                <span v-for="b in cat.breeds.slice(0, 2)" :key="b.name">{{ b.name }}</span>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ================= 热门搜索（结果统一在独立结果页展示） ================= -->
+      <section class="feed hot-search">
+        <header class="section-head">
+          <h2 class="section-title">
+            <span class="section-dot">搜</span>
+            热门搜索
+          </h2>
+          <p class="section-desc">点一下直接看全部相关分类、品种和动态</p>
+        </header>
+
+        <div class="chips hot-chips">
+          <button
+            v-for="c in hotChips"
+            :key="'hot-' + c"
+            type="button"
+            class="chip"
+            @click="pickChip(c)"
+          >{{ c }}</button>
+        </div>
+      </section>
+      </template>
+    </template>
+
+    <!-- 发现：帖子流（列表 → 详情 → 发帖，页内切换） -->
+    <section v-else-if="activeNav === 'discover'" class="discover-wrap">
+      <DiscoverFeed
+        ref="discoverRef"
+        :user="user"
+        @friend-added="onFriendAdded"
+        @open-user="onOpenUser"
+        @open-chat="openChatWith"
+      />
+    </section>
+
+    <!-- 消息：好友列表 + 待通过申请 -->
+    <section v-else-if="activeNav === 'message'" class="feed">
+      <FriendsPage
+        ref="friendsRef"
+        :user="user"
+        @go-discover="goNav('discover')"
+        @toast="showToast"
+        @view-profile="openUserProfile"
+      />
+    </section>
+
+    <!-- 我的：账号信息 + 本人发帖记录 -->
+    <section v-else-if="activeNav === 'me'" class="me-wrap">
+      <Dashboard
+        :user="user"
+        @logout="$emit('logout')"
+        @open-post="openMyPost"
+        @go-discover="goNav('discover')"
+      />
+    </section>
+    </template>
+
+    <!-- 品种详情弹层 -->
+    <transition name="fade">
+      <div v-if="selectedBreed" class="breed-detail-mask" @click.self="selectedBreed = null">
+        <div class="breed-detail">
+          <button type="button" class="detail-close" @click="selectedBreed = null" aria-label="关闭">×</button>
+          <img class="detail-cover" :src="selectedBreed.image" :alt="selectedBreed.name" />
+          <div class="detail-body">
+            <span class="detail-cat" :style="{ background: detailCategory?.color }">{{ detailCategory?.name }}</span>
+            <h3 class="detail-name">{{ selectedBreed.name }}</h3>
+            <p class="detail-desc">{{ selectedBreed.desc }}</p>
+            <div class="detail-info">
+              <div><dt>性格</dt><dd>友善亲人（示例）</dd></div>
+              <div><dt>饲养难度</dt><dd>中等（示例）</dd></div>
+              <div><dt>适合人群</dt><dd>新手友好（示例）</dd></div>
+            </div>
+            <p class="detail-note">以上为示例信息，接入品种库后端后将展示完整资料。</p>
+            <button type="button" class="detail-search" @click="searchFromBreed(selectedBreed.name)">搜索相关动态</button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- 轻提示 -->
+    <transition name="fade">
+      <div v-if="toast" class="toast">{{ toast }}</div>
+    </transition>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, nextTick } from 'vue'
+import CatMascot from './CatMascot.vue'
+import Dashboard from './Dashboard.vue'
+import CategoryPage from './CategoryPage.vue'
+import DiscoverFeed from './DiscoverFeed.vue'
+import FriendsPage from './FriendsPage.vue'
+import SearchPage from './SearchPage.vue'
+import UserProfile from './UserProfile.vue'
+import { petCategories } from '../composables/petData'
+
+const props = defineProps({
+  user: { type: Object, required: true }
+})
+defineEmits(['logout'])
+
+const displayName = computed(
+  () => props.user?.nickname || props.user?.username || '朋友'
+)
+const avatarLetter = computed(
+  () => (displayName.value.charAt(0) || '喵').toUpperCase()
+)
+
+const activeNav = ref('home')
+const friendsRef = ref(null)
+// 用户主页详情页：非空时覆盖在导航下方展示（点头像进入）
+const pageUser = ref(null)
+function goNav(name) {
+  // 切换导航时收起「用户主页」「分类详情页」「搜索结果页」
+  pageUser.value = null
+  pageSearch.value = null
+  if (name !== 'home') pageCategory.value = null
+  activeNav.value = name
+  // 每次进入「消息」都重新拉一次好友（可能在帖子里刚加过好友）
+  if (name === 'message') {
+    nextTick(() => {
+      const fr = friendsRef.value
+      if (fr && typeof fr.load === 'function') fr.load()
+    })
+  }
+}
+
+const keyword = ref('')
+const toast = ref('')
+let toastTimer = null
+function showToast(msg) {
+  toast.value = msg
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => (toast.value = ''), 1800)
+}
+
+const hotChips = ['布偶猫', '柯基', '小奶狗', '仓鼠', '鹦鹉']
+
+// 首屏数据条（纯展示：分类数取自数据源，其余为运营位）
+const heroStats = computed(() => [
+  { value: String(petCategories.length), label: '萌宠大类' },
+  { value: String(petCategories.reduce((n, c) => n + c.breeds.length, 0)), label: '品种图鉴' },
+  { value: '6', label: '今日动态' },
+  { value: '5', label: '热门话题' }
+])
+
+// 点击分类：整页跳转到品种图鉴页（不在首页下方展开）
+const pageCategory = ref(null)
+const currentCategory = computed(() => pageCategory.value)
+function openCategory(cat) {
+  pageSearch.value = null
+  pageCategory.value = cat
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+// 搜索结果页：输入关键词后整页跳转，按「种类」分组展示全部相关结果
+const pageSearch = ref(null)
+
+/** 首页搜索框 / 热门词提交：跳到独立结果页（请求与渲染都由 SearchPage 负责） */
+function onSearch() {
+  const q = keyword.value.trim()
+  if (!q) {
+    showToast('先输入点关键词喵~')
+    return
+  }
+  pageCategory.value = null
+  pageSearch.value = { keyword: q }
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+/** 结果页里换关键词重搜：同步回首页输入框，返回首页时关键词不丢 */
+function onSearchFromPage(q) {
+  keyword.value = q
+}
+
+/** 结果页点「分类」：补全完整分类数据（含品种）后再打开图鉴页 */
+function openSearchCategory(c) {
+  if (!c || !c.id) return
+  const full = petCategories.find((x) => x.id === c.id)
+  openCategory(full || { ...c, breeds: [] })
+}
+
+// 品种详情（前端展示，不依赖后端）
+const selectedBreed = ref(null)
+function openBreed(b) {
+  selectedBreed.value = b
+}
+
+/** 品种详情弹层顶部的分类标签：从分类页进来用当前分类，从搜索结果进来用品种自带字段 */
+const detailCategory = computed(() => {
+  if (currentCategory.value) return currentCategory.value
+  const b = selectedBreed.value
+  if (!b) return null
+  return { name: b.categoryName || '萌宠', color: b.categoryColor || 'var(--pink)' }
+})
+
+function searchFromBreed(name) {
+  selectedBreed.value = null
+  pageCategory.value = null
+  keyword.value = name
+  onSearch()
+}
+
+function pickChip(c) {
+  keyword.value = c
+  onSearch()
+}
+
+// ------- 发现页：由 Home 负责切换导航，帖子详情/发帖在 DiscoverFeed 内部切换 -------
+const discoverRef = ref(null)
+
+/** 「我的」发帖记录 / 搜索结果里点击帖子：切到「发现」并打开该帖详情 */
+async function openMyPost(postId) {
+  if (!postId) return
+  pageCategory.value = null
+  pageSearch.value = null
+  activeNav.value = 'discover'
+  await nextTick() // 等 DiscoverFeed 挂载后再调用它暴露的 openPost
+  const feed = discoverRef.value
+  if (feed && typeof feed.openPost === 'function') feed.openPost(postId)
+}
+
+/** 在帖子里加了好友：消息页的好友列表需要刷新 */
+function onFriendAdded() {
+  const fr = friendsRef.value
+  if (fr && typeof fr.load === 'function') fr.load()
+}
+
+/** 从帖子直接和好友私信：切到「消息」并打开与该好友的聊天窗口 */
+async function openChatWith(payload) {
+  if (!payload || !payload.key) return
+  pageCategory.value = null
+  activeNav.value = 'message'
+  await nextTick()
+  const fr = friendsRef.value
+  if (fr && typeof fr.openChatWith === 'function') {
+    fr.openChatWith({ key: payload.key, name: payload.name })
+  }
+}
+
+/**
+ * 点击作者头像 → 打开 TA 的用户主页详情页。
+ * 本人则打开自己的主页（等同「我的」的公开视角）。
+ */
+async function onOpenUser(payload) {
+  if (!payload) return
+  openUserProfile({ key: payload.key, name: payload.name })
+}
+
+/** 打开用户主页详情页（覆盖在导航下方） */
+function openUserProfile(payload) {
+  if (!payload || !payload.key) return
+  pageCategory.value = null
+  pageSearch.value = null
+  pageUser.value = { key: payload.key, name: payload.name || payload.key }
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+/** 在用户主页里点开某篇帖子：回到「发现」并打开详情 */
+async function openUserPost(postId) {
+  pageUser.value = null
+  await openMyPost(postId)
+}
+
+</script>
+
+<style scoped>
+/* ---------- 容器（与登录卡片同款白卡 + 糖果描边） ---------- */
+.home {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 1000px;
+  background: var(--card);
+  border: 4px solid #fff;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  animation: pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ---------- 通用：左右对称的内容栅格 ---------- */
+.nav-inner,
+.hero-inner,
+.hero-stats,
+.section-head,
+.categories,
+.feed,
+.discover-wrap,
+.me-wrap {
+  width: 100%;
+  max-width: var(--home-max, 900px);
+  margin-left: auto;
+  margin-right: auto;
+}
+/* 各区块的水平内边距统一，保证左右完全对称 */
+.hero {
+  position: relative;
+  padding: 30px 30px 0;
+  background:
+    radial-gradient(70% 120% at 92% 6%, rgba(255, 207, 92, 0.22) 0%, transparent 62%),
+    radial-gradient(80% 120% at 6% 100%, rgba(124, 108, 255, 0.16) 0%, transparent 62%),
+    linear-gradient(180deg, #fff8fc 0%, #ffffff 78%);
+  border-bottom: 2px dashed var(--line);
+}
+/* ---------- 导航栏 ---------- */
+.nav {
+  padding: 0 30px;
+  background: linear-gradient(135deg, #ff93c4 0%, #ff6fa8 40%, #8b7bff 100%);
+  color: #fff;
+}
+.nav-inner {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 13px 0;
+}
+.nav-brand { display: flex; align-items: center; gap: 10px; flex: none; }
+.nav-cat {
+  position: static;
+  width: 42px;
+  height: 40px;
+  margin: 0;
+  filter: drop-shadow(0 4px 8px rgba(120, 40, 90, 0.3));
+}
+.nav-logo {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 6px rgba(120, 40, 90, 0.25);
+}
+.nav-links {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+}
+.nav-links li {
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  opacity: 0.92;
+  transition: background 0.18s ease, transform 0.12s ease;
+}
+.nav-links li:hover { background: rgba(255, 255, 255, 0.18); transform: translateY(-1px); }
+.nav-links li.active {
+  background: #fff;
+  color: var(--pink-deep);
+  opacity: 1;
+  box-shadow: 0 6px 14px -6px rgba(120, 40, 90, 0.4);
+}
+.nav-user { display: flex; align-items: center; gap: 10px; flex: none; }
+.nav-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.25);
+  border: 2px solid #fff;
+  color: #fff;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 14px;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.18s ease;
+}
+.nav-avatar:hover { background: rgba(255, 255, 255, 0.45); transform: translateY(-2px) scale(1.06); }
+.nav-avatar:active { transform: scale(0.96); }
+.nav-logout {
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  background: transparent;
+  color: #fff;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+.nav-logout:hover { background: rgba(255, 255, 255, 0.2); }
+
+/* ---------- 首屏 Hero：左文右猫 对称 ---------- */
+.hero {
+  position: relative;
+  padding: 30px 30px 0;
+  background:
+    radial-gradient(70% 120% at 92% 6%, rgba(255, 207, 92, 0.22) 0%, transparent 62%),
+    radial-gradient(80% 120% at 6% 100%, rgba(124, 108, 255, 0.16) 0%, transparent 62%),
+    linear-gradient(180deg, #fff8fc 0%, #ffffff 78%);
+  border-bottom: 2px dashed var(--line);
+}
+.hero-inner {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  align-items: center;
+  gap: 34px;
+  padding: 6px 0 26px;
+}
+
+.hero-left { min-width: 0; }
+.hero-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  margin-bottom: 12px;
+  border-radius: 999px;
+  background: #fff;
+  border: 2px solid var(--line);
+  color: var(--pink-deep);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+}
+.hero-title {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: 0.5px;
+}
+.tilde {
+  color: var(--pink);
+  display: inline-block;
+  animation: wiggle 1.6s ease-in-out infinite;
+  transform-origin: bottom left;
+}
+.hero-sub { margin: 10px 0 22px; color: var(--ink-soft); font-size: 14.5px; }
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 520px;
+  background: #fdf6fb;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 6px 6px 16px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.search:focus-within {
+  border-color: var(--pink);
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(255, 126, 179, 0.18);
+}
+.search-ico { flex: none; width: 22px; height: 22px; color: var(--ink-dim); }
+.search-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  outline: none;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--ink);
+  padding: 10px 4px;
+}
+.search-input::placeholder { color: #c9bccf; }
+.search-btn {
+  flex: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 11px 26px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 55%, #ff8a5c 130%);
+  box-shadow: 0 10px 20px -8px rgba(255, 92, 157, 0.6), inset 0 -3px 0 rgba(0, 0, 0, 0.08);
+  transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
+}
+.search-btn:hover { transform: translateY(-2px) scale(1.02); filter: brightness(1.04); }
+.search-btn:active { transform: scale(0.97); }
+
+.chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 16px 0 0; }
+.chips-label {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--ink-dim);
+  letter-spacing: 1px;
+}
+.chip {
+  border: 2px solid var(--line);
+  background: #fff;
+  color: var(--pink-deep);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+}
+.chip:hover { background: #fff5f9; border-color: var(--pink); transform: translateY(-1px); }
+
+/* 右栏：猫咪 + 圆形光晕（与左栏文字视觉重心对称） */
+.hero-right {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 224px;
+}
+.hero-ring {
+  position: absolute;
+  width: 224px;
+  height: 224px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 126, 179, 0.2) 0%, rgba(255, 207, 92, 0.16) 55%, transparent 72%);
+  border: 2px dashed rgba(255, 126, 179, 0.35);
+  animation: spin 26s linear infinite;
+}
+.hero-cat {
+  position: relative;
+  z-index: 1;
+  width: 152px;
+  height: 142px;
+  margin: 0;
+  filter: drop-shadow(0 14px 22px rgba(124, 78, 140, 0.28));
+  animation: bob 3.2s ease-in-out infinite;
+}
+.hero-bubble {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #fff;
+  border: 2px solid var(--line);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--pink-deep);
+  white-space: nowrap;
+  box-shadow: 0 8px 18px -10px rgba(124, 78, 140, 0.5);
+}
+.hero-bubble .bubble-line {
+  position: absolute;
+  left: 50%;
+  bottom: -9px;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  background: #fff;
+  border-right: 2px solid var(--line);
+  border-bottom: 2px solid var(--line);
+  transform: rotate(45deg);
+  border-radius: 0 0 3px 0;
+}
+
+/* 数据条：四等分，首尾对齐，视觉完全对称 */
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 2px dashed var(--line);
+}
+.hero-stats li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 15px 8px 17px;
+  border-left: 2px dashed var(--line);
+}
+.hero-stats li:first-child { border-left: 0; }
+.hero-stats strong { font-size: 19px; font-weight: 800; color: var(--pink-deep); line-height: 1; }
+.hero-stats span { font-size: 11.5px; font-weight: 700; color: var(--ink-dim); }
+
+/* ---------- 区块标题（左标题 + 右说明，两端对齐） ---------- */
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+}
+.section-desc { margin: 0; font-size: 12px; font-weight: 700; color: var(--ink-dim); }
+.section-dot {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--pink) 0%, var(--candy) 100%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* ---------- 萌宠分类 ---------- */
+.categories { padding: 26px 30px 8px; }
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+}
+.category-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 2px solid var(--line);
+  border-radius: 20px;
+  overflow: hidden;
+  cursor: pointer;
+  text-align: center;
+  transition: transform 0.16s ease, box-shadow 0.2s ease, border-color 0.18s ease;
+}
+.category-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 18px 32px -14px rgba(124, 78, 140, 0.4);
+  border-color: var(--cat-color, var(--pink));
+}
+.category-media { position: relative; }
+.category-cover {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  height: auto;
+  object-fit: cover;
+  display: block;
+  background: linear-gradient(135deg, #ffe3c2 0%, #ffd0e4 100%);
+}
+.category-icon {
+  position: absolute;
+  left: 50%;
+  bottom: -15px;
+  width: 30px;
+  height: 30px;
+  margin-left: -15px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--cat-color, var(--pink));
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  border: 2px solid #fff;
+  box-shadow: 0 5px 12px -4px rgba(120, 40, 90, 0.45);
+}
+.category-info { padding: 22px 10px 14px; }
+.category-name { margin: 0; font-size: 15px; font-weight: 800; }
+.category-count { margin: 3px 0 0; font-size: 11.5px; color: var(--ink-dim); font-weight: 700; }
+.category-breeds {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  margin: 9px 0 0;
+  padding-top: 9px;
+  border-top: 1px dashed var(--line);
+}
+.category-breeds span {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fdf6fb;
+  color: var(--ink-soft);
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* 品种详情弹层 */
+.breed-detail-mask {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(74, 59, 82, 0.32);
+  backdrop-filter: blur(3px);
+}
+.breed-detail {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  max-height: 92%;
+  overflow-y: auto;
+  background: var(--card);
+  border: 4px solid #fff;
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  animation: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.detail-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--ink);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 4px 10px -3px rgba(124, 78, 140, 0.4);
+  transition: background 0.18s ease, transform 0.12s ease;
+}
+.detail-close:hover { background: #fff; transform: scale(1.06); }
+.detail-cover {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  background: linear-gradient(135deg, #ffe3c2 0%, #ffd0e4 100%);
+  border-radius: 20px 20px 0 0;
+  display: block;
+}
+.detail-body { padding: 14px 20px 20px; text-align: center; }
+.detail-cat {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+.detail-name { margin: 0 0 6px; font-size: 21px; font-weight: 800; }
+.detail-desc { margin: 0 0 14px; font-size: 13.5px; line-height: 1.5; color: var(--ink-soft); }
+.detail-info {
+  display: grid;
+  gap: 9px;
+  text-align: left;
+  background: #fdf6fb;
+  border: 2px dashed var(--line);
+  border-radius: 16px;
+  padding: 12px 16px;
+  margin-bottom: 10px;
+}
+.detail-info div { display: flex; justify-content: space-between; gap: 12px; }
+.detail-info dt { font-size: 12.5px; font-weight: 700; color: var(--ink-dim); }
+.detail-info dd { margin: 0; font-size: 12.5px; font-weight: 800; }
+.detail-note { margin: 0 0 14px; font-size: 11.5px; color: var(--ink-dim); }
+.detail-search {
+  width: 100%;
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 16px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 55%, #ff8a5c 130%);
+  box-shadow: 0 10px 20px -8px rgba(255, 92, 157, 0.6), inset 0 -3px 0 rgba(0, 0, 0, 0.08);
+  transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
+}
+.detail-search:hover { transform: translateY(-2px); filter: brightness(1.04); }
+.detail-search:active { transform: scale(0.97); }
+
+/* ---------- 内容区 ---------- */
+.feed { padding: 22px 30px 34px; min-height: 140px; }
+/* 热门搜索：首页只留入口，结果统一在 SearchPage 展示 */
+.hot-search { min-height: 0; }
+.hot-search .hot-chips { margin: 14px 0 0; }
+.feed-tip,
+.empty { text-align: center; color: var(--ink-soft); padding: 24px 10px; }
+.empty-cat {
+  position: static;
+  width: 84px;
+  height: 78px;
+  margin: 0 auto 10px;
+  filter: drop-shadow(0 8px 14px rgba(124, 78, 140, 0.3));
+}
+.empty p { margin: 6px 0; font-size: 14px; }
+.empty-sub { font-size: 12px; color: var(--ink-dim); }
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+.card {
+  background: #fdf6fb;
+  border: 2px solid var(--line);
+  border-radius: 18px;
+  padding: 14px;
+  text-align: left;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 26px -12px rgba(124, 78, 140, 0.4);
+}
+/* 可点击的搜索结果（帖子） */
+.card-link { cursor: pointer; border-color: var(--pink); }
+.card-enter {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--pink-deep);
+}
+
+/* 发现页容器（详情/发帖为页内切换） */
+.discover-wrap { min-height: 260px; }
+
+.card-cover {
+  height: 96px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 34px;
+  font-weight: 800;
+  color: var(--pink-deep);
+  background: linear-gradient(135deg, #ffe3c2 0%, #ffd0e4 100%);
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+}
+.card-title { margin: 0 0 4px; font-size: 15px; font-weight: 800; }
+.card-summary { margin: 0 0 8px; font-size: 12.5px; color: var(--ink-soft); line-height: 1.4; }
+.card-author { font-size: 11.5px; color: var(--ink-dim); font-weight: 700; }
+
+.me-wrap { padding: 22px 0 34px; }
+
+/* ---------- 轻提示 ---------- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 40px;
+  transform: translateX(-50%);
+  background: rgba(74, 59, 82, 0.92);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 700;
+  z-index: 50;
+  box-shadow: 0 12px 26px -10px rgba(0, 0, 0, 0.4);
+}
+.fade-enter-active,
+.fade-leave-active { transition: opacity 0.25s ease, transform 0.25s ease; }
+.fade-enter-from,
+.fade-leave-to { opacity: 0; transform: translate(-50%, 10px); }
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 900px) {
+  .hero-inner { grid-template-columns: 1fr; gap: 18px; padding-bottom: 20px; text-align: center; }
+  .hero-left { display: flex; flex-direction: column; align-items: center; }
+  .search { margin: 0 auto; }
+  .chips { justify-content: center; }
+  .hero-right { order: -1; min-height: 196px; }
+  .hero-ring { width: 186px; height: 186px; }
+  .hero-cat { width: 126px; height: 118px; }
+  .category-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .cards { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .nav { padding: 0 16px; }
+  .nav-inner { flex-wrap: wrap; gap: 10px 12px; padding: 11px 0; }
+  .nav-links { order: 3; flex: 1 1 100%; }
+  .home { max-width: 100%; border-radius: 24px; }
+  .hero { padding: 22px 16px 0; }
+  .hero-title { font-size: 25px; }
+  .hero-sub { margin: 8px 0 18px; }
+  .hero-tag { margin-bottom: 10px; }
+  .category-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .categories { padding: 20px 16px 6px; }
+  .feed { padding: 18px 16px 28px; }
+  .cards { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .hero-stats li { padding: 12px 4px 14px; }
+  .hero-stats strong { font-size: 17px; }
+  .section-head { flex-direction: column; align-items: flex-start; gap: 4px; }
+}
+</style>
