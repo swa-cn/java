@@ -77,7 +77,7 @@
       </div>
 
       <div v-else class="empty">
-        <CatMascot class="empty-cat" />
+        <PetMascot :pet="todayPet" class="empty-cat" />
         <p>这个分类还没有帖子哦，来发第一条吧~</p>
       </div>
     </template>
@@ -118,7 +118,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import CatMascot from './CatMascot.vue'
+import PetMascot from './PetMascot.vue'
 import PostMedia from './PostMedia.vue'
 import PostDetail from './PostDetail.vue'
 import PostComposer from './PostComposer.vue'
@@ -130,10 +130,13 @@ import {
 } from '../composables/petData'
 import { excerpt, formatTime, isLiked } from '../composables/postStore'
 import { postRuntime, fetchPosts } from '../api/post'
+import { useTodayPet } from '../composables/dailyPet'
 
 const props = defineProps({
   user: { type: Object, default: () => ({}) }
 })
+// 空状态吉祥物 = 今日宠物（一天一换，点击可换表情）
+const todayPet = useTodayPet()
 // friend-added：在帖子里加了好友，主页需要刷新好友列表
 // open-user   ：点了作者头像，需要切到对方主页 / 回到自己的首页
 // open-chat   ：已是好友，直接和作者私信

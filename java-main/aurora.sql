@@ -11,7 +11,7 @@
  Target Server Version : 80039 (8.0.39)
  File Encoding         : 65001
 
- Date: 16/10/2026 16:49:05
+ Date: 23/10/2026 16:50:15
 */
 
 SET NAMES utf8mb4;
@@ -32,13 +32,13 @@ CREATE TABLE `app_user`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_username`(`username` ASC) USING BTREE,
   UNIQUE INDEX `uk_email`(`email` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of app_user
 -- ----------------------------
-INSERT INTO `app_user` VALUES (1, 'qqq', NULL, '11', '$2a$10$oNFN3A7o3VaZsHma0f.5jO3uAKkH2qrByZkpxKZ0PDpRvXOwiNc3m', '2026-10-16 15:40:26', '2026-10-16 15:40:26');
-INSERT INTO `app_user` VALUES (2, 'www', NULL, '22', '$2a$10$GbRWFYvGDqr.ZdemvgfsaejVxQQQ61LZ2KLrheiMKed44FQKvCmsy', '2026-10-16 16:28:21', '2026-10-16 16:28:21');
+INSERT INTO `app_user` VALUES (3, 'eee', NULL, '33', '$2a$10$Uo3ffo2bxxc1HqlHBjCcQ.3gGr9VugtbjMSa5XvM8Graz8qidhuga', '2026-10-23 16:47:50', '2026-10-23 16:47:50');
+INSERT INTO `app_user` VALUES (4, 'rrr', NULL, '44', '$2a$10$EP.pKn.oJKHW.Ryvs4TpvufR4UDpVsFlPAIBPW29B8gc6o0aRcAJG', '2026-10-23 16:48:40', '2026-10-23 16:48:40');
 
 -- ----------------------------
 -- Table structure for pet_breed
@@ -46,14 +46,14 @@ INSERT INTO `app_user` VALUES (2, 'www', NULL, '22', '$2a$10$GbRWFYvGDqr.Zdemvgf
 DROP TABLE IF EXISTS `pet_breed`;
 CREATE TABLE `pet_breed`  (
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `category_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '鎵?睘鍒嗙被 id',
-  `name` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '鍝佺?鍚',
-  `image` varchar(300) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '鍝佺?鍥',
-  `description` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '鍝佺?绠?粙',
-  `sort_no` int NOT NULL DEFAULT 0 COMMENT '鎺掑簭锛堝崌搴忥級',
+  `category_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `name` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `image` varchar(300) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  `description` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  `sort_no` int NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_category_sort`(`category_id` ASC, `sort_no` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 23 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '钀屽疇鍝佺?鍥鹃壌' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 23 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of pet_breed
@@ -86,15 +86,15 @@ INSERT INTO `pet_breed` VALUES (22, 'fish', '热带鱼', '/images/pets/fish_trop
 -- ----------------------------
 DROP TABLE IF EXISTS `pet_category`;
 CREATE TABLE `pet_category`  (
-  `id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '鍒嗙被 id锛歝at/dog/small/bird/fish',
-  `name` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '鍒嗙被鍚',
-  `icon` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '鍗曞瓧鍥炬爣',
-  `color` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '涓婚?鑹',
-  `image` varchar(300) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '灏侀潰鍥',
-  `sort_no` int NOT NULL DEFAULT 0 COMMENT '鎺掑簭锛堝崌搴忥級',
+  `id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `name` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `icon` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  `color` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  `image` varchar(300) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  `sort_no` int NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_sort`(`sort_no` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '钀屽疇鍒嗙被' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of pet_category
@@ -121,13 +121,15 @@ CREATE TABLE `pet_friend`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_owner_friend`(`owner_key` ASC, `friend_key` ASC) USING BTREE,
   INDEX `idx_owner_status`(`owner_key` ASC, `status` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 7 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of pet_friend
 -- ----------------------------
-INSERT INTO `pet_friend` VALUES (5, 'www', 'qqq', '11', 'friend', 'post', '2026-10-16 16:42:21', '2026-10-16 16:44:28');
-INSERT INTO `pet_friend` VALUES (6, 'qqq', 'www', '22', 'friend', 'post', '2026-10-16 16:44:28', '2026-10-16 16:44:28');
+INSERT INTO `pet_friend` VALUES (1, 'cutetest01', 'cutetest02', '测试02', 'friend', 'manual', '2026-10-23 16:42:42', '2026-10-23 16:42:42');
+INSERT INTO `pet_friend` VALUES (2, 'cutetest02', 'cutetest01', 'cutetest01', 'friend', 'manual', '2026-10-23 16:42:42', '2026-10-23 16:42:42');
+INSERT INTO `pet_friend` VALUES (3, 'rrr', 'eee', '33', 'friend', 'post', '2026-10-23 16:48:47', '2026-10-23 16:49:03');
+INSERT INTO `pet_friend` VALUES (4, 'eee', 'rrr', '44', 'friend', 'post', '2026-10-23 16:49:03', '2026-10-23 16:49:03');
 
 -- ----------------------------
 -- Table structure for pet_message
@@ -146,13 +148,13 @@ CREATE TABLE `pet_message`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_owner_peer`(`owner_key` ASC, `peer_key` ASC) USING BTREE,
   INDEX `idx_owner_created`(`owner_key` ASC, `created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of pet_message
 -- ----------------------------
-INSERT INTO `pet_message` VALUES (3, 'qqq', 'www', '22', 'qqq', '11', 'nh', 1, '2026-10-16 16:44:36');
-INSERT INTO `pet_message` VALUES (4, 'www', 'qqq', '11', 'qqq', '11', 'nh', 1, '2026-10-16 16:44:36');
+INSERT INTO `pet_message` VALUES (1, 'cutetest01', 'cutetest02', '测试02', 'cutetest01', 'cutetest01', '你好呀 cutetest02!', 1, '2026-10-23 16:42:42');
+INSERT INTO `pet_message` VALUES (2, 'cutetest02', 'cutetest01', 'cutetest01', 'cutetest01', 'cutetest01', '你好呀 cutetest02!', 0, '2026-10-23 16:42:42');
 
 -- ----------------------------
 -- Table structure for pet_post
@@ -175,7 +177,7 @@ CREATE TABLE `pet_post`  (
 -- ----------------------------
 -- Records of pet_post
 -- ----------------------------
-INSERT INTO `pet_post` VALUES (1, '11', '11w', 'cat', 'ds', 'qqq', '11', '2026-10-16 16:17:29');
+INSERT INTO `pet_post` VALUES (1, '1', '1', 'cat', '1', 'eee', '33', '2026-10-23 16:48:21');
 
 -- ----------------------------
 -- Table structure for pet_post_comment
@@ -195,7 +197,7 @@ CREATE TABLE `pet_post_comment`  (
 -- ----------------------------
 -- Records of pet_post_comment
 -- ----------------------------
-INSERT INTO `pet_post_comment` VALUES (1, 1, 'www', '22', 'hhhhh', '2026-10-16 16:31:24');
+INSERT INTO `pet_post_comment` VALUES (1, 1, 'rrr', '44', '1', '2026-10-23 16:48:52');
 
 -- ----------------------------
 -- Table structure for pet_post_like
@@ -208,13 +210,11 @@ CREATE TABLE `pet_post_like`  (
   `created_at` datetime NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_post_user`(`post_id` ASC, `user_key` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of pet_post_like
 -- ----------------------------
-INSERT INTO `pet_post_like` VALUES (1, 1, 'qqq', '2026-10-16 16:17:32');
-INSERT INTO `pet_post_like` VALUES (2, 1, 'www', '2026-10-16 16:31:26');
 
 -- ----------------------------
 -- Table structure for pet_post_media
@@ -230,7 +230,7 @@ CREATE TABLE `pet_post_media`  (
   `sort_no` int NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_post`(`post_id` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of pet_post_media

@@ -2,9 +2,9 @@
 // api/post.js —— 「发现」帖子接口层
 //
 // 与 api/auth.js、api/home.js 保持同样的双模式设计：
-//  1) USE_MOCK = true（默认，本地演示）：直接读写本地 postStore（localStorage
-//     + IndexedDB 存图片/视频），页面刷新数据仍在，可完整演示发帖流程。
-//  2) USE_MOCK = false（对接真实后端）：走下面的接口约定。
+//  1) USE_MOCK = false（默认，对接真实后端）：走下面的接口约定。
+
+//  2) USE_MOCK = true（本地演示）：直接读写本地 postStore（localStorage + IndexedDB
 //
 // 接口约定（待后端实现）：
 //  GET  /content/posts?category=<id>
@@ -31,10 +31,10 @@ import { saveFiles, deleteMedia } from '../composables/mediaStore'
 import { reactive } from 'vue'
 
 const API_BASE = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '')
-const USE_MOCK =
-  import.meta.env.VITE_USE_MOCK === undefined
-    ? true
-    : String(import.meta.env.VITE_USE_MOCK) !== 'false'
+// 默认对接真实后端；只有显式设置 VITE_USE_MOCK=true 才走本地 mock。
+// 注意：mock 模式数据仅存浏览器 localStorage，跨浏览器/跨设备不可见，
+// 会出现「注册账号数据库查不到、加好友对方收不到」的问题（详见 .env.example）。
+const USE_MOCK = String(import.meta.env.VITE_USE_MOCK) === 'true'
 
 /**
  * 帖子功能的运行态（响应式，供 UI 显示提示）：

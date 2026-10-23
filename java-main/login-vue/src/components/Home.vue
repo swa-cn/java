@@ -102,12 +102,20 @@
           </div>
 
           <div class="hero-right">
-            <span class="hero-bubble">
-              <i class="bubble-line"></i>
-              今天也要被萌到哦
-            </span>
-            <CatMascot class="hero-cat" />
-            <span class="hero-ring" aria-hidden="true"></span>
+            <div class="hero-stage">
+              <span class="hero-ring" aria-hidden="true"></span>
+              <span class="hero-bubble">
+                <i class="bubble-line"></i>
+                {{ petBubble }}
+              </span>
+              <!-- 圆环上的漂浮小装饰 -->
+              <span class="hero-deco hd-paw1" aria-hidden="true">🐾</span>
+              <span class="hero-deco hd-paw2" aria-hidden="true">🐾</span>
+              <span class="hero-deco hd-spark1" aria-hidden="true">✨</span>
+              <span class="hero-deco hd-spark2" aria-hidden="true">✦</span>
+              <span class="hero-deco hd-heart" aria-hidden="true">💗</span>
+              <PetMascot :pet="todayPet" class="hero-cat" />
+            </div>
           </div>
         </div>
 
@@ -241,6 +249,7 @@
 <script setup>
 import { ref, computed, nextTick } from 'vue'
 import CatMascot from './CatMascot.vue'
+import PetMascot from './PetMascot.vue'
 import Dashboard from './Dashboard.vue'
 import CategoryPage from './CategoryPage.vue'
 import DiscoverFeed from './DiscoverFeed.vue'
@@ -248,6 +257,7 @@ import FriendsPage from './FriendsPage.vue'
 import SearchPage from './SearchPage.vue'
 import UserProfile from './UserProfile.vue'
 import { petCategories } from '../composables/petData'
+import { petOfTheDay, bubbleOfPet } from '../composables/dailyPet'
 
 const props = defineProps({
   user: { type: Object, required: true }
@@ -290,6 +300,10 @@ function showToast(msg) {
 }
 
 const hotChips = ['布偶猫', '柯基', '小奶狗', '仓鼠', '鹦鹉']
+
+/* ---------- 首屏吉祥物：宠物一天一换 + 点击换表情 ---------- */
+const todayPet = computed(() => petOfTheDay(props.user?.username))
+const petBubble = computed(() => bubbleOfPet(todayPet.value))
 
 // 首屏数据条（纯展示：分类数取自数据源，其余为运营位）
 const heroStats = computed(() => [
@@ -655,25 +669,43 @@ async function openUserPost(postId) {
 }
 .chip:hover { background: #fff5f9; border-color: var(--pink); transform: translateY(-1px); }
 
-/* 右栏：猫咪 + 圆形光晕（与左栏文字视觉重心对称） */
+/* 右栏：猫咪舞台（圆环 + 气泡 + 漂浮装饰都相对同一圆心定位） */
 .hero-right {
   position: relative;
   display: grid;
   place-items: center;
-  min-height: 224px;
+  min-height: 252px;
+}
+.hero-stage {
+  position: relative;
+  width: 224px;
+  height: 224px;
+  display: grid;
+  place-items: center;
 }
 .hero-ring {
   position: absolute;
-  width: 224px;
-  height: 224px;
+  inset: 0;
   border-radius: 50%;
   background: radial-gradient(circle at 50% 50%, rgba(255, 126, 179, 0.2) 0%, rgba(255, 207, 92, 0.16) 55%, transparent 72%);
   border: 2px dashed rgba(255, 126, 179, 0.35);
   animation: spin 26s linear infinite;
 }
+/* 内圈：反向慢转的黄色虚线环，增加层次 */
+.hero-ring::after {
+  content: "";
+  position: absolute;
+  inset: 16px;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 207, 92, 0.4);
+  animation: spin 18s linear infinite reverse;
+}
 .hero-cat {
   position: relative;
   z-index: 1;
+  /* 重置全局 .mascot 的 absolute 定位残留, 否则猫会贴到视口右缘被裁掉 */
+  top: auto;
+  left: auto;
   width: 152px;
   height: 142px;
   margin: 0;
@@ -682,7 +714,7 @@ async function openUserPost(postId) {
 }
 .hero-bubble {
   position: absolute;
-  top: 2px;
+  top: -17px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 2;
@@ -695,6 +727,11 @@ async function openUserPost(postId) {
   color: var(--pink-deep);
   white-space: nowrap;
   box-shadow: 0 8px 18px -10px rgba(124, 78, 140, 0.5);
+  animation: bubble-bob 4s ease-in-out infinite;
+}
+@keyframes bubble-bob {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(-5px); }
 }
 .hero-bubble .bubble-line {
   position: absolute;
@@ -709,6 +746,25 @@ async function openUserPost(postId) {
   transform: rotate(45deg);
   border-radius: 0 0 3px 0;
 }
+
+/* 圆环上的漂浮小装饰（--r 为各自基础旋转角） */
+.hero-deco {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 3px 6px rgba(124, 78, 140, 0.28));
+  animation: hero-float 4.4s ease-in-out infinite;
+}
+@keyframes hero-float {
+  0%, 100% { transform: translateY(0) rotate(var(--r, -6deg)); }
+  50%      { transform: translateY(-11px) rotate(calc(var(--r, -6deg) + 10deg)); }
+}
+.hd-paw1   { top: -4px;  right: 0;    font-size: 19px; --r: 16deg; }
+.hd-paw2   { top: 30px;  left: -4px;  font-size: 13px; --r: -22deg; opacity: 0.85; animation-delay: -2.2s; }
+.hd-spark1 { top: 42%;   left: -12px; font-size: 15px; color: #ffcf5c; animation: twinkle 3s ease-in-out infinite; }
+.hd-heart  { bottom: 10px; left: 15%; font-size: 16px; --r: -8deg; animation-delay: -1.4s; }
+.hd-spark2 { bottom: 22%; right: -8px; font-size: 12px; color: #ff9ec4; animation: twinkle 3.6s ease-in-out infinite -1.6s; }
 
 /* 数据条：四等分，首尾对齐，视觉完全对称 */
 .hero-stats {
@@ -1022,9 +1078,12 @@ async function openUserPost(postId) {
   .hero-left { display: flex; flex-direction: column; align-items: center; }
   .search { margin: 0 auto; }
   .chips { justify-content: center; }
-  .hero-right { order: -1; min-height: 196px; }
-  .hero-ring { width: 186px; height: 186px; }
+  .hero-right { order: -1; min-height: 208px; }
+  .hero-stage { width: 186px; height: 186px; }
   .hero-cat { width: 126px; height: 118px; }
+  .hero-bubble { top: -15px; font-size: 11px; }
+  .hd-paw1 { font-size: 16px; }
+  .hd-spark1 { display: none; }
   .category-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
   .cards { grid-template-columns: repeat(3, 1fr); }
 }

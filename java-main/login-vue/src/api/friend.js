@@ -2,8 +2,8 @@
 // api/friend.js —— 好友接口层
 //
 // 与 api/post.js、api/auth.js 保持一致的双模式设计：
-//  1) USE_MOCK = true（默认）：直接读写 friendStore（localStorage）
-//  2) USE_MOCK = false：走后端接口，接口不可用时自动回退本地
+//  1) USE_MOCK = false（默认）：走后端接口，接口不可用时自动回退本地
+//  2) USE_MOCK = true：直接读写 friendStore（localStorage，跨浏览器不可见）
 //
 // 接口约定（见 springBootTest FriendController）：
 //  GET    /content/friends?owner=&status=           -> { ok, items: [Relation] }
@@ -22,10 +22,10 @@ import * as store from '../composables/friendStore'
 import { reactive } from 'vue'
 
 const API_BASE = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '')
-const USE_MOCK =
-  import.meta.env.VITE_USE_MOCK === undefined
-    ? true
-    : String(import.meta.env.VITE_USE_MOCK) !== 'false'
+// 默认对接真实后端；只有显式设置 VITE_USE_MOCK=true 才走本地 mock。
+// 注意：mock 模式数据仅存浏览器 localStorage，跨浏览器/跨设备不可见，
+// 会出现「注册账号数据库查不到、加好友对方收不到」的问题（详见 .env.example）。
+const USE_MOCK = String(import.meta.env.VITE_USE_MOCK) === 'true'
 
 /** 好友功能运行态（供 UI 提示） */
 export const friendRuntime = reactive({ localMode: USE_MOCK, reason: '' })

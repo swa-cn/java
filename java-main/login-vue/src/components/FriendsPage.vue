@@ -29,7 +29,7 @@
 
         <div ref="scrollRef" class="chat-body">
           <div v-if="!chatMessages.length" class="chat-empty">
-            <CatMascot class="empty-cat" />
+            <PetMascot :pet="todayPet" class="empty-cat" />
             <p>和「{{ chatting.peerName }}」还没有聊过，说点什么吧~</p>
           </div>
           <ul v-else class="chat-list">
@@ -201,7 +201,7 @@
         </ul>
 
         <div v-else class="fr-empty">
-          <CatMascot class="empty-cat" />
+          <PetMascot :pet="todayPet" class="empty-cat" />
           <p>还没有聊天记录哦。点好友头像开始聊天，或先搜索添加个好友吧~</p>
           <button type="button" class="fr-btn primary" @click="tab = 'friends'">看看好友</button>
         </div>
@@ -231,7 +231,7 @@
         </ul>
 
         <div v-else class="fr-empty">
-          <CatMascot class="empty-cat" />
+          <PetMascot :pet="todayPet" class="empty-cat" />
           <p>还没有好友哦，用上面的搜索框找人，或去帖子里加同好吧~</p>
           <button type="button" class="fr-btn primary" @click="$emit('go-discover')">去逛发现</button>
         </div>
@@ -280,7 +280,8 @@
 
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
-import CatMascot from './CatMascot.vue'
+import PetMascot from './PetMascot.vue'
+import { useTodayPet } from '../composables/dailyPet'
 import {
   fetchFriends,
   fetchPending,
@@ -306,6 +307,8 @@ const emit = defineEmits(['go-discover', 'toast', 'view-profile'])
 
 const ownerKey = computed(() => props.user?.username || 'guest')
 const userName = computed(() => props.user?.nickname || props.user?.username || '我')
+// 空状态吉祥物 = 今日宠物（一天一换，点击可换表情）
+const todayPet = useTodayPet()
 
 const tab = ref('messages')
 const friends = ref([])

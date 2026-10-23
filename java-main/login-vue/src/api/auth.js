@@ -2,9 +2,9 @@
 // api/auth.js —— 认证后端接口
 //
 // 这是前端调用后端的唯一入口。当前提供两种运行模式：
-//  1) USE_MOCK = true（默认，本地演示）：用浏览器 localStorage 模拟后端，
+//  1) USE_MOCK = false（默认，对接真实后端）：通过 fetch 请求 API_BASE 下的 REST 接口。
 //     图形验证码用 canvas 在本地生成。
-//  2) USE_MOCK = false（对接真实后端）：通过 fetch 请求 API_BASE 下的 REST 接口。
+//  2) USE_MOCK = true（本地演示）：用浏览器 localStorage 模拟后端，数据不落库、
 //
 // 2026-10 起：注册不再收集邮箱；人机校验改为图形验证码。
 // 接口约定：
@@ -24,10 +24,10 @@ import { RE_USER, isUsernameTaken } from '../composables/useAuth'
 
 /* ---------------- 运行时配置 ---------------- */
 const API_BASE = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '')
-const USE_MOCK =
-  import.meta.env.VITE_USE_MOCK === undefined
-    ? true
-    : String(import.meta.env.VITE_USE_MOCK) !== 'false'
+// 默认对接真实后端；只有显式设置 VITE_USE_MOCK=true 才走本地 mock。
+// 注意：mock 模式数据仅存浏览器 localStorage，跨浏览器/跨设备不可见，
+// 会出现「注册账号数据库查不到、加好友对方收不到」的问题（详见 .env.example）。
+const USE_MOCK = String(import.meta.env.VITE_USE_MOCK) === 'true'
 
 /* ---------------- 密码策略（前后端共用同一套规则） ---------------- */
 export const PASSWORD_POLICY = {

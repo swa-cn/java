@@ -26,10 +26,10 @@ import { searchPosts, excerpt } from '../composables/postStore'
 import { petCategories } from '../composables/petData'
 
 const API_BASE = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '')
-const USE_MOCK =
-  import.meta.env.VITE_USE_MOCK === undefined
-    ? true
-    : String(import.meta.env.VITE_USE_MOCK) !== 'false'
+// 默认对接真实后端；只有显式设置 VITE_USE_MOCK=true 才走本地 mock。
+// 注意：mock 模式数据仅存浏览器 localStorage，跨浏览器/跨设备不可见，
+// 会出现「注册账号数据库查不到、加好友对方收不到」的问题（详见 .env.example）。
+const USE_MOCK = String(import.meta.env.VITE_USE_MOCK) === 'true'
 
 /** 每组默认条数，与服务端默认值保持一致 */
 const LIMIT = 20

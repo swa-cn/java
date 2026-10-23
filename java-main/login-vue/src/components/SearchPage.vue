@@ -170,7 +170,7 @@
 
     <!-- ================= 空结果 ================= -->
     <div v-else class="sp-empty">
-      <CatMascot class="sp-empty-cat" />
+      <PetMascot :pet="todayPet" class="sp-empty-cat" />
       <p class="sp-empty-title">没有找到与「{{ shownQuery }}」相关的内容</p>
       <p v-if="result.error" class="sp-empty-sub">（{{ result.error }}）</p>
       <p class="sp-empty-sub">换个关键词试试，或者直接逛这些：</p>
@@ -183,9 +183,13 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import CatMascot from './CatMascot.vue'
+import PetMascot from './PetMascot.vue'
 import { searchAll } from '../api/home'
 import { formatTime } from '../composables/postStore'
+import { useTodayPet } from '../composables/dailyPet'
+
+// 空结果吉祥物 = 今日宠物（一天一换，点击可换表情）
+const todayPet = useTodayPet()
 
 const props = defineProps({
   /** 进入页面时的关键词（来自首页搜索框 / 热门词 / 品种详情的「搜索相关动态」） */

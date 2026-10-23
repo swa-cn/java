@@ -73,7 +73,7 @@
 
       <!-- 空状态 -->
       <div v-else class="mine-empty">
-        <CatMascot class="empty-cat" />
+        <PetMascot :pet="todayPet" class="empty-cat" />
         <p>你还没有发过帖子哦，去发现里晒一只吧~</p>
         <button type="button" class="btn-ghost small" @click="$emit('go-discover')">
           去发帖
@@ -85,11 +85,12 @@
 
 <script setup>
 import { computed, ref, watch, onMounted } from 'vue'
-import CatMascot from './CatMascot.vue'
+import PetMascot from './PetMascot.vue'
 import PostMedia from './PostMedia.vue'
 import { fetchPosts } from '../api/post'
 import { excerpt, formatTime, isLiked } from '../composables/postStore'
 import { categoryName, categoryColor, categoryIcon } from '../composables/petData'
+import { petOfTheDay } from '../composables/dailyPet'
 
 const props = defineProps({
   user: { type: Object, required: true }
@@ -102,6 +103,8 @@ const displayName = computed(
 const avatarLetter = computed(
   () => (displayName.value.charAt(0) || '喵').toUpperCase()
 )
+// 「我的」页空状态的吉祥物 = 首页同一只今日宠物（一天一换，点击可换表情）
+const todayPet = computed(() => petOfTheDay(props.user?.username))
 const since = computed(() =>
   props.user?.createdAt
     ? new Date(props.user.createdAt).toLocaleDateString('zh-CN')

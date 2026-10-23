@@ -119,7 +119,7 @@
       </div>
 
       <div v-else class="up-empty">
-        <CatMascot class="empty-cat" />
+        <PetMascot :pet="todayPet" class="empty-cat" />
         <p>{{ self ? '你还没有发过帖子哦~' : 'TA 还没有发过帖子~' }}</p>
       </div>
     </section>
@@ -128,12 +128,16 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import CatMascot from './CatMascot.vue'
+import PetMascot from './PetMascot.vue'
 import PostMedia from './PostMedia.vue'
 import { fetchPosts } from '../api/post'
 import { addFriend, fetchRelation, acceptFriend } from '../api/friend'
 import { excerpt, formatTime } from '../composables/postStore'
 import { categoryName, categoryColor, categoryIcon } from '../composables/petData'
+import { useTodayPet } from '../composables/dailyPet'
+
+// 空状态吉祥物 = 今日宠物（一天一换，点击可换表情）
+const todayPet = useTodayPet()
 
 const props = defineProps({
   // 要展示的人：{ key, name }

@@ -2,8 +2,8 @@
 // api/message.js —— 好友私信接口层
 //
 // 与 api/post.js、api/friend.js 一致的双模式设计：
-//  1) USE_MOCK = true（默认）：直接读写 messageStore（localStorage）
-//  2) USE_MOCK = false：走后端接口，接口不可用时自动回退本地
+//  1) USE_MOCK = false（默认）：走后端接口，接口不可用时自动回退本地
+//  2) USE_MOCK = true：直接读写 messageStore（localStorage，跨浏览器不可见）
 //
 // 接口约定（待后端实现）：
 //  GET  /content/messages/conversations?owner=<key>     -> { ok, items: [Conversation] }
@@ -20,10 +20,10 @@ import * as store from '../composables/messageStore'
 import { reactive } from 'vue'
 
 const API_BASE = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '')
-const USE_MOCK =
-  import.meta.env.VITE_USE_MOCK === undefined
-    ? true
-    : String(import.meta.env.VITE_USE_MOCK) !== 'false'
+// 默认对接真实后端；只有显式设置 VITE_USE_MOCK=true 才走本地 mock。
+// 注意：mock 模式数据仅存浏览器 localStorage，跨浏览器/跨设备不可见，
+// 会出现「注册账号数据库查不到、加好友对方收不到」的问题（详见 .env.example）。
+const USE_MOCK = String(import.meta.env.VITE_USE_MOCK) === 'true'
 
 /** 私信功能运行态（供 UI 提示） */
 export const messageRuntime = reactive({ localMode: USE_MOCK, reason: '' })
