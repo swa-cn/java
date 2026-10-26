@@ -7,17 +7,23 @@ import com.fenglin.springboottest.exception.AuthException;
 import com.fenglin.springboottest.mapper.AppUserMapper;
 import com.fenglin.springboottest.service.AuthService;
 import com.fenglin.springboottest.service.CaptchaService;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.regex.Pattern;
 
+/**
+ * 认证实现。
+ *
+ * ⚠️ 密码策略变更（需求指定）：密码以「明文」保存与比对，不再做 BCrypt 哈希。
+ *    这是内部学习/演示项目的要求，真实环境必须加盐哈希（bcrypt/argon2），不可明文。
+ *
+ * 权限：app_user.role —— 0=管理员，1=默认（注册用户）。
+ */
 @Service
 public class AuthServiceImpl implements AuthService {
 
     private final AppUserMapper userMapper;
-    private final PasswordEncoder passwordEncoder;
     private final CaptchaService captchaService;
 
     private static final Pattern RE_USER = Pattern.compile("^[A-Za-z0-9_]{3,20}$");
@@ -25,9 +31,12 @@ public class AuthServiceImpl implements AuthService {
     private static final int PW_MIN_LENGTH = 8;
     private static final int PW_MIN_CLASSES = 2;
 
-    public AuthServiceImpl(AppUserMapper userMapper, PasswordEncoder passwordEncoder, CaptchaService captchaService) {
+    /** 权限常量：0=管理员，1=默认 */
+    public static final int ROLE_ADMIN = 0;
+    public static final int ROLE_DEFAULT = 1;
+
+    public AuthServiceImpl(AppUserMapper userMapper, CaptchaService captchaService) {
         this.userMapper = userMapper;
-        this.passwordEncoder = passwordEncoder;
         this.captchaService = captchaService;
     }
 
@@ -63,7 +72,10 @@ public class AuthServiceImpl implements AuthService {
         // 不再收集邮箱：email 留空（NULL），登录一律走用户名
         String nickname = req.getNickname() == null ? null : req.getNickname().trim();
         user.setNickname(nickname == null || nickname.isEmpty() ? null : nickname);
-        user.setPassword(passwordEncoder.encode(password));
+        // 明文密码（需求指定）：不做加密，原样入库
+        user.setPassword(password);
+        // 注册用户统一为「默认权限」；管理员权限只能由管理员/DBA 在库中设置 role=0
+        user.setRole(ROLE_DEFAULT);
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
         userMapper.insert(user);
@@ -87,7 +99,9 @@ public class AuthServiceImpl implements AuthService {
         if (user == null) {
             throw new AuthException("notfound", "账号不存在", 401);
         }
-        if (password == null || !passwordEncoder.matches(password, user.getPassword())) {
+        // 明文比对（需求指定）
+        String stored = user.getPassword();
+        if (password == null || stored == null || !stored.equals(password)) {
             throw new AuthException("wrongpw", "密码错误", 401);
         }
         return user;

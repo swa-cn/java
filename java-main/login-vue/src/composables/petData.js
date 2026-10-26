@@ -92,10 +92,13 @@ const FALLBACK_CATEGORIES = [
 export const petCategories = reactive(cloneCategories(FALLBACK_CATEGORIES))
 
 const API_BASE = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '')
+// 默认对接真实后端（与 api/auth.js、api/home.js 的口径一致），后台管理系统
+// 修改分类/品种后，首页通过 loadCategories() 立即拿到数据库最新数据。
+// 只有显式设置 VITE_USE_MOCK=true 才走本地静态数据（脱离后端单独演示 UI 时用）。
 const USE_MOCK =
   import.meta.env.VITE_USE_MOCK === undefined
-    ? true
-    : String(import.meta.env.VITE_USE_MOCK) !== 'false'
+    ? false
+    : String(import.meta.env.VITE_USE_MOCK) === 'true'
 
 /** 数据源运行态，供 UI 显示角标（'static' | 'remote'） */
 export const petDataRuntime = reactive({ source: 'static', reason: '' })

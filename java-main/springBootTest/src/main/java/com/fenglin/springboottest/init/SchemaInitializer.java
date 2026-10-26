@@ -4,11 +4,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.ArrayList;
 
 /**
  * 启动即自建库与表（无需手动执行 SQL / 无需 mysql 客户端）。
@@ -34,6 +38,13 @@ public class SchemaInitializer implements CommandLineRunner {
     @Value("${spring.datasource.password}")
     private String password;
 
+    /** 后台管理账号：登录后台管理系统用（见 AdminController） */
+    @Value("${admin.username:admin}")
+    private String adminUsername;
+    /** 后台管理密码（明文入库，AB测试用） */
+    @Value("${admin.default-password:admin123456}")
+    private String adminDefaultPassword;
+
     private static final String CREATE_DB =
             "CREATE DATABASE IF NOT EXISTS aurora CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci";
 
@@ -44,6 +55,7 @@ public class SchemaInitializer implements CommandLineRunner {
               email VARCHAR(120) NULL,
               nickname VARCHAR(24),
               password VARCHAR(100) NOT NULL,
+              role TINYINT NOT NULL DEFAULT 1,
               created_at DATETIME,
               updated_at DATETIME,
               PRIMARY KEY (id),
@@ -55,6 +67,10 @@ public class SchemaInitializer implements CommandLineRunner {
     /** 兼容旧库：email 原为 NOT NULL，改为可空（幂等，每次启动执行也不影响数据） */
     private static final String ALTER_EMAIL_NULL =
             "ALTER TABLE aurora.app_user MODIFY email VARCHAR(120) NULL";
+
+    /** 兼容旧库：补权限列 role（0=管理员，1=默认）；列已存在时 execLenient 会忽略 1060 */
+    private static final String ALTER_APP_USER_ROLE =
+            "ALTER TABLE aurora.app_user ADD COLUMN role TINYINT NOT NULL DEFAULT 1";
 
     /* ---------------- 「发现」帖子模块（pet_post 系列） ---------------- */
 
@@ -179,10 +195,21 @@ public class SchemaInitializer implements CommandLineRunner {
               image VARCHAR(300),
               description VARCHAR(200),
               sort_no INT NOT NULL DEFAULT 0,
+              temperament VARCHAR(100),
+              care_level VARCHAR(20),
+              suitable_for VARCHAR(100),
               PRIMARY KEY (id),
               KEY idx_category_sort (category_id, sort_no)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """;
+
+    /* 老库补列（幂等：列已存在时忽略 MySQL 1060 错误，见 execLenient） */
+    private static final String ALTER_BREED_TEMPERAMENT =
+            "ALTER TABLE aurora.pet_breed ADD COLUMN temperament VARCHAR(100) NULL";
+    private static final String ALTER_BREED_CARE_LEVEL =
+            "ALTER TABLE aurora.pet_breed ADD COLUMN care_level VARCHAR(20) NULL";
+    private static final String ALTER_BREED_SUITABLE_FOR =
+            "ALTER TABLE aurora.pet_breed ADD COLUMN suitable_for VARCHAR(100) NULL";
 
     /**
      * 分类种子数据：幂等写入（已存在则更新名称/图标/颜色/排序，不覆盖用户后续改动之外的结构）。
@@ -240,7 +267,10 @@ public class SchemaInitializer implements CommandLineRunner {
             log.info("数据库 aurora 已就绪（若不存在则已创建）");
             st.execute(CREATE_APP_USER);
             st.execute(ALTER_EMAIL_NULL);
-            log.info("数据表 aurora.app_user 已就绪（email 允许为空，注册不再收集邮箱）");
+            execLenient(st, ALTER_APP_USER_ROLE);
+            log.info("数据表 aurora.app_user 已就绪（含权限列 role: 0=管理员, 1=默认）");
+            seedAdminIfAbsent(st);
+            migrateLegacyHashedPasswords(st);
             st.execute(CREATE_PET_POST);
             st.execute(CREATE_PET_POST_MEDIA);
             st.execute(CREATE_PET_POST_LIKE);
@@ -248,6 +278,9 @@ public class SchemaInitializer implements CommandLineRunner {
             log.info("数据表 aurora.pet_post / pet_post_media / pet_post_like / pet_post_comment 已就绪");
             st.execute(CREATE_PET_CATEGORY);
             st.execute(CREATE_PET_BREED);
+            execLenient(st, ALTER_BREED_TEMPERAMENT);
+            execLenient(st, ALTER_BREED_CARE_LEVEL);
+            execLenient(st, ALTER_BREED_SUITABLE_FOR);
             st.execute(SEED_PET_CATEGORY);
             seedBreedsIfEmpty(st);
             log.info("数据表 aurora.pet_category / pet_breed 已就绪（分类 5 类，品种初始数据已写入）");
@@ -260,6 +293,23 @@ public class SchemaInitializer implements CommandLineRunner {
         }
     }
 
+    /**
+     * 宽松执行 DDL：老库补列时列已存在会抛 MySQL 1060（Duplicate column），静默跳过。
+     * 其余异常照常上抛，避免吞掉真正的建表错误。
+     */
+    private void execLenient(Statement st, String sql) throws Exception {
+        try {
+            st.execute(sql);
+        } catch (Exception e) {
+            if (e instanceof java.sql.SQLSyntaxErrorException
+                    && ((java.sql.SQLSyntaxErrorException) e).getErrorCode() == 1060) {
+                log.info("列已存在，跳过补列: {}", sql);
+                return;
+            }
+            throw e;
+        }
+    }
+
     /** 品种表为空时才灌入初始数据，避免每次启动重置用户自行维护的品种 */
     private void seedBreedsIfEmpty(Statement st) throws Exception {
         try (var rs = st.executeQuery(COUNT_PET_BREED)) {
@@ -269,5 +319,81 @@ public class SchemaInitializer implements CommandLineRunner {
             }
         }
         st.execute(SEED_PET_BREED);
+    }
+
+    /**
+     * 播种后台管理员账号（app_user 表，密码 BCrypt 哈希后落库）。
+     * 仅当该用户名不存在时写入，幂等：已存在（或已被改名）则跳过，不覆盖已有密码。
+     */
+    private void seedAdminIfAbsent(Statement st) throws Exception {
+        String check = "SELECT COUNT(*) FROM aurora.app_user WHERE LOWER(username) = ?";
+        boolean exists = false;
+        try (PreparedStatement ps = st.getConnection().prepareStatement(check)) {
+            ps.setString(1, adminUsername.toLowerCase());
+            try (ResultSet rs = ps.executeQuery()) {
+                exists = rs.next() && rs.getInt(1) > 0;
+            }
+        }
+
+        if (exists) {
+            // 已存在：确保其为管理员（role=0）；密码仅在「仍是旧 BCrypt 密文」时才重置，
+            // 这样管理员手动改成明文密码后不会被每次启动覆盖
+            String fix = """
+                    UPDATE aurora.app_user
+                       SET role = 0,
+                           nickname = ?,
+                           password = IF(password LIKE '$2%', ?, password)
+                     WHERE LOWER(username) = ?
+                    """;
+            try (PreparedStatement ps = st.getConnection().prepareStatement(fix)) {
+                ps.setString(1, "管理员");
+                ps.setString(2, adminDefaultPassword);
+                ps.setString(3, adminUsername.toLowerCase());
+                ps.executeUpdate();
+            }
+            log.info("管理员账号 {} 已就绪（role=0；仍为旧密文时才会重置为配置密码）", adminUsername);
+            return;
+        }
+
+        String insert = """
+                INSERT INTO aurora.app_user (username, email, nickname, password, role, created_at, updated_at)
+                VALUES (?, NULL, ?, ?, 0, NOW(), NOW())
+                """;
+        try (PreparedStatement ps = st.getConnection().prepareStatement(insert)) {
+            ps.setString(1, adminUsername);
+            ps.setString(2, "管理员");
+            ps.setString(3, adminDefaultPassword); // 明文入库（需求指定）
+            ps.executeUpdate();
+        }
+        log.info("已创建后台管理员账号: {}（role=0，明文密码取自 admin.default-password）", adminUsername);
+    }
+
+    /**
+     * 密码策略迁移：历史账号的密码是 BCrypt 哈希，无法用于明文比对。
+     * 这里把仍为哈希值（以 $2a$/$2b$/$2y$ 开头）的密码重置为「用户名 + 123456」，并在日志里列出受影响的账号。
+     */
+    private void migrateLegacyHashedPasswords(Statement st) throws Exception {
+        final String selectHashed =
+                "SELECT id, username FROM aurora.app_user WHERE password LIKE '$2%'";
+        var targets = new ArrayList<String>();
+        var ids = new ArrayList<Long>();
+        try (PreparedStatement ps = st.getConnection().prepareStatement(selectHashed);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                ids.add(rs.getLong("id"));
+                targets.add(rs.getString("username"));
+            }
+        }
+        if (ids.isEmpty()) return;
+
+        String upd = "UPDATE aurora.app_user SET password = CONCAT(username, '123456') WHERE id = ?";
+        try (PreparedStatement ps = st.getConnection().prepareStatement(upd)) {
+            for (Long id : ids) {
+                ps.setLong(1, id);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
+        log.warn("已把 {} 个历史账号的 BCrypt 密码重置为「用户名+123456」：{}", targets.size(), targets);
     }
 }

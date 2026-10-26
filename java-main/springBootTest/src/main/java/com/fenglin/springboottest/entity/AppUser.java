@@ -27,6 +27,9 @@ public class AppUser {
     /** BCrypt 哈希后的密码（60 字符，预留 100） */
     private String password;
 
+    /** 权限：0=管理员，1=默认（普通用户）。注册用户一律 1 */
+    private Integer role;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -44,6 +47,9 @@ public class AppUser {
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
+
+    public Integer getRole() { return role; }
+    public void setRole(Integer role) { this.role = role; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

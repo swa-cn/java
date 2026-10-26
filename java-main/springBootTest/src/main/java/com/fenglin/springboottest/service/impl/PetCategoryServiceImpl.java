@@ -93,12 +93,15 @@ public class PetCategoryServiceImpl implements PetCategoryService {
         return v;
     }
 
-    /** 字段名对齐前端 petData.js：description -> desc */
+    /** 字段名对齐前端 petData.js：description -> desc，另带详情页三个资料字段 */
     private static Map<String, Object> breedView(PetBreed b) {
         Map<String, Object> v = new LinkedHashMap<>();
         v.put("name", b.getName());
         v.put("image", b.getImage());
         v.put("desc", b.getDescription());
+        v.put("temperament", b.getTemperament());
+        v.put("careLevel", b.getCareLevel());
+        v.put("suitableFor", b.getSuitableFor());
         return v;
     }
 }

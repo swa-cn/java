@@ -23,6 +23,26 @@
             aria-label="回到首页"
             @click="goNav('home')"
           >{{ avatarLetter }}</button>
+          <button
+            v-if="user?.isAdmin"
+            type="button"
+            class="nav-admin"
+            title="仅管理员可见"
+            @click="$emit('go-admin')"
+          >
+            <svg class="admin-ico" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="2" />
+              <path
+                d="M12 2.8l1.2 2.3 2.6.3-1.9 1.9.4 2.6L12 8.7l-2.3 1.2.4-2.6-1.9-1.9 2.6-.3L12 2.8z"
+                fill="currentColor" opacity="0.9" transform="translate(0 3.4) scale(0.92)"
+              />
+              <path
+                d="M4.6 15.5l1.7.9.2 1.9 1.9.6.8 1.8 1.9-.1 1.3 1.5 1.3-1.5 1.9.1.8-1.8 1.9-.6.2-1.9 1.7-.9"
+                fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity="0.55"
+              />
+            </svg>
+            后台管理
+          </button>
           <button type="button" class="nav-logout" @click="$emit('logout')">退出</button>
         </div>
       </div>
@@ -228,11 +248,11 @@
             <h3 class="detail-name">{{ selectedBreed.name }}</h3>
             <p class="detail-desc">{{ selectedBreed.desc }}</p>
             <div class="detail-info">
-              <div><dt>性格</dt><dd>友善亲人（示例）</dd></div>
-              <div><dt>饲养难度</dt><dd>中等（示例）</dd></div>
-              <div><dt>适合人群</dt><dd>新手友好（示例）</dd></div>
+              <div><dt>性格</dt><dd>{{ selectedBreed.temperament || '友善亲人' }}</dd></div>
+              <div><dt>饲养难度</dt><dd>{{ selectedBreed.careLevel || '中等' }}</dd></div>
+              <div><dt>适合人群</dt><dd>{{ selectedBreed.suitableFor || '新手友好' }}</dd></div>
             </div>
-            <p class="detail-note">以上为示例信息，接入品种库后端后将展示完整资料。</p>
+            <p class="detail-note">后台已维护真实资料时展示实际内容，未维护时显示默认介绍。</p>
             <button type="button" class="detail-search" @click="searchFromBreed(selectedBreed.name)">搜索相关动态</button>
           </div>
         </div>
@@ -262,7 +282,7 @@ import { petOfTheDay, bubbleOfPet } from '../composables/dailyPet'
 const props = defineProps({
   user: { type: Object, required: true }
 })
-defineEmits(['logout'])
+defineEmits(['logout', 'go-admin'])
 
 const displayName = computed(
   () => props.user?.nickname || props.user?.username || '朋友'
@@ -555,6 +575,25 @@ async function openUserPost(postId) {
   transition: background 0.18s ease;
 }
 .nav-logout:hover { background: rgba(255, 255, 255, 0.2); }
+
+/* 后台管理入口：与退出按钮同款胶囊，加个齿轮图标区分 */
+.nav-admin {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.14s ease;
+}
+.nav-admin:hover { background: rgba(255, 255, 255, 0.32); transform: translateY(-1px); }
+.admin-ico { width: 14px; height: 14px; }
 
 /* ---------- 首屏 Hero：左文右猫 对称 ---------- */
 .hero {

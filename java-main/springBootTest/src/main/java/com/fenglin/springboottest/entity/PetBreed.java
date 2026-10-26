@@ -31,6 +31,15 @@ public class PetBreed {
     /** 排序（升序） */
     private Integer sortNo;
 
+    /** 性格（首页品种详情展示） */
+    private String temperament;
+
+    /** 饲养难度：低/中/高 */
+    private String careLevel;
+
+    /** 适合人群 */
+    private String suitableFor;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -48,4 +57,13 @@ public class PetBreed {
 
     public Integer getSortNo() { return sortNo; }
     public void setSortNo(Integer sortNo) { this.sortNo = sortNo; }
+
+    public String getTemperament() { return temperament; }
+    public void setTemperament(String temperament) { this.temperament = temperament; }
+
+    public String getCareLevel() { return careLevel; }
+    public void setCareLevel(String careLevel) { this.careLevel = careLevel; }
+
+    public String getSuitableFor() { return suitableFor; }
+    public void setSuitableFor(String suitableFor) { this.suitableFor = suitableFor; }
 }

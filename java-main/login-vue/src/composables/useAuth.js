@@ -51,7 +51,9 @@ function persistSession(user, remember) {
       username: user.username,
       email: user.email,
       nickname: user.nickname,
-      createdAt: user.createdAt || null
+      createdAt: user.createdAt || null,
+      // 管理员标记：仅控制「后台管理」入口显隐（后端接口另有会话级校验）
+      isAdmin: !!user.isAdmin
     })
   )
 }
