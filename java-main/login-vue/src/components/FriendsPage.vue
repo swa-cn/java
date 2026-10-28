@@ -153,7 +153,12 @@
           @click="tab = 'messages'"
         >
           私信
-          <span v-if="conversations.length" class="fr-tab-count">{{ conversations.length }}</span>
+          <span v-if="totalUnread > 0" class="fr-tab-count warn">
+            {{ totalUnread > 99 ? '99+' : totalUnread }}
+          </span>
+          <span v-else-if="conversations.length" class="fr-tab-count">
+            {{ conversations.length }}
+          </span>
         </button>
         <button
           type="button"
@@ -298,12 +303,11 @@ import {
   markConversationRead,
   messageRuntime
 } from '../api/message'
-import { unreadCount } from '../composables/messageStore'
 
 const props = defineProps({
   user: { type: Object, default: () => ({}) }
 })
-const emit = defineEmits(['go-discover', 'toast', 'view-profile'])
+const emit = defineEmits(['go-discover', 'toast', 'view-profile', 'messages-changed'])
 
 const ownerKey = computed(() => props.user?.username || 'guest')
 const userName = computed(() => props.user?.nickname || props.user?.username || '我')
@@ -340,6 +344,8 @@ async function load() {
     conversations.value = []
   } finally {
     loading.value = false
+    // 通知外层（导航栏）刷新未读红点数字
+    emit('messages-changed')
   }
 }
 
@@ -484,9 +490,16 @@ function scrollToBottom() {
   })
 }
 
+/** 单个会话的未读数：直接按会话里的消息算，联后端 / 本地模式都一致 */
 function unreadOf(c) {
-  return unreadCount(ownerKey.value, c.peerKey)
+  const list = c.messages || []
+  return list.filter((m) => !m.read && m.from !== ownerKey.value).length
 }
+
+/** 全部未读数（私信 tab 上的红点数字） */
+const totalUnread = computed(() =>
+  conversations.value.reduce((n, c) => n + unreadOf(c), 0)
+)
 function lastText(c) {
   const list = c.messages || []
   const last = list[list.length - 1]

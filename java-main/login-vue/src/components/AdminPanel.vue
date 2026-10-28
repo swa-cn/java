@@ -29,6 +29,18 @@
         :class="{ active: tab === 'breed' }"
         @click="switchTab('breed')"
       >品种管理（{{ breeds.length }}）</button>
+      <button
+        type="button"
+        class="tab"
+        :class="{ active: tab === 'user' }"
+        @click="switchTab('user')"
+      >用户管理（{{ users.length }}）</button>
+      <button
+        type="button"
+        class="tab"
+        :class="{ active: tab === 'knowledge' }"
+        @click="switchTab('knowledge')"
+      >知识管理（{{ knowledges.length }}）</button>
     </nav>
 
     <!-- ============ 分类管理 ============ -->
@@ -79,7 +91,7 @@
     </section>
 
     <!-- ============ 品种管理 ============ -->
-    <section v-else class="panel">
+    <section v-else-if="tab === 'breed'" class="panel">
       <div class="panel-bar">
         <label class="cat-select">
           <span>所属分类</span>
@@ -127,7 +139,129 @@
       </table>
     </section>
 
-    <!-- ============ 弹层表单（分类 / 品种共用外壳） ============ -->
+    <!-- ============ 用户管理 ============ -->
+    <section v-else-if="tab === 'user'" class="panel">
+      <div class="panel-bar">
+        <label class="cat-select">
+          <span>搜索</span>
+          <input
+            v-model="userKeyword"
+            class="user-search"
+            type="text"
+            maxlength="40"
+            placeholder="用户名 / 昵称，回车搜索"
+            @keyup.enter="loadUsers"
+          />
+        </label>
+        <button type="button" class="add-btn" @click="openUserForm(null)">
+          ＋ 新增{{ isSuper ? '用户 / 管理员' : '用户' }}
+        </button>
+      </div>
+
+      <p v-if="!isSuper" class="user-perm-tip">
+        当前账号不是超级管理员：可以新增、编辑普通用户并重置密码；
+        只有 admin 账号才能设置管理员权限（数据库直接改 role 字段的既有用法不受影响）。
+      </p>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>用户名</th>
+            <th>昵称</th>
+            <th>角色</th>
+            <th>注册时间</th>
+            <th class="th-ops">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="u in users" :key="u.id">
+            <td class="mono">{{ u.id }}</td>
+            <td class="strong">{{ u.username }}</td>
+            <td>{{ u.nickname || '—' }}</td>
+            <td>
+              <span class="role-chip" :class="{ admin: u.admin && !u.superAdmin, super: u.superAdmin }">
+                {{ u.superAdmin ? '超级管理员' : (u.admin ? '管理员' : '普通用户') }}
+              </span>
+            </td>
+            <td class="mono">{{ formatTime(u.createdAt) }}</td>
+            <td class="ops">
+              <button type="button" class="row-btn" @click="openUserForm(u)">编辑</button>
+              <button
+                v-if="!u.superAdmin"
+                type="button"
+                class="row-btn danger"
+                @click="removeUser(u)"
+              >删除</button>
+            </td>
+          </tr>
+          <tr v-if="!users.length && !loadingUsers">
+            <td colspan="6" class="empty-cell">
+              {{ loadingUsers ? '加载中…' : '没有匹配的用户' }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============ 知识管理 ============ -->
+    <section v-else-if="tab === 'knowledge'" class="panel">
+      <div class="panel-bar">
+        <label class="cat-select">
+          <span>搜索</span>
+          <input
+            v-model="knowledgeKeyword"
+            class="user-search"
+            type="text"
+            maxlength="40"
+            placeholder="标题 / 摘要 / 标签 / 正文，回车搜索"
+            @keyup.enter="loadKnowledges"
+          />
+        </label>
+        <button type="button" class="add-btn" @click="openKnowledgeForm(null)">＋ 新增文章</button>
+      </div>
+
+      <p class="user-perm-tip">
+        这里的文章会显示在首页导航栏「知识课堂」里，读者每打开一次详情，浏览数 +1。
+      </p>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>标题</th>
+            <th>分类</th>
+            <th>标签</th>
+            <th>浏览</th>
+            <th>更新时间</th>
+            <th class="th-ops">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="k in knowledges" :key="k.id">
+            <td class="mono">{{ k.id }}</td>
+            <td class="strong" :title="k.summary || ''">{{ k.title }}</td>
+            <td>
+              <span class="role-chip" :class="{ admin: k.cat !== 'all' }">
+                {{ catNameOfId(k.cat) }}
+              </span>
+            </td>
+            <td class="kn-tags-cell">{{ (k.tags || []).join('、') || '—' }}</td>
+            <td class="mono">{{ k.views || 0 }}</td>
+            <td class="mono">{{ formatTime(k.updatedAt || k.createdAt) }}</td>
+            <td class="ops">
+              <button type="button" class="row-btn" @click="openKnowledgeForm(k)">编辑</button>
+              <button type="button" class="row-btn danger" @click="removeKnowledge(k)">删除</button>
+            </td>
+          </tr>
+          <tr v-if="!knowledges.length && !loadingKnowledges">
+            <td colspan="7" class="empty-cell">没有匹配的文章，点右上角「新增文章」添加</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============ 弹层表单（分类 / 品种 / 用户 / 知识共用外壳） ============ -->
     <transition name="fade">
       <div v-if="modal" class="modal-mask" @click.self="modal = null">
         <div class="modal">
@@ -170,7 +304,7 @@
           </form>
 
           <!-- 品种表单 -->
-          <form v-else class="modal-form" @submit.prevent="saveBreed">
+          <form v-else-if="modal.type === 'breed'" class="modal-form" @submit.prevent="saveBreed">
             <label class="field">
               <span class="field-label">所属分类</span>
               <select v-model="breedForm.categoryId" class="select" :disabled="modal.editing">
@@ -221,6 +355,103 @@
               <button type="submit" class="op-btn" :disabled="saving">{{ saving ? '保存中…' : '保存' }}</button>
             </div>
           </form>
+
+          <!-- 用户表单 -->
+          <form v-else-if="modal.type === 'user'" class="modal-form" @submit.prevent="saveUser">
+            <label v-if="!modal.editing" class="field">
+              <span class="field-label">用户名（3-20 位字母 / 数字 / 下划线，创建后不可改）</span>
+              <input v-model.trim="userForm.username" class="field-input mono" type="text" placeholder="如：xiaoming01" required />
+            </label>
+            <label v-else class="field">
+              <span class="field-label">用户名（不可修改）</span>
+              <input class="field-input mono" type="text" :value="userForm.username" disabled />
+            </label>
+            <label class="field">
+              <span class="field-label">昵称</span>
+              <input v-model.trim="userForm.nickname" class="field-input" type="text" maxlength="24" placeholder="选填" />
+            </label>
+            <label class="field">
+              <span class="field-label">
+                {{ modal.editing ? '重置密码（不填则不修改）' : '密码（至少 8 位，含字母 / 数字 / 符号至少 2 种）' }}
+              </span>
+              <input
+                v-model="userForm.password"
+                class="field-input"
+                type="text"
+                maxlength="128"
+                :required="!modal.editing"
+                :placeholder="modal.editing ? '留空表示不修改密码' : '如：pet123456'"
+              />
+            </label>
+            <label class="field">
+              <span class="field-label">角色</span>
+              <select v-model="userForm.role" class="select" :disabled="!canSetRole">
+                <option :value="1">普通用户</option>
+                <option v-if="isSuper" :value="0">管理员（可登录后台）</option>
+              </select>
+              <span v-if="!canSetRole" class="field-hint">
+                {{ modal.target && modal.target.superAdmin
+                    ? '超级管理员账号（admin）的权限不可修改'
+                    : '只有超级管理员（admin 账号）才能设置管理员权限' }}
+              </span>
+            </label>
+
+            <p v-if="modalError" class="form-error">{{ modalError }}</p>
+            <div class="modal-ops">
+              <button type="button" class="op-btn ghost" @click="modal = null">取消</button>
+              <button type="submit" class="op-btn" :disabled="saving">{{ saving ? '保存中…' : '保存' }}</button>
+            </div>
+          </form>
+
+          <!-- 知识文章表单 -->
+          <form v-else class="modal-form modal-form-wide" @submit.prevent="saveKnowledge">
+            <div class="field-row">
+              <label class="field grow">
+                <span class="field-label">文章标题</span>
+                <input v-model.trim="knowledgeForm.title" class="field-input" type="text" maxlength="80" placeholder="如：新手养猫入门清单" required />
+              </label>
+              <label class="field">
+                <span class="field-label">所属分类</span>
+                <select v-model="knowledgeForm.cat" class="select">
+                  <option value="all">通用</option>
+                  <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.icon }} {{ c.name }}</option>
+                </select>
+              </label>
+            </div>
+
+            <label class="field">
+              <span class="field-label">摘要（显示在卡片上，一句话讲清这篇讲什么）</span>
+              <input v-model.trim="knowledgeForm.summary" class="field-input" type="text" maxlength="200" placeholder="如：接猫回家前该准备什么，一篇说清。" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">标签（逗号或顿号分隔）</span>
+              <input v-model.trim="knowledgeForm.tagsText" class="field-input" type="text" maxlength="120" placeholder="如：新手、准备、用品" />
+            </label>
+
+            <div class="field sections-field">
+              <span class="field-label">正文小节（每行一段，标题 + 正文）</span>
+              <div v-for="(s, i) in knowledgeForm.sections" :key="i" class="section-row">
+                <input v-model.trim="s.h" class="field-input" type="text" maxlength="60" placeholder="小节标题，如：到家第一周" />
+                <textarea v-model.trim="s.p" class="field-input textarea" rows="3" placeholder="小节正文…"></textarea>
+                <button
+                  type="button"
+                  class="row-btn danger"
+                  :disabled="knowledgeForm.sections.length <= 1"
+                  @click="knowledgeForm.sections.splice(i, 1)"
+                >删除</button>
+              </div>
+              <button type="button" class="op-btn ghost small" @click="knowledgeForm.sections.push({ h: '', p: '' })">
+                ＋ 增加小节
+              </button>
+            </div>
+
+            <p v-if="modalError" class="form-error">{{ modalError }}</p>
+            <div class="modal-ops">
+              <button type="button" class="op-btn ghost" @click="modal = null">取消</button>
+              <button type="submit" class="op-btn" :disabled="saving">{{ saving ? '保存中…' : '保存' }}</button>
+            </div>
+          </form>
         </div>
       </div>
     </transition>
@@ -238,10 +469,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import {
   adminListCategories, adminCreateCategory, adminUpdateCategory, adminDeleteCategory,
-  adminListBreeds, adminCreateBreed, adminUpdateBreed, adminDeleteBreed, adminLogout
+  adminListBreeds, adminCreateBreed, adminUpdateBreed, adminDeleteBreed, adminLogout,
+  adminListUsers, adminCreateUser, adminUpdateUser, adminDeleteUser,
+  adminListKnowledge, adminCreateKnowledge, adminUpdateKnowledge, adminDeleteKnowledge
 } from '../api/admin'
 import { loadCategories } from '../composables/petData'
 
@@ -251,6 +484,9 @@ const props = defineProps({
 const emit = defineEmits(['exit'])
 
 const adminName = props.admin?.nickname || props.admin?.username || '管理员'
+// 超级管理员：后端配置 admin.username（默认 admin）对应的账号，权限最大。
+// 界面上据此显示「设置管理员」入口；真正的权限校验在后端接口里强制执行。
+const isSuper = (props.admin?.username || '').toLowerCase() === 'admin'
 
 /* ---------------- 页签 ---------------- */
 const tab = ref('category')
@@ -260,6 +496,8 @@ function switchTab(t) {
     breedCatId.value = categories.value[0].id
     loadBreeds()
   }
+  if (t === 'user') loadUsers()
+  if (t === 'knowledge') loadKnowledges()
 }
 
 /** 分类行点「品种」：直接切到品种管理并定位到该分类 */
@@ -441,6 +679,190 @@ async function removeBreed(b) {
   }
 }
 
+/* ---------------- 用户：列表 / 新增 / 编辑 / 删除 ---------------- */
+const users = ref([])
+const loadingUsers = ref(false)
+const userKeyword = ref('')
+
+async function loadUsers() {
+  loadingUsers.value = true
+  try {
+    const data = await adminListUsers(userKeyword.value.trim())
+    users.value = data.items || []
+  } catch (e) {
+    handleAuthError(e)
+  } finally {
+    loadingUsers.value = false
+  }
+}
+
+const EMPTY_USER = { username: '', nickname: '', password: '', role: 1 }
+const userForm = ref({ ...EMPTY_USER })
+
+/** 是否允许修改角色下拉：超级管理员才可设置管理员，且 admin 账号自身权限锁定 */
+const canSetRole = computed(() =>
+  isSuper && !(modal.value?.target && modal.value.target.superAdmin)
+)
+
+function openUserForm(u) {
+  modalError.value = ''
+  if (u) {
+    userForm.value = {
+      username: u.username,
+      nickname: u.nickname || '',
+      password: '',
+      role: u.admin ? 0 : 1
+    }
+    modal.value = { type: 'user', editing: true, title: '编辑用户：' + u.username, target: u }
+  } else {
+    userForm.value = { ...EMPTY_USER }
+    modal.value = {
+      type: 'user', editing: false, target: null,
+      title: isSuper ? '新增用户 / 管理员' : '新增用户'
+    }
+  }
+}
+
+async function saveUser() {
+  modalError.value = ''
+  saving.value = true
+  try {
+    if (modal.value.editing) {
+      const patch = { nickname: userForm.value.nickname, role: userForm.value.role }
+      if (userForm.value.password) patch.password = userForm.value.password
+      await adminUpdateUser(modal.value.target.id, patch)
+      showToast('用户已更新')
+    } else {
+      await adminCreateUser({ ...userForm.value })
+      showToast('用户已创建')
+    }
+    modal.value = null
+    await loadUsers()
+  } catch (e) {
+    modalError.value = e.message || '保存失败'
+  } finally {
+    saving.value = false
+  }
+}
+
+async function removeUser(u) {
+  const roleName = u.admin ? '管理员' : '用户'
+  if (!window.confirm(`确定删除${roleName}「${u.username}」吗？该账号将无法登录，此操作不可恢复！`)) return
+  try {
+    await adminDeleteUser(u.id)
+    showToast('用户已删除')
+    await loadUsers()
+  } catch (e) {
+    handleAuthError(e)
+  }
+}
+
+/** 后台表格用的时间格式：'2026-10-26 11:04:18' */
+function formatTime(ts) {
+  if (!ts) return '—'
+  return String(ts).replace('T', ' ').slice(0, 19)
+}
+
+/* ---------------- 知识课堂：列表 / 新增 / 编辑 / 删除 ---------------- */
+const knowledges = ref([])
+const loadingKnowledges = ref(false)
+const knowledgeKeyword = ref('')
+
+async function loadKnowledges() {
+  loadingKnowledges.value = true
+  try {
+    const data = await adminListKnowledge(knowledgeKeyword.value.trim())
+    knowledges.value = data.items || []
+  } catch (e) {
+    handleAuthError(e)
+  } finally {
+    loadingKnowledges.value = false
+  }
+}
+
+/** 文章列表里把 cat id 显示成中文名（'all' 显示「通用」） */
+function catNameOfId(id) {
+  if (!id || id === 'all') return '通用'
+  return categories.value.find((c) => c.id === id)?.name || id
+}
+
+const EMPTY_KNOWLEDGE_SECTION = { h: '', p: '' }
+const knowledgeForm = ref({ cat: 'cat', title: '', summary: '', tagsText: '', sections: [{ ...EMPTY_KNOWLEDGE_SECTION }] })
+
+function openKnowledgeForm(k) {
+  modalError.value = ''
+  if (k) {
+    knowledgeForm.value = {
+      cat: k.cat || 'all',
+      title: k.title || '',
+      summary: k.summary || '',
+      tagsText: (k.tags || []).join('、'),
+      sections: (k.sections || []).length
+        ? (k.sections || []).map((s) => ({ h: s.h || '', p: s.p || '' }))
+        : [{ ...EMPTY_KNOWLEDGE_SECTION }]
+    }
+    modal.value = { type: 'knowledge', editing: true, title: '编辑文章：' + k.title, target: k }
+  } else {
+    knowledgeForm.value = {
+      cat: categories.value[0]?.id || 'all',
+      title: '', summary: '', tagsText: '',
+      sections: [{ ...EMPTY_KNOWLEDGE_SECTION }]
+    }
+    modal.value = { type: 'knowledge', editing: false, title: '新增知识文章', target: null }
+  }
+}
+
+/** 表单 -> 接口 body：标签文本拆数组，剔除空小节 */
+function buildKnowledgeBody() {
+  const tags = knowledgeForm.value.tagsText
+    .split(/[,，、]/).map((s) => s.trim()).filter(Boolean)
+  const sections = knowledgeForm.value.sections
+    .filter((s) => (s.h || '').trim() || (s.p || '').trim())
+    .map((s) => ({ h: s.h || '', p: s.p || '' }))
+  return {
+    cat: knowledgeForm.value.cat,
+    title: knowledgeForm.value.title,
+    summary: knowledgeForm.value.summary,
+    tags,
+    sections
+  }
+}
+
+async function saveKnowledge() {
+  modalError.value = ''
+  if (!knowledgeForm.value.sections.some((s) => (s.p || '').trim())) {
+    modalError.value = '至少要写一段正文内容'
+    return
+  }
+  saving.value = true
+  try {
+    if (modal.value.editing) {
+      await adminUpdateKnowledge(modal.value.target.id, buildKnowledgeBody())
+      showToast('文章已更新')
+    } else {
+      await adminCreateKnowledge(buildKnowledgeBody())
+      showToast('文章已创建')
+    }
+    modal.value = null
+    await loadKnowledges()
+  } catch (e) {
+    modalError.value = e.message || '保存失败'
+  } finally {
+    saving.value = false
+  }
+}
+
+async function removeKnowledge(k) {
+  if (!window.confirm(`确定删除文章「${k.title}」吗？此操作不可恢复！`)) return
+  try {
+    await adminDeleteKnowledge(k.id)
+    showToast('文章已删除')
+    await loadKnowledges()
+  } catch (e) {
+    handleAuthError(e)
+  }
+}
+
 /* ---------------- 退出 ---------------- */
 async function onLogout() {
   try {
@@ -459,7 +881,7 @@ const petImagePresets = [
   '/images/pets/bird_cockatiel.png', '/images/pets/bird_pigeon.png', '/images/pets/fish.png',
   '/images/pets/fish_betta.png', '/images/pets/fish_koi.png', '/images/pets/fish_tropical.png',
   '/images/pets/hamster.png', '/images/pets/small_chinchilla.png', '/images/pets/small_guinea.png',
-  '/images/pets/small_rabbit.png'
+  '/images/pets/small_rabbit.png', '/images/pets/paw-default.png'
 ]
 
 /* ---------------- toast ---------------- */
@@ -696,6 +1118,22 @@ onMounted(() => {
 }
 .modal-title { margin: 0 0 16px; font-size: 17px; font-weight: 800; }
 .modal-form { display: grid; gap: 13px; }
+.modal-form-wide { min-width: min(560px, 88vw); }
+/* 文章正文小节：一行 = 标题 + 正文 + 删除 */
+.sections-field { gap: 8px; }
+.section-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 8px;
+  padding: 10px;
+  border: 2px dashed var(--line);
+  border-radius: 12px;
+  background: #fffafc;
+}
+.section-row textarea { grid-column: 1; }
+.section-row .row-btn { grid-row: 1 / span 2; align-self: start; }
+.op-btn.small { padding: 6px 14px; font-size: 12px; align-self: start; }
+.kn-tags-cell { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .field { display: grid; gap: 5px; min-width: 0; }
 .field.grow { flex: 1; }
 .field-label { font-size: 12px; font-weight: 800; color: var(--ink-soft); }
@@ -735,6 +1173,50 @@ onMounted(() => {
 }
 .cat-select { display: flex; align-items: center; gap: 10px; font-size: 12.5px; font-weight: 800; color: var(--ink-soft); }
 .cat-select .select { min-width: 220px; }
+
+/* ---------- 用户管理 ---------- */
+.user-search {
+  min-width: 220px;
+  border: 1px solid #e3d9ee;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.user-search:focus {
+  border-color: var(--pink);
+  box-shadow: 0 0 0 3px rgba(255, 126, 179, 0.15);
+}
+.user-perm-tip {
+  margin: 0 0 12px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: #fff4e2;
+  color: #b8792a;
+  font-size: 12px;
+  font-weight: 700;
+}
+.role-chip {
+  padding: 3px 11px;
+  border-radius: 999px;
+  background: #e8f2ff;
+  color: #3a78c2;
+  font-size: 11.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.role-chip.admin { background: #efe6ff; color: #7a5ae0; }
+.role-chip.super { background: #ffe6ec; color: #d6336c; }
+.field-hint {
+  display: block;
+  margin-top: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #b8792a;
+}
 
 .form-error {
   margin: 0;

@@ -103,8 +103,20 @@ const USE_MOCK =
 /** 数据源运行态，供 UI 显示角标（'static' | 'remote'） */
 export const petDataRuntime = reactive({ source: 'static', reason: '' })
 
+/** 空图片兜底：分类/品种没配图时用爪印占位图，避免破图 */
+const DEFAULT_PET_IMAGE = '/images/pets/paw-default.png'
+
+function normalizeImage(url) {
+  const s = String(url || '').trim()
+  return s || DEFAULT_PET_IMAGE
+}
+
 function cloneCategories(src) {
-  return src.map((c) => ({ ...c, breeds: (c.breeds || []).map((b) => ({ ...b })) }))
+  return src.map((c) => ({
+    ...c,
+    image: normalizeImage(c.image),
+    breeds: (c.breeds || []).map((b) => ({ ...b, image: normalizeImage(b.image) }))
+  }))
 }
 
 /** 用接口数据原地替换响应式数组内容（保持引用不变，组件无需重新绑定） */

@@ -11,7 +11,15 @@
         <ul class="nav-links">
           <li :class="{ active: activeNav === 'home' }" @click="goNav('home')">首页</li>
           <li :class="{ active: activeNav === 'discover' }" @click="goNav('discover')">发现</li>
-          <li :class="{ active: activeNav === 'message' }" @click="goNav('message')">消息</li>
+          <li :class="{ active: activeNav === 'knowledge' }" @click="goNav('knowledge')">知识课堂</li>
+          <li :class="{ active: activeNav === 'message' }" @click="goNav('message')">
+            消息
+            <span
+              v-if="unreadTotal > 0"
+              class="nav-badge"
+              :title="unreadTotal + ' 条未读消息'"
+            >{{ unreadLabel }}</span>
+          </li>
           <li :class="{ active: activeNav === 'me' }" @click="goNav('me')">我的</li>
         </ul>
 
@@ -215,6 +223,11 @@
       />
     </section>
 
+    <!-- 知识课堂：养宠科普 + 搜索 -->
+    <section v-else-if="activeNav === 'knowledge'" class="feed">
+      <KnowledgePage @open-breed="onOpenBreedFromKnowledge" />
+    </section>
+
     <!-- 消息：好友列表 + 待通过申请 -->
     <section v-else-if="activeNav === 'message'" class="feed">
       <FriendsPage
@@ -223,6 +236,7 @@
         @go-discover="goNav('discover')"
         @toast="showToast"
         @view-profile="openUserProfile"
+        @messages-changed="refreshUnread"
       />
     </section>
 
@@ -267,17 +281,19 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import CatMascot from './CatMascot.vue'
 import PetMascot from './PetMascot.vue'
 import Dashboard from './Dashboard.vue'
 import CategoryPage from './CategoryPage.vue'
 import DiscoverFeed from './DiscoverFeed.vue'
 import FriendsPage from './FriendsPage.vue'
+import KnowledgePage from './KnowledgePage.vue'
 import SearchPage from './SearchPage.vue'
 import UserProfile from './UserProfile.vue'
-import { petCategories } from '../composables/petData'
+import { petCategories, loadCategories } from '../composables/petData'
 import { petOfTheDay, bubbleOfPet } from '../composables/dailyPet'
+import { fetchConversations } from '../api/message'
 
 const props = defineProps({
   user: { type: Object, required: true }
@@ -290,6 +306,42 @@ const displayName = computed(
 const avatarLetter = computed(
   () => (displayName.value.charAt(0) || '喵').toUpperCase()
 )
+const ownerKey = computed(() => props.user?.username || 'guest')
+
+/* ---------------- 消息未读红点 ----------------
+ * 导航栏「消息」右上角的小红点：有未读私信时显示，数字 = 未读条数（>99 显示 99+）。
+ * 未读判定：别人发来的（from !== 自己）且 read 为 false。
+ */
+const unreadTotal = ref(0)
+const unreadLabel = computed(() =>
+  unreadTotal.value > 99 ? '99+' : String(unreadTotal.value)
+)
+
+async function refreshUnread() {
+  try {
+    const res = await fetchConversations(ownerKey.value)
+    const items = (res && res.items) || []
+    unreadTotal.value = items.reduce((n, c) => {
+      const list = c.messages || []
+      return n + list.filter((m) => !m.read && m.from !== ownerKey.value).length
+    }, 0)
+  } catch (e) {
+    /* 拉取失败时保留上一次的数字，不打扰用户 */
+  }
+}
+
+// 进页面先查一次；之后定时轮询，别人发来消息时红点能自己冒出来
+let unreadTimer = null
+onMounted(() => {
+  refreshUnread()
+  unreadTimer = setInterval(refreshUnread, 20000)
+  // 分类/品种重新拉一次数据库：后台或手动改库后，刷新首页即可看到最新分类
+  loadCategories().catch(() => {})
+})
+onUnmounted(() => {
+  if (unreadTimer) clearInterval(unreadTimer)
+})
+watch(ownerKey, refreshUnread)
 
 const activeNav = ref('home')
 const friendsRef = ref(null)
@@ -301,6 +353,8 @@ function goNav(name) {
   pageSearch.value = null
   if (name !== 'home') pageCategory.value = null
   activeNav.value = name
+  // 回首页时重新拉一次分类：后台/手动改库后能立刻看到
+  if (name === 'home') loadCategories().catch(() => {})
   // 每次进入「消息」都重新拉一次好友（可能在帖子里刚加过好友）
   if (name === 'message') {
     nextTick(() => {
@@ -373,6 +427,16 @@ function openSearchCategory(c) {
 const selectedBreed = ref(null)
 function openBreed(b) {
   selectedBreed.value = b
+}
+
+/** 知识课堂「品种速查」：带上分类名/主题色，复用首页品种详情弹层 */
+function onOpenBreedFromKnowledge(payload) {
+  if (!payload || !payload.breed) return
+  selectedBreed.value = {
+    ...payload.breed,
+    categoryName: payload.category?.name,
+    categoryColor: payload.category?.color
+  }
 }
 
 /** 品种详情弹层顶部的分类标签：从分类页进来用当前分类，从搜索结果进来用品种自带字段 */
@@ -542,6 +606,28 @@ async function openUserPost(postId) {
   color: var(--pink-deep);
   opacity: 1;
   box-shadow: 0 6px 14px -6px rgba(120, 40, 90, 0.4);
+}
+/* 未读消息红点：数字 = 未读条数 */
+.nav-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 5px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--bad);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  vertical-align: middle;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
+  animation: badge-pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes badge-pop {
+  from { transform: scale(0.2); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 .nav-user { display: flex; align-items: center; gap: 10px; flex: none; }
 .nav-avatar {

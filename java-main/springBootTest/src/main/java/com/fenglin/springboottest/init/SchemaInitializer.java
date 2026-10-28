@@ -13,6 +13,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Map;
 
 /**
  * 启动即自建库与表（无需手动执行 SQL / 无需 mysql 客户端）。
@@ -172,6 +173,28 @@ public class SchemaInitializer implements CommandLineRunner {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """;
 
+    /**
+     * 知识课堂文章表。tags / content 存 JSON 字符串：
+     *   tags    -> ["疫苗","健康"]
+     *   content -> [{"h":"小节标题","p":"小节正文"}]
+     * 浏览数 views 在打开详情时 +1（KnowledgeServiceImpl.read）。
+     */
+    private static final String CREATE_PET_KNOWLEDGE = """
+            CREATE TABLE IF NOT EXISTS aurora.pet_knowledge (
+              id BIGINT NOT NULL AUTO_INCREMENT,
+              cat VARCHAR(20) NOT NULL DEFAULT 'all',
+              title VARCHAR(80) NOT NULL,
+              summary VARCHAR(300),
+              tags TEXT NULL,
+              content MEDIUMTEXT NULL,
+              views BIGINT NOT NULL DEFAULT 0,
+              created_at DATETIME,
+              updated_at DATETIME,
+              PRIMARY KEY (id),
+              KEY idx_cat (cat)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            """;
+
     /* ---------------- 萌宠分类 / 品种图鉴（pet_category 系列） ---------------- */
 
     private static final String CREATE_PET_CATEGORY = """
@@ -287,6 +310,9 @@ public class SchemaInitializer implements CommandLineRunner {
             st.execute(CREATE_PET_FRIEND);
             st.execute(CREATE_PET_MESSAGE);
             log.info("数据表 aurora.pet_friend / pet_message 已就绪（好友关系 + 私信）");
+            st.execute(CREATE_PET_KNOWLEDGE);
+            seedKnowledgeIfEmpty(st);
+            log.info("数据表 aurora.pet_knowledge 已就绪（知识课堂）");
         } catch (Exception e) {
             log.error("建库建表失败：{}", e.getMessage(), e);
             throw new IllegalStateException("Schema 初始化失败，请检查 MySQL 是否启动 / 账号密码是否正确", e);
@@ -319,6 +345,37 @@ public class SchemaInitializer implements CommandLineRunner {
             }
         }
         st.execute(SEED_PET_BREED);
+    }
+
+    /**
+     * 知识课堂初始文章：仅当 pet_knowledge 表为空时写入；之后全部由后台管理系统维护，
+     * 这里不再覆盖（避免把管理员改过的文章改回去）。
+     */
+    private void seedKnowledgeIfEmpty(Statement st) throws Exception {
+        try (var rs = st.executeQuery("SELECT COUNT(*) FROM aurora.pet_knowledge")) {
+            if (rs.next() && rs.getInt(1) > 0) {
+                log.info("pet_knowledge 已有数据，跳过初始知识写入");
+                return;
+            }
+        }
+        com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+        String insert = "INSERT INTO aurora.pet_knowledge "
+                + "(cat, title, summary, tags, content, views, created_at, updated_at) "
+                + "VALUES (?,?,?,?,?,0,NOW(),NOW())";
+        int n = 0;
+        try (PreparedStatement ps = st.getConnection().prepareStatement(insert)) {
+            for (Map<String, Object> a : KnowledgeSeedData.ARTICLES) {
+                ps.setString(1, String.valueOf(a.get("cat")));
+                ps.setString(2, String.valueOf(a.get("title")));
+                ps.setString(3, String.valueOf(a.get("summary")));
+                ps.setString(4, om.writeValueAsString(a.get("tags")));
+                ps.setString(5, om.writeValueAsString(a.get("sections")));
+                ps.addBatch();
+                n++;
+            }
+            ps.executeBatch();
+        }
+        log.info("已写入 {} 篇知识课堂初始文章", n);
     }
 
     /**

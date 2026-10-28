@@ -114,3 +114,61 @@ export function adminUpdateBreed(id, patch) {
 export function adminDeleteBreed(id) {
   return http('/admin/breeds/' + encodeURIComponent(id), { method: 'DELETE' })
 }
+
+/* ---------------- 用户管理 ---------------- */
+// 权限模型：admin 账号（后端配置 admin.username）为超级管理员，
+// 只有它能新增/提升/删除「管理员」；其他管理员只能管理普通用户。
+
+export function adminListUsers(keyword = '') {
+  const q = keyword ? '?keyword=' + encodeURIComponent(keyword) : ''
+  return http('/admin/users' + q)
+}
+
+/** 新增用户/管理员 { username, nickname, password, role }（role: 0=管理员, 1=普通） */
+export function adminCreateUser(payload) {
+  return http('/admin/users', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  })
+}
+
+/** 修改用户（部分字段）{ nickname?, password?, role? } */
+export function adminUpdateUser(id, patch) {
+  return http('/admin/users/' + encodeURIComponent(id), {
+    method: 'PUT',
+    body: JSON.stringify(patch)
+  })
+}
+
+export function adminDeleteUser(id) {
+  return http('/admin/users/' + encodeURIComponent(id), { method: 'DELETE' })
+}
+
+/* ---------------- 知识课堂管理 ---------------- */
+// pet_knowledge 表：文章标题/摘要/标签/正文小节。
+// 新增/编辑后前台「知识课堂」页下次进入即可看到（列表每次进页面都重新拉取）。
+
+export function adminListKnowledge(keyword = '') {
+  const q = keyword ? '?keyword=' + encodeURIComponent(keyword) : ''
+  return http('/admin/knowledge' + q)
+}
+
+/** 新增文章 { cat, title, summary, tags:[]|'a,b', sections:[{h,p}] } */
+export function adminCreateKnowledge(payload) {
+  return http('/admin/knowledge', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  })
+}
+
+/** 修改文章（部分字段） */
+export function adminUpdateKnowledge(id, patch) {
+  return http('/admin/knowledge/' + encodeURIComponent(id), {
+    method: 'PUT',
+    body: JSON.stringify(patch)
+  })
+}
+
+export function adminDeleteKnowledge(id) {
+  return http('/admin/knowledge/' + encodeURIComponent(id), { method: 'DELETE' })
+}
