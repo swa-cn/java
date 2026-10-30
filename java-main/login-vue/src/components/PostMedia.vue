@@ -96,7 +96,7 @@ img.pm-el { cursor: zoom-in; }
   padding: 3px 9px;
   border-radius: 999px;
   background: rgba(44, 36, 51, 0.6);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 11px;
   font-weight: 800;
   pointer-events: none;

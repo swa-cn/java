@@ -312,7 +312,7 @@ defineExpose({ reload: loadAll })
   align-items: center;
   gap: 4px;
   border: 2px solid var(--line);
-  background: #fff;
+  background: var(--card);
   color: var(--ink);
   font-family: inherit;
   font-size: 13px;
@@ -323,11 +323,11 @@ defineExpose({ reload: loadAll })
   transition: transform 0.14s ease, background 0.18s ease, border-color 0.18s ease;
 }
 .up-back svg { width: 16px; height: 16px; }
-.up-back:hover { background: #fff5f9; border-color: var(--pink); transform: translateX(-2px); }
+.up-back:hover { background: var(--soft); border-color: var(--pink); transform: translateX(-2px); }
 .up-self-tag {
   padding: 5px 14px;
   border-radius: 999px;
-  background: #fff0f6;
+  background: var(--soft);
   color: var(--pink-deep);
   font-size: 12px;
   font-weight: 800;
@@ -340,7 +340,7 @@ defineExpose({ reload: loadAll })
   gap: 18px;
   margin: 14px 30px 0;
   padding: 22px 24px;
-  background: linear-gradient(135deg, #fff6fb 0%, #fff 60%, #fff8f2 100%);
+  background: linear-gradient(135deg, var(--hero-1) 0%, var(--card) 60%, var(--hero-1) 100%);
   border: 2px solid var(--line);
   border-radius: 24px;
   box-shadow: 0 18px 40px -26px rgba(124, 78, 140, 0.5);
@@ -352,8 +352,8 @@ defineExpose({ reload: loadAll })
   display: grid;
   place-items: center;
   border-radius: 50%;
-  border: 3px solid #fff;
-  color: #fff;
+  border: 3px solid var(--edge);
+  color: var(--on-accent);
   font-size: 28px;
   font-weight: 800;
   box-shadow: 0 10px 22px -12px rgba(124, 78, 140, 0.7);
@@ -365,12 +365,12 @@ defineExpose({ reload: loadAll })
 .up-badge {
   padding: 3px 12px;
   border-radius: 999px;
-  background: #eaf9f0;
-  color: #2f9e5f;
+  background: var(--soft-2);
+  color: var(--ok);
   font-size: 11.5px;
   font-weight: 800;
 }
-.up-badge.soft { background: #f2ecf7; color: var(--ink-soft); }
+.up-badge.soft { background: var(--soft); color: var(--ink-soft); }
 
 .up-actions { flex: none; display: flex; gap: 10px; }
 .up-btn {
@@ -385,11 +385,11 @@ defineExpose({ reload: loadAll })
 }
 .up-btn.primary {
   background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%);
-  color: #fff;
+  color: var(--on-accent);
   box-shadow: 0 12px 22px -12px rgba(255, 92, 157, 0.8);
 }
 .up-btn.primary:hover:not(:disabled) { filter: brightness(1.05); transform: translateY(-1px); }
-.up-btn.muted { background: #fff4e2; color: #b8792a; cursor: default; }
+.up-btn.muted { background: var(--warn-bg); color: var(--warn-ink); cursor: default; }
 .up-btn:disabled { opacity: 0.9; }
 
 /* ---------- 统计 ---------- */
@@ -400,7 +400,7 @@ defineExpose({ reload: loadAll })
   margin: 14px 30px 0;
 }
 .up-stat {
-  background: #fff;
+  background: var(--card);
   border: 2px solid var(--line);
   border-radius: 18px;
   padding: 14px 10px;
@@ -422,7 +422,7 @@ defineExpose({ reload: loadAll })
 .up-sec-count {
   padding: 1px 9px;
   border-radius: 999px;
-  background: #fff0f6;
+  background: var(--soft);
   color: var(--pink-deep);
   font-size: 11.5px;
 }
@@ -432,7 +432,7 @@ defineExpose({ reload: loadAll })
 .up-card-item {
   display: flex;
   gap: 12px;
-  background: #fff;
+  background: var(--card);
   border: 2px solid var(--line);
   border-radius: 18px;
   padding: 10px;
@@ -469,7 +469,7 @@ defineExpose({ reload: loadAll })
   padding: 2px 7px;
   border-radius: 999px;
   background: rgba(44, 36, 51, 0.6);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 10px;
   font-weight: 800;
 }
@@ -478,7 +478,7 @@ defineExpose({ reload: loadAll })
   display: inline-block;
   padding: 1px 9px;
   border-radius: 999px;
-  color: #fff;
+  color: var(--on-accent);
   font-size: 10.5px;
   font-weight: 800;
 }

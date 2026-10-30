@@ -174,7 +174,7 @@ defineExpose({ load })
 
 /* ---------- 发帖记录 ---------- */
 .mine {
-  background: #fff;
+  background: var(--card);
   border: 2px solid var(--line);
   border-radius: 22px;
   padding: 20px 26px 24px;
@@ -202,7 +202,7 @@ defineExpose({ load })
   place-items: center;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--pink) 0%, var(--candy) 100%);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 11.5px;
   font-weight: 800;
 }
@@ -213,7 +213,7 @@ defineExpose({ load })
   margin-left: auto;
   flex: none;
   border: 2px solid var(--line);
-  background: #fff;
+  background: var(--card);
   color: var(--pink-deep);
   font-family: inherit;
   font-size: 12.5px;
@@ -223,7 +223,7 @@ defineExpose({ load })
   cursor: pointer;
   transition: background 0.18s ease, border-color 0.18s ease;
 }
-.mine-refresh:hover:not(:disabled) { background: #fff5f9; border-color: var(--pink); }
+.mine-refresh:hover:not(:disabled) { background: var(--soft); border-color: var(--pink); }
 .mine-refresh:disabled { opacity: 0.6; cursor: default; }
 
 .mine-tip { padding: 24px 0; text-align: center; font-size: 13px; color: var(--ink-soft); }
@@ -237,7 +237,7 @@ defineExpose({ load })
 .mine-card {
   display: flex;
   gap: 12px;
-  background: #fff;
+  background: var(--card);
   border: 2px solid var(--line);
   border-radius: 18px;
   padding: 10px;
@@ -274,7 +274,7 @@ defineExpose({ load })
   padding: 2px 7px;
   border-radius: 999px;
   background: rgba(44, 36, 51, 0.6);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 10px;
   font-weight: 800;
 }
@@ -283,7 +283,7 @@ defineExpose({ load })
   display: inline-block;
   padding: 1px 9px;
   border-radius: 999px;
-  color: #fff;
+  color: var(--on-accent);
   font-size: 10.5px;
   font-weight: 800;
 }

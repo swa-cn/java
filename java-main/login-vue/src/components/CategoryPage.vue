@@ -72,7 +72,7 @@ const heroBg = computed(
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  border: 2px solid #fff;
+  border: 2px solid var(--edge);
   background: rgba(255, 255, 255, 0.75);
   color: var(--ink);
   font-family: inherit;
@@ -85,7 +85,7 @@ const heroBg = computed(
   transition: transform 0.14s ease, background 0.18s ease;
 }
 .cp-back svg { width: 16px; height: 16px; }
-.cp-back:hover { background: #fff; transform: translateX(-2px); }
+.cp-back:hover { background: var(--card); transform: translateX(-2px); }
 
 .cp-hero-body {
   display: flex;
@@ -98,7 +98,7 @@ const heroBg = computed(
   height: 108px;
   border-radius: 26px;
   object-fit: cover;
-  border: 4px solid #fff;
+  border: 4px solid var(--edge);
   box-shadow: 0 14px 26px -10px rgba(124, 78, 140, 0.45);
   background: linear-gradient(135deg, #ffe3c2 0%, #ffd0e4 100%);
 }
@@ -108,10 +108,10 @@ const heroBg = computed(
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  color: #fff;
+  color: var(--on-accent);
   font-size: 13px;
   font-weight: 800;
-  border: 2px solid #fff;
+  border: 2px solid var(--edge);
   box-shadow: 0 4px 10px -3px rgba(120, 40, 90, 0.3);
   margin-bottom: 6px;
 }
@@ -135,7 +135,7 @@ const heroBg = computed(
   display: grid;
   place-items: center;
   border-radius: 50%;
-  color: #fff;
+  color: var(--on-accent);
   font-size: 12px;
   font-weight: 800;
 }
@@ -149,7 +149,7 @@ const heroBg = computed(
   flex-direction: column;
   text-align: left;
   border: 2px solid var(--line);
-  background: #fff;
+  background: var(--card);
   border-radius: 18px;
   overflow: hidden;
   cursor: pointer;

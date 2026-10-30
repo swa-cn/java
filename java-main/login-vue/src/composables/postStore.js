@@ -221,15 +221,25 @@ export function removePost(id) {
 }
 
 /** 点赞 / 取消点赞；userKey 用当前登录用户的 username，保证一人一赞 */
-export function toggleLike(id, userKey) {
+export function toggleLike(id, userKey, name = '') {
   load()
   const post = state.posts.find((p) => p.id === id)
   if (!post) return null
   if (!Array.isArray(post.likes)) post.likes = []
   const key = userKey || 'guest'
   const i = post.likes.indexOf(key)
-  if (i >= 0) post.likes.splice(i, 1)
-  else post.likes.push(key)
+  if (i >= 0) {
+    post.likes.splice(i, 1)
+    // 同步移除点赞记录，让「赞的个数」和「通知中心」保持一致
+    if (Array.isArray(post.likeLog)) {
+      post.likeLog = post.likeLog.filter((l) => l.key !== key)
+    }
+  } else {
+    post.likes.push(key)
+    // 点赞记录：带时间戳（likes 数组本身只有 key，没法判断「新赞」，通知中心靠它）
+    if (!Array.isArray(post.likeLog)) post.likeLog = []
+    post.likeLog.push({ key, name: name || '', at: Date.now() })
+  }
   save()
   return post
 }

@@ -24,6 +24,84 @@
         </ul>
 
         <div class="nav-user">
+          <!-- 通知中心：铃铛 + 未读角标 + 下拉面板 -->
+          <div class="nav-bell-wrap">
+            <button
+              type="button"
+              class="nav-bell"
+              :class="{ 'has-unread': notifUnread > 0 }"
+              title="通知中心"
+              aria-label="通知中心"
+              @click.stop="toggleNotifPanel"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M12 3.2c-3.1 0-5.4 2.4-5.4 5.5v3.1c0 .6-.9 2-1.7 2.9-.5.5-.1 1.5.7 1.5h12.8c.8 0 1.2-1 .7-1.5-.8-.9-1.7-2.3-1.7-2.9V8.7c0-3.1-2.3-5.5-5.4-5.5z"
+                  fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"
+                />
+                <path d="M9.8 18.6a2.3 2.3 0 0 0 4.4 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              </svg>
+              <span v-if="notifUnread > 0" class="nav-badge">{{ notifUnread > 99 ? '99+' : notifUnread }}</span>
+            </button>
+
+            <transition name="notif-pop">
+              <div v-if="notifOpen" class="notif-panel" @click.stop>
+                <div class="notif-head">
+                  <strong>通知中心</strong>
+                  <button type="button" class="notif-close" aria-label="关闭" @click="notifOpen = false">×</button>
+                </div>
+
+                <div v-if="!notifications.length" class="notif-empty">
+                  <span class="notif-empty-cat">ฅ^•ﻌ•^ฅ</span>
+                  <p>暂时没有通知，去逛逛动态吧~</p>
+                </div>
+
+                <ul v-else class="notif-list">
+                  <li
+                    v-for="n in notifications"
+                    :key="n.id"
+                    class="notif-item"
+                    :class="{ unread: n.unread }"
+                    @click="onNotifClick(n)"
+                  >
+                    <span class="notif-ico" :class="'t-' + n.type" aria-hidden="true">
+                      <!-- 好友申请 -->
+                      <svg v-if="n.type === 'friend'" viewBox="0 0 24 24">
+                        <circle cx="10" cy="8" r="3.4" fill="none" stroke="currentColor" stroke-width="2" />
+                        <path d="M4 19c.6-3.2 3-5 6-5s5.4 1.8 6 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        <path d="M17.5 8.5v5M15 11h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                      </svg>
+                      <!-- 评论 -->
+                      <svg v-else-if="n.type === 'comment'" viewBox="0 0 24 24">
+                        <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.4c-.7.5-1.8 0-1.8-.9V6.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                      </svg>
+                      <!-- 点赞 -->
+                      <svg v-else viewBox="0 0 24 24">
+                        <path d="M12 20s-7-4.4-7-9.3A4 4 0 0 1 12 7.6 4 4 0 0 1 19 10.7c0 4.9-7 9.3-7 9.3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                      </svg>
+                    </span>
+                    <span class="notif-body">
+                      <span class="notif-text">
+                        <template v-if="n.type === 'friend'"><b>{{ n.fromName }}</b> 请求加你为好友</template>
+                        <template v-else-if="n.type === 'comment'">
+                          <b>{{ n.fromName }}</b> 评论了你的动态《{{ n.postTitle }}》：<i>{{ n.text }}</i>
+                        </template>
+                        <template v-else-if="n.count > 0 && n.fromName">
+                          <b>{{ n.fromName }}</b>{{ n.count > 1 ? ' 等 ' + n.count + ' 人' : '' }}赞了你的动态《{{ n.postTitle }}》
+                        </template>
+                        <template v-else-if="n.count > 0">你的动态《{{ n.postTitle }}》收到 <b>{{ n.count }}</b> 个新赞</template>
+                        <template v-else>你的动态《{{ n.postTitle }}》累计收到 <b>{{ n.total }}</b> 个赞</template>
+                      </span>
+                      <time class="notif-time">{{ formatTime(n.at) }}</time>
+                    </span>
+                    <span v-if="n.unread" class="notif-dot" aria-hidden="true" />
+                  </li>
+                </ul>
+              </div>
+            </transition>
+          </div>
+
+          <ThemeToggle variant="nav" />
           <button
             type="button"
             class="nav-avatar"
@@ -76,7 +154,7 @@
       <SearchPage
         v-if="pageSearch"
         :keyword="pageSearch.keyword"
-        @back="pageSearch = null"
+        @back="closeSearch"
         @search="onSearchFromPage"
         @open-category="openSearchCategory"
         @open-breed="openBreed"
@@ -113,7 +191,42 @@
                 class="search-input"
                 type="text"
                 placeholder="搜索萌宠 / 用户 / 动态…"
+                @focus="historyOpen = true"
+                @blur="onHistoryBlur"
               />
+
+              <!-- 搜索历史下拉：聚焦且输入为空时弹出 -->
+              <transition name="hist-pop">
+                <div v-if="historyOpen && searchHistory.items.length" class="search-history">
+                  <div class="sh-head">
+                    <span class="sh-label">
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2" />
+                        <path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                      </svg>
+                      搜索历史
+                    </span>
+                    <button type="button" class="sh-clear" @mousedown.prevent="clearHistory">清空</button>
+                  </div>
+                  <div class="sh-chips">
+                    <span v-for="h in searchHistory.items" :key="'sh-' + h" class="sh-chip">
+                      <button
+                        type="button"
+                        class="sh-word"
+                        @mousedown.prevent="pickHistory(h)"
+                      >{{ h }}</button>
+                      <button
+                        type="button"
+                        class="sh-del"
+                        :aria-label="'删除历史 ' + h"
+                        title="删除"
+                        @mousedown.prevent="removeHistory(h)"
+                      >×</button>
+                    </span>
+                  </div>
+                </div>
+              </transition>
+
               <button type="submit" class="search-btn">搜索</button>
             </form>
 
@@ -223,9 +336,19 @@
       />
     </section>
 
-    <!-- 知识课堂：养宠科普 + 搜索 -->
+    <!-- 知识课堂：养宠科普 + 搜索；点击文章整页跳转到详情 -->
     <section v-else-if="activeNav === 'knowledge'" class="feed">
-      <KnowledgePage @open-breed="onOpenBreedFromKnowledge" />
+      <KnowledgePage
+        v-if="!pageArticle"
+        @open-breed="onOpenBreedFromKnowledge"
+        @open-article="openKnowledgeArticle"
+      />
+      <KnowledgeDetail
+        v-else
+        :article="pageArticle"
+        @back="closeArticle"
+        @open-article="openKnowledgeArticle"
+      />
     </section>
 
     <!-- 消息：好友列表 + 待通过申请 -->
@@ -284,16 +407,28 @@
 import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import CatMascot from './CatMascot.vue'
 import PetMascot from './PetMascot.vue'
+import ThemeToggle from './ThemeToggle.vue'
 import Dashboard from './Dashboard.vue'
 import CategoryPage from './CategoryPage.vue'
 import DiscoverFeed from './DiscoverFeed.vue'
 import FriendsPage from './FriendsPage.vue'
 import KnowledgePage from './KnowledgePage.vue'
+import KnowledgeDetail from './KnowledgeDetail.vue'
 import SearchPage from './SearchPage.vue'
 import UserProfile from './UserProfile.vue'
 import { petCategories, loadCategories } from '../composables/petData'
 import { petOfTheDay, bubbleOfPet } from '../composables/dailyPet'
+import { searchHistory, removeHistory, clearHistory } from '../composables/searchHistory'
+import {
+  buildNotifications,
+  markNotificationsSeen
+} from '../composables/notificationStore'
+import { formatTime } from '../composables/postStore'
+import { fetchPosts } from '../api/post'
+import { fetchIncoming } from '../api/friend'
 import { fetchConversations } from '../api/message'
+import { fetchKnowledgeList } from '../api/knowledge'
+import { initRouter, navigate, syncUrl, parseRoute } from '../composables/useRouter'
 
 const props = defineProps({
   user: { type: Object, required: true }
@@ -332,27 +467,138 @@ async function refreshUnread() {
 
 // 进页面先查一次；之后定时轮询，别人发来消息时红点能自己冒出来
 let unreadTimer = null
+/* ---------------- 路由：真实 URL + 浏览器前进/后退 + 刷新直达 ----------------
+ * 路由表（轻量 History API，见 composables/useRouter.js）：
+ *   /search?kw=xx    搜索结果页
+ *   /knowledge/:id   知识文章详情
+ *   /post/:id        动态详情（切到「发现」打开）
+ * 其余路径一律视作首页。打开详情 = push（后退可用），关闭/切导航 = replace（不攒历史）。
+ */
+function applyRoute(path) {
+  const { name, id, query } = parseRoute(path)
+  if (name === 'knowledge' && id) {
+    restoreArticle(id)
+  } else if (name === 'post' && id) {
+    openMyPost(id)
+  } else if (name === 'search') {
+    const kw = (query.kw || '').trim()
+    pageUser.value = null
+    pageCategory.value = null
+    pageArticle.value = null
+    activeNav.value = 'home'
+    keyword.value = kw
+    pageSearch.value = kw ? { keyword: kw } : null
+  } else {
+    // 首页：收起详情类页面（导航切换的 syncUrl('/') 也会走到这）
+    pageArticle.value = null
+    pageSearch.value = null
+  }
+}
+
+/** 刷新直达 /knowledge/:id：拉文章列表找到对应文章再展示 */
+async function restoreArticle(id) {
+  pageUser.value = null
+  pageSearch.value = null
+  pageCategory.value = null
+  activeNav.value = 'knowledge'
+  try {
+    const res = await fetchKnowledgeList()
+    const items = (res && (res.items || res.articles)) || []
+    pageArticle.value =
+      items.find((a) => String(a.id) === String(id)) || null
+  } catch (e) {
+    pageArticle.value = null
+  }
+}
+
 onMounted(() => {
   refreshUnread()
-  unreadTimer = setInterval(refreshUnread, 20000)
+  refreshNotifs() // 通知数据源先拉一次
+  unreadTimer = setInterval(() => {
+    refreshUnread()
+    refreshNotifs() // 轮询通知：别人点赞/评论/申请后角标能自己亮
+  }, 20000)
   // 分类/品种重新拉一次数据库：后台或手动改库后，刷新首页即可看到最新分类
   loadCategories().catch(() => {})
+  // 点空白处关闭通知面板
+  document.addEventListener('click', closeNotifPanel)
+  // 路由初始化：监听浏览器前进/后退，并按当前 URL 恢复页面（刷新直达）
+  initRouter(applyRoute)
+  applyRoute(location.pathname + location.search)
 })
+
+/* ---------------- 通知中心 ----------------
+ * 数据双模式：后端在跑走 /content/posts 与好友接口，没跑自动回落本地 store
+ * （api 层 withFallback 统一处理）。通知从「我的动态收到的评论/赞 + 好友申请」推导，
+ * 见 notificationStore。打开面板即视为已读；20 秒轮询一次保证角标及时亮。
+ */
+const notifOpen = ref(false)
+const notifPosts = ref([]) // 我的动态（含 likes/comments），通知的数据源
+const notifRequests = ref([] // 别人发我的好友申请
+)
+const notifications = computed(() =>
+  buildNotifications(ownerKey.value, notifPosts.value, notifRequests.value)
+)
+const notifUnread = computed(() => notifications.value.filter((n) => n.unread).length)
+
+/** 拉取通知数据源（我的动态 + 好友申请），失败静默保留旧数据 */
+async function refreshNotifs() {
+  try {
+    const res = await fetchPosts({ author: ownerKey.value })
+    notifPosts.value = (res && res.items) || []
+  } catch (e) {
+    /* 忽略 */
+  }
+  try {
+    const res = await fetchIncoming(ownerKey.value)
+    notifRequests.value = (res && res.items) || []
+  } catch (e) {
+    /* 忽略 */
+  }
+}
+
+function toggleNotifPanel() {
+  notifOpen.value = !notifOpen.value
+  if (notifOpen.value) {
+    refreshNotifs().finally(() => markNotificationsSeen(notifPosts.value))
+  }
+}
+function closeNotifPanel() {
+  notifOpen.value = false
+}
+function onNotifClick(n) {
+  notifOpen.value = false
+  if (n.type === 'friend') {
+    goNav('message') // 好友申请在「消息」页处理
+  } else {
+    openMyPost(n.postId)
+  }
+}
+
 onUnmounted(() => {
   if (unreadTimer) clearInterval(unreadTimer)
+  document.removeEventListener('click', closeNotifPanel)
 })
-watch(ownerKey, refreshUnread)
+watch(ownerKey, () => {
+  refreshUnread()
+  refreshNotifs()
+})
 
 const activeNav = ref('home')
 const friendsRef = ref(null)
 // 用户主页详情页：非空时覆盖在导航下方展示（点头像进入）
 const pageUser = ref(null)
+// 知识课堂文章详情页：非空时整页展示该文章（点击文章卡片后跳转）
+const pageArticle = ref(null)
 function goNav(name) {
-  // 切换导航时收起「用户主页」「分类详情页」「搜索结果页」
+  // 切换导航时收起「用户主页」「分类详情页」「搜索结果页」「知识文章详情页」
   pageUser.value = null
   pageSearch.value = null
+  pageArticle.value = null
   if (name !== 'home') pageCategory.value = null
   activeNav.value = name
+  // URL 同步回首页（replace：导航切换不产生历史记录，浏览器后退留给详情页用）
+  syncUrl('/')
   // 回首页时重新拉一次分类：后台/手动改库后能立刻看到
   if (name === 'home') loadCategories().catch(() => {})
   // 每次进入「消息」都重新拉一次好友（可能在帖子里刚加过好友）
@@ -406,9 +652,30 @@ function onSearch() {
     showToast('先输入点关键词喵~')
     return
   }
+  historyOpen.value = false
   pageCategory.value = null
   pageSearch.value = { keyword: q }
+  navigate('/search?kw=' + encodeURIComponent(q)) // 搜索页带真实 URL：可分享、刷新直达
   window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+/** 关闭搜索结果页：状态收起 + URL 同步回首页（replace，不产生多余历史记录） */
+function closeSearch() {
+  pageSearch.value = null
+  syncUrl('/')
+}
+
+/* ---------- 搜索历史（首页搜索框下拉） ---------- */
+// searchHistory.items 来自 composables/searchHistory.js，与搜索页共享同一份数据
+const historyOpen = ref(false)
+function onHistoryBlur() {
+  // 延迟一帧，保证点历史词的 mousedown 事件先于 blur 生效（词已用 @mousedown.prevent 接管）
+  setTimeout(() => { historyOpen.value = false }, 120)
+}
+function pickHistory(word) {
+  keyword.value = word
+  historyOpen.value = false
+  onSearch()
 }
 
 /** 结果页里换关键词重搜：同步回首页输入框，返回首页时关键词不丢 */
@@ -439,6 +706,20 @@ function onOpenBreedFromKnowledge(payload) {
   }
 }
 
+/** 知识课堂点击文章：整页跳转到知识详情页（带真实 URL，可分享 / 刷新直达） */
+function openKnowledgeArticle(article) {
+  if (!article) return
+  pageArticle.value = article
+  navigate('/knowledge/' + encodeURIComponent(article.id))
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+/** 关闭知识详情页：状态收起 + URL 同步回首页 */
+function closeArticle() {
+  pageArticle.value = null
+  syncUrl('/')
+}
+
 /** 品种详情弹层顶部的分类标签：从分类页进来用当前分类，从搜索结果进来用品种自带字段 */
 const detailCategory = computed(() => {
   if (currentCategory.value) return currentCategory.value
@@ -462,12 +743,13 @@ function pickChip(c) {
 // ------- 发现页：由 Home 负责切换导航，帖子详情/发帖在 DiscoverFeed 内部切换 -------
 const discoverRef = ref(null)
 
-/** 「我的」发帖记录 / 搜索结果里点击帖子：切到「发现」并打开该帖详情 */
+/** 「我的」发帖记录 / 搜索结果里点击帖子：切到「发现」并打开该帖详情（带真实 URL） */
 async function openMyPost(postId) {
   if (!postId) return
   pageCategory.value = null
   pageSearch.value = null
   activeNav.value = 'discover'
+  navigate('/post/' + encodeURIComponent(postId))
   await nextTick() // 等 DiscoverFeed 挂载后再调用它暴露的 openPost
   const feed = discoverRef.value
   if (feed && typeof feed.openPost === 'function') feed.openPost(postId)
@@ -525,7 +807,7 @@ async function openUserPost(postId) {
   width: 100%;
   max-width: 1000px;
   background: var(--card);
-  border: 4px solid #fff;
+  border: 4px solid var(--edge);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   overflow: hidden;
@@ -553,14 +835,14 @@ async function openUserPost(postId) {
   background:
     radial-gradient(70% 120% at 92% 6%, rgba(255, 207, 92, 0.22) 0%, transparent 62%),
     radial-gradient(80% 120% at 6% 100%, rgba(124, 108, 255, 0.16) 0%, transparent 62%),
-    linear-gradient(180deg, #fff8fc 0%, #ffffff 78%);
+    linear-gradient(180deg, var(--hero-1) 0%, var(--card) 78%);
   border-bottom: 2px dashed var(--line);
 }
 /* ---------- 导航栏 ---------- */
 .nav {
   padding: 0 30px;
   background: linear-gradient(135deg, #ff93c4 0%, #ff6fa8 40%, #8b7bff 100%);
-  color: #fff;
+  color: var(--on-accent);
 }
 .nav-inner {
   display: flex;
@@ -569,6 +851,7 @@ async function openUserPost(postId) {
   padding: 13px 0;
 }
 .nav-brand { display: flex; align-items: center; gap: 10px; flex: none; }
+.nav-logo { white-space: nowrap; }
 .nav-cat {
   position: static;
   width: 42px;
@@ -592,6 +875,8 @@ async function openUserPost(postId) {
   flex: 1;
 }
 .nav-links li {
+  flex: none; /* 不允许被挤压：空间不够时整行缩小间距，而不是文字竖排换行 */
+  white-space: nowrap;
   padding: 8px 16px;
   border-radius: 999px;
   font-size: 14px;
@@ -602,7 +887,7 @@ async function openUserPost(postId) {
 }
 .nav-links li:hover { background: rgba(255, 255, 255, 0.18); transform: translateY(-1px); }
 .nav-links li.active {
-  background: #fff;
+  background: var(--card);
   color: var(--pink-deep);
   opacity: 1;
   box-shadow: 0 6px 14px -6px rgba(120, 40, 90, 0.4);
@@ -617,7 +902,7 @@ async function openUserPost(postId) {
   padding: 0 5px;
   border-radius: 999px;
   background: var(--bad);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 11px;
   font-weight: 800;
   line-height: 1;
@@ -630,6 +915,140 @@ async function openUserPost(postId) {
   to { transform: scale(1); opacity: 1; }
 }
 .nav-user { display: flex; align-items: center; gap: 10px; flex: none; }
+
+/* ---------- 通知中心 ---------- */
+.nav-bell-wrap { position: relative; }
+.nav-bell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  border: 2px solid var(--edge);
+  color: var(--on-accent);
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.15s ease;
+}
+.nav-bell:hover { background: rgba(255, 255, 255, 0.38); transform: translateY(-1px); }
+.nav-bell svg { width: 19px; height: 19px; }
+.nav-bell.has-unread { animation: bell-swing 2.6s ease-in-out infinite; }
+@keyframes bell-swing {
+  0%, 84%, 100% { transform: rotate(0); }
+  88% { transform: rotate(11deg); }
+  92% { transform: rotate(-9deg); }
+  96% { transform: rotate(5deg); }
+}
+/* 铃铛自己的角标：叠在按钮右上角（与导航 li 里的 .nav-badge 复用配色） */
+.nav-bell .nav-badge {
+  position: absolute;
+  top: -6px;
+  right: -7px;
+  margin: 0;
+}
+
+.notif-panel {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  z-index: 50;
+  width: 336px;
+  max-width: 84vw;
+  background: var(--card);
+  border: 3px solid var(--edge);
+  border-radius: 22px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.notif-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 16px 11px;
+  border-bottom: 2px dashed var(--line);
+  font-size: 14.5px;
+}
+.notif-close {
+  border: 0;
+  background: transparent;
+  color: var(--ink-dim);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+.notif-close:hover { color: var(--bad); background: var(--soft); }
+.notif-empty { padding: 26px 16px 30px; text-align: center; color: var(--ink-soft); }
+.notif-empty-cat { display: block; font-size: 26px; margin-bottom: 8px; }
+.notif-empty p { margin: 0; font-size: 13px; }
+.notif-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  max-height: 380px;
+  overflow-y: auto;
+}
+.notif-item {
+  position: relative;
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  padding: 11px 12px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.notif-item:hover { background: var(--soft); }
+.notif-item.unread { background: var(--soft-2); }
+.notif-item.unread:hover { background: var(--soft); }
+.notif-ico {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--on-accent);
+}
+.notif-ico svg { width: 18px; height: 18px; }
+.notif-ico.t-friend { background: linear-gradient(135deg, var(--candy) 0%, var(--candy-2) 100%); }
+.notif-ico.t-comment { background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%); }
+.notif-ico.t-like { background: linear-gradient(135deg, #ff8a5c 0%, var(--bad) 100%); }
+.notif-body { flex: 1; min-width: 0; }
+.notif-text {
+  display: block;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.notif-text b { color: var(--pink-deep); }
+.notif-text i {
+  font-style: normal;
+  color: var(--ink-soft);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.notif-time { display: block; margin-top: 3px; font-size: 11.5px; color: var(--ink-dim); }
+.notif-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--bad);
+}
+.notif-pop-enter-active, .notif-pop-leave-active { transition: opacity 0.18s ease, transform 0.18s ease; }
+.notif-pop-enter-from, .notif-pop-leave-to { opacity: 0; transform: translateY(-8px) scale(0.97); }
+
+@media (max-width: 640px) {
+  .notif-panel { right: -46px; }
+}
+
 .nav-avatar {
   width: 34px;
   height: 34px;
@@ -637,8 +1056,8 @@ async function openUserPost(postId) {
   display: grid;
   place-items: center;
   background: rgba(255, 255, 255, 0.25);
-  border: 2px solid #fff;
-  color: #fff;
+  border: 2px solid var(--edge);
+  color: var(--on-accent);
   font-family: inherit;
   font-weight: 800;
   font-size: 14px;
@@ -651,7 +1070,7 @@ async function openUserPost(postId) {
 .nav-logout {
   border: 2px solid rgba(255, 255, 255, 0.7);
   background: transparent;
-  color: #fff;
+  color: var(--on-accent);
   font-family: inherit;
   font-weight: 700;
   font-size: 13px;
@@ -669,7 +1088,7 @@ async function openUserPost(postId) {
   gap: 5px;
   border: 2px solid rgba(255, 255, 255, 0.7);
   background: rgba(255, 255, 255, 0.16);
-  color: #fff;
+  color: var(--on-accent);
   font-family: inherit;
   font-weight: 700;
   font-size: 13px;
@@ -688,7 +1107,7 @@ async function openUserPost(postId) {
   background:
     radial-gradient(70% 120% at 92% 6%, rgba(255, 207, 92, 0.22) 0%, transparent 62%),
     radial-gradient(80% 120% at 6% 100%, rgba(124, 108, 255, 0.16) 0%, transparent 62%),
-    linear-gradient(180deg, #fff8fc 0%, #ffffff 78%);
+    linear-gradient(180deg, var(--hero-1) 0%, var(--card) 78%);
   border-bottom: 2px dashed var(--line);
 }
 .hero-inner {
@@ -705,7 +1124,7 @@ async function openUserPost(postId) {
   padding: 4px 12px;
   margin-bottom: 12px;
   border-radius: 999px;
-  background: #fff;
+  background: var(--card);
   border: 2px solid var(--line);
   color: var(--pink-deep);
   font-size: 10.5px;
@@ -728,11 +1147,12 @@ async function openUserPost(postId) {
 .hero-sub { margin: 10px 0 22px; color: var(--ink-soft); font-size: 14.5px; }
 
 .search {
+  position: relative; /* 搜索历史下拉的定位基准 */
   display: flex;
   align-items: center;
   gap: 8px;
   max-width: 520px;
-  background: #fdf6fb;
+  background: var(--soft);
   border: 2px solid var(--line);
   border-radius: 999px;
   padding: 6px 6px 6px 16px;
@@ -740,7 +1160,7 @@ async function openUserPost(postId) {
 }
 .search:focus-within {
   border-color: var(--pink);
-  background: #fff;
+  background: var(--card);
   box-shadow: 0 0 0 4px rgba(255, 126, 179, 0.18);
 }
 .search-ico { flex: none; width: 22px; height: 22px; color: var(--ink-dim); }
@@ -755,7 +1175,7 @@ async function openUserPost(postId) {
   color: var(--ink);
   padding: 10px 4px;
 }
-.search-input::placeholder { color: #c9bccf; }
+.search-input::placeholder { color: var(--ink-dim); }
 .search-btn {
   flex: none;
   border: 0;
@@ -764,7 +1184,7 @@ async function openUserPost(postId) {
   font-family: inherit;
   font-size: 15px;
   font-weight: 800;
-  color: #fff;
+  color: var(--on-accent);
   cursor: pointer;
   background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 55%, #ff8a5c 130%);
   box-shadow: 0 10px 20px -8px rgba(255, 92, 157, 0.6), inset 0 -3px 0 rgba(0, 0, 0, 0.08);
@@ -772,6 +1192,84 @@ async function openUserPost(postId) {
 }
 .search-btn:hover { transform: translateY(-2px) scale(1.02); filter: brightness(1.04); }
 .search-btn:active { transform: scale(0.97); }
+
+/* ---------- 搜索历史下拉 ---------- */
+.search-history {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 12px 14px;
+}
+.sh-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 9px;
+}
+.sh-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink-soft);
+  letter-spacing: 0.5px;
+}
+.sh-label svg { width: 13px; height: 13px; }
+.sh-clear {
+  border: 0;
+  background: transparent;
+  color: var(--ink-dim);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.sh-clear:hover { color: var(--bad); background: var(--soft); }
+.sh-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.sh-chip {
+  display: inline-flex;
+  align-items: center;
+  background: var(--soft);
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+.sh-chip:hover { border-color: var(--pink); }
+.sh-word {
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  padding: 5px 4px 5px 12px;
+  cursor: pointer;
+}
+.sh-word:hover { color: var(--pink-deep); }
+.sh-del {
+  border: 0;
+  background: transparent;
+  color: var(--ink-dim);
+  font-size: 14px;
+  line-height: 1;
+  padding: 5px 10px 5px 4px;
+  cursor: pointer;
+}
+.sh-del:hover { color: var(--bad); }
+
+/* 下拉弹出动画 */
+.hist-pop-enter-active, .hist-pop-leave-active { transition: opacity 0.16s ease, transform 0.16s ease; }
+.hist-pop-enter-from, .hist-pop-leave-to { opacity: 0; transform: translateY(-6px) scale(0.98); }
 
 .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 16px 0 0; }
 .chips-label {
@@ -782,7 +1280,7 @@ async function openUserPost(postId) {
 }
 .chip {
   border: 2px solid var(--line);
-  background: #fff;
+  background: var(--card);
   color: var(--pink-deep);
   font-family: inherit;
   font-size: 13px;
@@ -792,7 +1290,7 @@ async function openUserPost(postId) {
   cursor: pointer;
   transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
 }
-.chip:hover { background: #fff5f9; border-color: var(--pink); transform: translateY(-1px); }
+.chip:hover { background: var(--soft); border-color: var(--pink); transform: translateY(-1px); }
 
 /* 右栏：猫咪舞台（圆环 + 气泡 + 漂浮装饰都相对同一圆心定位） */
 .hero-right {
@@ -845,7 +1343,7 @@ async function openUserPost(postId) {
   z-index: 2;
   padding: 6px 14px;
   border-radius: 999px;
-  background: #fff;
+  background: var(--card);
   border: 2px solid var(--line);
   font-size: 12px;
   font-weight: 800;
@@ -865,7 +1363,7 @@ async function openUserPost(postId) {
   width: 12px;
   height: 12px;
   margin-left: -6px;
-  background: #fff;
+  background: var(--card);
   border-right: 2px solid var(--line);
   border-bottom: 2px solid var(--line);
   transform: rotate(45deg);
@@ -936,7 +1434,7 @@ async function openUserPost(postId) {
   place-items: center;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--pink) 0%, var(--candy) 100%);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 12px;
   font-weight: 800;
 }
@@ -952,7 +1450,7 @@ async function openUserPost(postId) {
   position: relative;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--card);
   border: 2px solid var(--line);
   border-radius: 20px;
   overflow: hidden;
@@ -985,10 +1483,10 @@ async function openUserPost(postId) {
   place-items: center;
   border-radius: 50%;
   background: var(--cat-color, var(--pink));
-  color: #fff;
+  color: var(--on-accent);
   font-size: 13px;
   font-weight: 800;
-  border: 2px solid #fff;
+  border: 2px solid var(--edge);
   box-shadow: 0 5px 12px -4px rgba(120, 40, 90, 0.45);
 }
 .category-info { padding: 22px 10px 14px; }
@@ -1005,7 +1503,7 @@ async function openUserPost(postId) {
 .category-breeds span {
   padding: 2px 8px;
   border-radius: 999px;
-  background: #fdf6fb;
+  background: var(--soft);
   color: var(--ink-soft);
   font-size: 10.5px;
   font-weight: 700;
@@ -1031,7 +1529,7 @@ async function openUserPost(postId) {
   max-height: 92%;
   overflow-y: auto;
   background: var(--card);
-  border: 4px solid #fff;
+  border: 4px solid var(--edge);
   border-radius: 24px;
   box-shadow: var(--shadow);
   animation: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
@@ -1054,7 +1552,7 @@ async function openUserPost(postId) {
   box-shadow: 0 4px 10px -3px rgba(124, 78, 140, 0.4);
   transition: background 0.18s ease, transform 0.12s ease;
 }
-.detail-close:hover { background: #fff; transform: scale(1.06); }
+.detail-close:hover { background: var(--card); transform: scale(1.06); }
 .detail-cover {
   width: 100%;
   height: 200px;
@@ -1068,7 +1566,7 @@ async function openUserPost(postId) {
   display: inline-block;
   padding: 3px 12px;
   border-radius: 999px;
-  color: #fff;
+  color: var(--on-accent);
   font-size: 12px;
   font-weight: 800;
   margin-bottom: 8px;
@@ -1079,7 +1577,7 @@ async function openUserPost(postId) {
   display: grid;
   gap: 9px;
   text-align: left;
-  background: #fdf6fb;
+  background: var(--soft);
   border: 2px dashed var(--line);
   border-radius: 16px;
   padding: 12px 16px;
@@ -1097,7 +1595,7 @@ async function openUserPost(postId) {
   font-family: inherit;
   font-size: 15px;
   font-weight: 800;
-  color: #fff;
+  color: var(--on-accent);
   cursor: pointer;
   background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 55%, #ff8a5c 130%);
   box-shadow: 0 10px 20px -8px rgba(255, 92, 157, 0.6), inset 0 -3px 0 rgba(0, 0, 0, 0.08);
@@ -1129,7 +1627,7 @@ async function openUserPost(postId) {
   gap: 16px;
 }
 .card {
-  background: #fdf6fb;
+  background: var(--soft);
   border: 2px solid var(--line);
   border-radius: 18px;
   padding: 14px;
@@ -1184,7 +1682,7 @@ async function openUserPost(postId) {
   bottom: 40px;
   transform: translateX(-50%);
   background: rgba(74, 59, 82, 0.92);
-  color: #fff;
+  color: var(--on-accent);
   padding: 10px 18px;
   border-radius: 999px;
   font-size: 13.5px;
@@ -1198,7 +1696,16 @@ async function openUserPost(postId) {
 .fade-leave-to { opacity: 0; transform: translate(-50%, 10px); }
 
 /* ---------- 响应式 ---------- */
+/* 中等宽度：导航横向空间紧张，压缩间距保证五个导航项永远单行横排 */
 @media (max-width: 900px) {
+  .nav { padding: 0 18px; }
+  .nav-inner { gap: 10px; }
+  .nav-links { gap: 2px; }
+  .nav-links li { padding: 7px 11px; font-size: 13.5px; }
+  .nav-cat { width: 36px; height: 34px; }
+  .nav-logo { font-size: 17px; }
+  .nav-user { gap: 8px; }
+
   .hero-inner { grid-template-columns: 1fr; gap: 18px; padding-bottom: 20px; text-align: center; }
   .hero-left { display: flex; flex-direction: column; align-items: center; }
   .search { margin: 0 auto; }
@@ -1216,7 +1723,8 @@ async function openUserPost(postId) {
 @media (max-width: 640px) {
   .nav { padding: 0 16px; }
   .nav-inner { flex-wrap: wrap; gap: 10px 12px; padding: 11px 0; }
-  .nav-links { order: 3; flex: 1 1 100%; }
+  .nav-links { order: 3; flex: 1 1 100%; gap: 2px; }
+  .nav-links li { padding: 7px 10px; font-size: 13px; }
   .home { max-width: 100%; border-radius: 24px; }
   .hero { padding: 22px 16px 0; }
   .hero-title { font-size: 25px; }

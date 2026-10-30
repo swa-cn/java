@@ -153,32 +153,6 @@
         <p class="kn-hint">在上方搜索框输入品种名（如「布偶猫」「柯基」），可以直接跳到品种详情。</p>
       </section>
     </template>
-
-    <!-- ================= 文章详情弹层 ================= -->
-    <transition name="fade">
-      <div v-if="active" class="kn-mask" @click.self="active = null">
-        <div class="kn-article">
-          <button type="button" class="kn-close" @click="active = null" aria-label="关闭">×</button>
-          <header class="kn-article-head">
-            <div class="kn-article-meta">
-              <span class="kn-article-cat" :style="{ background: catColorOf(active) }">
-                {{ catIconOf(active) }} {{ catNameOf(active) }}
-              </span>
-              <span class="kn-views">👁 {{ viewsOf(active) }} 次浏览</span>
-            </div>
-            <h3 class="kn-article-title">{{ active.title }}</h3>
-            <p class="kn-article-sum">{{ active.summary }}</p>
-          </header>
-          <div class="kn-article-body">
-            <div v-for="s in active.sections" :key="s.h" class="kn-article-block">
-              <h4 class="kn-article-h">{{ s.h }}</h4>
-              <p class="kn-article-p">{{ s.p }}</p>
-            </div>
-            <p class="kn-article-note">内容为一般性科普，不能替代执业兽医的当面诊断。</p>
-          </div>
-        </div>
-      </div>
-    </transition>
   </div>
 </template>
 
@@ -186,13 +160,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { petCategories } from '../composables/petData'
 import { KNOWLEDGE_ARTICLES, searchIn } from '../composables/knowledgeData'
-import { fetchKnowledgeList, readKnowledge } from '../api/knowledge'
+import { fetchKnowledgeList } from '../api/knowledge'
 
-defineEmits(['open-breed'])
+const emit = defineEmits(['open-breed', 'open-article'])
 
 const keyword = ref('')
 const catFilter = ref('all')
-const active = ref(null)
 
 // 先用静态内容兜底渲染，后端返回后整体覆盖（含 views 浏览数）
 const articles = ref(KNOWLEDGE_ARTICLES)
@@ -212,20 +185,9 @@ async function loadArticles() {
 }
 onMounted(loadArticles)
 
-/** 打开详情：顺带通知后端 views +1，并把列表里的浏览数同步更新 */
-async function openArticle(a) {
-  active.value = a
-  if (!remoteReady.value || typeof a.id !== 'number') return
-  try {
-    const data = await readKnowledge(a.id)
-    const fresh = data.article
-    if (!fresh) return
-    active.value = fresh
-    const i = articles.value.findIndex((x) => x.id === fresh.id)
-    if (i >= 0) articles.value[i] = fresh
-  } catch (e) {
-    /* 浏览数统计失败不影响阅读 */
-  }
+/** 点击文章：整页跳转到知识详情页（由 Home 接管路由，详情页内自取最新内容并 +1 浏览） */
+function openArticle(a) {
+  emit('open-article', a)
 }
 
 const activeCat = computed(() => petCategories.find((c) => c.id === catFilter.value) || null)
@@ -310,7 +272,7 @@ function catColorOf(a) {
   place-items: center;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--pink) 0%, var(--candy) 100%);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 12px;
   font-weight: 800;
 }
@@ -322,7 +284,7 @@ function catColorOf(a) {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #fff;
+  background: var(--card);
   border: 2px solid var(--line);
   border-radius: 999px;
   padding: 6px 8px 6px 16px;
@@ -351,13 +313,13 @@ function catColorOf(a) {
   place-items: center;
   border: 0;
   border-radius: 50%;
-  background: #f6eef4;
+  background: var(--soft);
   color: var(--ink-soft);
   font-size: 14px;
   font-weight: 800;
   cursor: pointer;
 }
-.kn-clear:hover { background: #ffd6de; color: var(--bad); }
+.kn-clear:hover { background: var(--soft); color: var(--bad); }
 
 .kn-chips {
   display: flex;
@@ -367,7 +329,7 @@ function catColorOf(a) {
 }
 .kn-chip {
   border: 2px solid var(--line);
-  background: #fff;
+  background: var(--card);
   color: var(--pink-deep);
   font-family: inherit;
   font-size: 12.5px;
@@ -377,11 +339,11 @@ function catColorOf(a) {
   cursor: pointer;
   transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
 }
-.kn-chip:hover { background: #fff5f9; border-color: var(--pink); transform: translateY(-1px); }
+.kn-chip:hover { background: var(--soft); border-color: var(--pink); transform: translateY(-1px); }
 .kn-chip.active {
   background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%);
   border-color: transparent;
-  color: #fff;
+  color: var(--on-accent);
   box-shadow: 0 8px 16px -8px rgba(255, 92, 157, 0.6);
 }
 
@@ -402,7 +364,7 @@ function catColorOf(a) {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  color: #fff;
+  color: var(--on-accent);
   font-size: 12px;
   font-weight: 800;
 }
@@ -416,7 +378,7 @@ function catColorOf(a) {
   gap: 14px;
   text-align: left;
   border: 2px solid var(--line);
-  background: #fff;
+  background: var(--card);
   border-radius: 18px;
   padding: 14px 16px;
   cursor: pointer;
@@ -435,10 +397,10 @@ function catColorOf(a) {
   display: grid;
   place-items: center;
   border-radius: 14px;
-  color: #fff;
+  color: var(--on-accent);
   font-size: 17px;
   font-weight: 800;
-  border: 2px solid #fff;
+  border: 2px solid var(--edge);
   box-shadow: 0 6px 14px -6px rgba(120, 40, 90, 0.35);
 }
 .kn-card-main { flex: 1; min-width: 0; }
@@ -462,7 +424,7 @@ function catColorOf(a) {
 .kn-card-tags span {
   padding: 1px 9px;
   border-radius: 999px;
-  background: #fff0f6;
+  background: var(--soft);
   color: var(--pink-deep);
   font-size: 10.5px;
   font-weight: 800;
@@ -490,7 +452,7 @@ function catColorOf(a) {
   gap: 12px;
   text-align: left;
   border: 2px solid var(--line);
-  background: #fff;
+  background: var(--card);
   border-radius: 16px;
   padding: 10px 14px;
   cursor: pointer;
@@ -508,7 +470,7 @@ function catColorOf(a) {
   flex: none;
   border-radius: 12px;
   object-fit: cover;
-  border: 2px solid #fff;
+  border: 2px solid var(--edge);
   box-shadow: 0 6px 12px -6px rgba(120, 40, 90, 0.3);
   background: #ffe3c2;
 }
@@ -534,102 +496,6 @@ function catColorOf(a) {
 }
 .kn-empty p { margin: 0; font-size: 13px; line-height: 1.6; }
 
-/* ---------- 文章详情弹层 ---------- */
-.kn-mask {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: grid;
-  place-items: center;
-  background: rgba(80, 40, 90, 0.35);
-  backdrop-filter: blur(3px);
-  padding: 20px;
-}
-.kn-article {
-  position: relative;
-  width: min(640px, 100%);
-  max-height: 82vh;
-  overflow-y: auto;
-  background: #fff;
-  border: 4px solid #fff;
-  border-radius: 24px;
-  box-shadow: 0 30px 60px -20px rgba(90, 40, 110, 0.5);
-  padding: 26px 26px 20px;
-  animation: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-.kn-close {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: 50%;
-  background: #f6eef4;
-  color: var(--ink-soft);
-  font-size: 16px;
-  font-weight: 800;
-  cursor: pointer;
-}
-.kn-close:hover { background: #ffd6de; color: var(--bad); }
-.kn-article-meta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.kn-article-cat {
-  display: inline-block;
-  padding: 3px 12px;
-  border-radius: 999px;
-  color: #fff;
-  font-size: 11.5px;
-  font-weight: 800;
-}
-.kn-article-title { margin: 10px 0 0; font-size: 20px; font-weight: 800; }
-.kn-article-sum { margin: 6px 0 0; font-size: 13px; font-weight: 700; color: var(--ink-soft); }
-.kn-article-body {
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 2px dashed var(--line);
-}
-.kn-article-block { margin-bottom: 14px; }
-.kn-article-h {
-  margin: 0 0 6px;
-  font-size: 14.5px;
-  font-weight: 800;
-  color: var(--ink);
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-.kn-article-h::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--pink);
-  flex: none;
-}
-.kn-article-p {
-  margin: 0;
-  font-size: 13.5px;
-  line-height: 1.75;
-  color: var(--ink);
-  word-break: break-word;
-}
-.kn-article-note {
-  margin: 18px 0 0;
-  padding: 8px 12px;
-  border-radius: 12px;
-  background: #fff4e2;
-  color: #b8792a;
-  font-size: 11.5px;
-  font-weight: 700;
-}
-
 /* ---------- 响应式 ---------- */
 @media (max-width: 640px) {
   .kn-head { padding: 18px 16px 4px; }
@@ -638,6 +504,5 @@ function catColorOf(a) {
   .kn-sec:last-of-type { padding-bottom: 24px; }
   .kn-card { flex-wrap: wrap; padding: 12px; }
   .kn-card-sum { white-space: normal; }
-  .kn-article { padding: 20px 16px 16px; }
 }
 </style>

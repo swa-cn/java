@@ -1,6 +1,9 @@
 <template>
   <SceneBackground />
 
+  <!-- 主题切换：首页把按钮集成在顶部导航里，其余页面用右上角悬浮按钮 -->
+  <ThemeToggle v-if="view !== 'home'" floating />
+
   <main class="auth-shell" :class="{ 'is-wide': view === 'register' || view === 'home' || view === 'admin' }">
     <AuthCard
       v-if="view === 'auth'"
@@ -23,6 +26,7 @@ import RegisterPage from './components/RegisterPage.vue'
 import Home from './components/Home.vue'
 import AdminLogin from './components/AdminLogin.vue'
 import AdminPanel from './components/AdminPanel.vue'
+import ThemeToggle from './components/ThemeToggle.vue'
 import { useAuth } from './composables/useAuth'
 import { adminMe } from './api/admin'
 

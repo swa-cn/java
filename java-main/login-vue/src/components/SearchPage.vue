@@ -28,6 +28,32 @@
         </form>
       </div>
 
+      <!-- 搜索历史：还没搜的时候展示，点词直接搜，单条可删 -->
+      <div v-if="!shownQuery && history.items.length" class="sp-history">
+        <div class="sp-history-head">
+          <span class="sp-history-label">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2" />
+              <path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+            搜索历史
+          </span>
+          <button type="button" class="sp-history-clear" @click="clearHistory">清空</button>
+        </div>
+        <div class="sp-history-chips">
+          <span v-for="h in history.items" :key="'h-' + h" class="sp-history-chip">
+            <button type="button" class="sp-history-word" @click="searchFor(h)">{{ h }}</button>
+            <button
+              type="button"
+              class="sp-history-del"
+              :aria-label="'删除历史 ' + h"
+              title="删除"
+              @click.stop="removeHistory(h)"
+            >×</button>
+          </span>
+        </div>
+      </div>
+
       <div class="sp-summary">
         <h2 class="sp-title">「{{ shownQuery }}」的搜索结果</h2>
         <p class="sp-sub">
@@ -187,6 +213,7 @@ import PetMascot from './PetMascot.vue'
 import { searchAll } from '../api/home'
 import { formatTime } from '../composables/postStore'
 import { useTodayPet } from '../composables/dailyPet'
+import { searchHistory, addHistory, removeHistory, clearHistory } from '../composables/searchHistory'
 
 // 空结果吉祥物 = 今日宠物（一天一换，点击可换表情）
 const todayPet = useTodayPet()
@@ -241,6 +268,7 @@ async function run(q) {
   const kw = String(q || '').trim()
   if (!kw) return
   shownQuery.value = kw
+  addHistory(kw) // 记入搜索历史（模块内自动去重置顶）
   loading.value = true
   filter.value = 'all'
   try {
@@ -291,7 +319,7 @@ watch(
   padding: 20px 30px 22px;
   background:
     radial-gradient(70% 120% at 92% 0%, rgba(255, 207, 92, 0.22) 0%, transparent 62%),
-    linear-gradient(180deg, #fff8fc 0%, #ffffff 85%);
+    linear-gradient(180deg, var(--hero-1) 0%, var(--card) 85%);
   border-bottom: 2px dashed var(--line);
 }
 .sp-top {
@@ -304,7 +332,7 @@ watch(
   align-items: center;
   gap: 4px;
   flex: none;
-  border: 2px solid #fff;
+  border: 2px solid var(--edge);
   background: rgba(255, 255, 255, 0.78);
   color: var(--ink);
   font-family: inherit;
@@ -317,7 +345,7 @@ watch(
   transition: transform 0.14s ease, background 0.18s ease;
 }
 .sp-back svg { width: 16px; height: 16px; }
-.sp-back:hover { background: #fff; transform: translateX(-2px); }
+.sp-back:hover { background: var(--card); transform: translateX(-2px); }
 
 .sp-form {
   display: flex;
@@ -326,7 +354,7 @@ watch(
   flex: 1;
   min-width: 0;
   padding: 5px 5px 5px 14px;
-  background: #fff;
+  background: var(--card);
   border: 2px solid var(--line);
   border-radius: 999px;
   box-shadow: 0 8px 20px -14px rgba(124, 78, 140, 0.5);
@@ -356,7 +384,7 @@ watch(
   border-radius: 999px;
   padding: 9px 20px;
   background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%);
-  color: #fff;
+  color: var(--on-accent);
   font-family: inherit;
   font-size: 14px;
   font-weight: 800;
@@ -380,7 +408,7 @@ watch(
   margin-left: 8px;
   padding: 1px 8px;
   border-radius: 999px;
-  background: #fff2f7;
+  background: var(--soft);
   border: 1px solid var(--line);
   color: var(--ink-dim);
   font-size: 11px;
@@ -403,7 +431,7 @@ watch(
   padding: 6px 14px;
   border-radius: 999px;
   border: 2px solid var(--line);
-  background: #fff;
+  background: var(--card);
   color: var(--ink-soft);
   font-size: 13px;
   font-weight: 800;
@@ -414,7 +442,7 @@ watch(
 .sp-tabs li.active {
   background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%);
   border-color: transparent;
-  color: #fff;
+  color: var(--on-accent);
   box-shadow: 0 8px 16px -8px rgba(255, 92, 157, 0.7);
 }
 .sp-tabs li.muted { opacity: 0.55; }
@@ -451,7 +479,7 @@ watch(
   display: grid;
   place-items: center;
   border-radius: 50%;
-  color: #fff;
+  color: var(--on-accent);
   font-size: 12px;
   font-weight: 800;
   flex: none;
@@ -468,7 +496,7 @@ watch(
   padding: 10px 14px 10px 10px;
   border: 2px solid var(--line);
   border-radius: 20px;
-  background: #fff;
+  background: var(--card);
   font-family: inherit;
   text-align: left;
   cursor: pointer;
@@ -503,7 +531,7 @@ watch(
   padding: 0 0 12px;
   border: 2px solid var(--line);
   border-radius: 18px;
-  background: #fff;
+  background: var(--card);
   overflow: hidden;
   font-family: inherit;
   text-align: left;
@@ -526,7 +554,7 @@ watch(
   align-self: flex-start;
   padding: 1px 8px;
   border-radius: 999px;
-  color: #fff;
+  color: var(--on-accent);
   font-size: 11px;
   font-weight: 800;
 }
@@ -550,7 +578,7 @@ watch(
   padding: 10px 14px 10px 10px;
   border: 2px solid var(--line);
   border-radius: 18px;
-  background: #fff;
+  background: var(--card);
   cursor: pointer;
   transition: transform 0.14s ease, border-color 0.18s ease, box-shadow 0.2s ease;
 }
@@ -594,7 +622,7 @@ watch(
   font-style: normal;
   padding: 0 7px;
   border-radius: 999px;
-  background: #fff2f7;
+  background: var(--soft);
   color: var(--pink-deep);
 }
 .sp-post-enter { flex: none; font-size: 12px; font-weight: 800; color: var(--pink-deep); }
@@ -607,7 +635,7 @@ watch(
   display: grid;
   place-items: center;
   border-radius: 50%;
-  color: #fff;
+  color: var(--on-accent);
   font-size: 17px;
   font-weight: 800;
   background: linear-gradient(135deg, var(--candy) 0%, var(--pink) 100%);
@@ -651,7 +679,7 @@ watch(
 .sp-suggests { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .sp-suggest {
   border: 2px solid var(--line);
-  background: #fff;
+  background: var(--card);
   color: var(--ink-soft);
   font-family: inherit;
   font-size: 13px;
@@ -662,6 +690,76 @@ watch(
   transition: all 0.16s ease;
 }
 .sp-suggest:hover { border-color: var(--pink); color: var(--pink-deep); transform: translateY(-1px); }
+
+/* ---------- 搜索历史 ---------- */
+.sp-history {
+  margin: 4px 30px 12px;
+  padding: 12px 16px;
+  background: var(--soft);
+  border: 2px dashed var(--line);
+  border-radius: 18px;
+}
+.sp-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 9px;
+}
+.sp-history-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--ink-soft);
+  letter-spacing: 0.5px;
+}
+.sp-history-label svg { width: 14px; height: 14px; }
+.sp-history-clear {
+  border: 0;
+  background: transparent;
+  color: var(--ink-dim);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 999px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.sp-history-clear:hover { color: var(--bad); background: var(--card); }
+.sp-history-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.sp-history-chip {
+  display: inline-flex;
+  align-items: center;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.sp-history-chip:hover { border-color: var(--pink); transform: translateY(-1px); }
+.sp-history-word {
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  padding: 6px 4px 6px 12px;
+  cursor: pointer;
+}
+.sp-history-word:hover { color: var(--pink-deep); }
+.sp-history-del {
+  border: 0;
+  background: transparent;
+  color: var(--ink-dim);
+  font-size: 14px;
+  line-height: 1;
+  padding: 6px 10px 6px 4px;
+  cursor: pointer;
+}
+.sp-history-del:hover { color: var(--bad); }
 
 /* ---------- 响应式 ---------- */
 @media (max-width: 640px) {

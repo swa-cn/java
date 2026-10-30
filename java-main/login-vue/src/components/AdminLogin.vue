@@ -113,7 +113,7 @@ async function onSubmit() {
   width: 100%;
   max-width: 400px;
   background: var(--card);
-  border: 4px solid #fff;
+  border: 4px solid var(--edge);
   border-radius: 26px;
   box-shadow: var(--shadow);
   padding: 30px 30px 22px;
@@ -130,7 +130,7 @@ async function onSubmit() {
   font-size: 28px;
   border-radius: 50%;
   background: linear-gradient(135deg, #8b7bff 0%, #6a5ae0 100%);
-  border: 3px solid #fff;
+  border: 3px solid var(--edge);
   box-shadow: 0 10px 20px -8px rgba(106, 90, 224, 0.6);
 }
 .login-title { margin: 0; font-size: 21px; font-weight: 800; }
@@ -141,7 +141,7 @@ async function onSubmit() {
 .field-label { font-size: 12.5px; font-weight: 800; color: var(--ink-soft); }
 .field-input {
   border: 2px solid var(--line);
-  background: #fdf6fb;
+  background: var(--soft);
   border-radius: 14px;
   padding: 12px 14px;
   font-family: inherit;
@@ -152,18 +152,18 @@ async function onSubmit() {
 }
 .field-input:focus {
   border-color: #8b7bff;
-  background: #fff;
+  background: var(--card);
   box-shadow: 0 0 0 4px rgba(139, 123, 255, 0.16);
 }
-.field-input::placeholder { color: #c9bccf; }
+.field-input::placeholder { color: var(--ink-dim); }
 
 .form-error {
   margin: 0;
   padding: 9px 12px;
   border-radius: 12px;
-  background: #fff0f3;
-  border: 2px solid #ffd3dd;
-  color: #d6336c;
+  background: var(--soft);
+  border: 2px solid var(--line);
+  color: var(--pink-deep);
   font-size: 12.5px;
   font-weight: 700;
 }
@@ -175,7 +175,7 @@ async function onSubmit() {
   font-family: inherit;
   font-size: 15px;
   font-weight: 800;
-  color: #fff;
+  color: var(--on-accent);
   cursor: pointer;
   background: linear-gradient(135deg, #8b7bff 0%, #6a5ae0 60%, #ff6fa8 140%);
   box-shadow: 0 10px 20px -8px rgba(106, 90, 224, 0.6), inset 0 -3px 0 rgba(0, 0, 0, 0.08);
@@ -205,7 +205,7 @@ async function onSubmit() {
   bottom: 40px;
   transform: translateX(-50%);
   background: rgba(74, 59, 82, 0.92);
-  color: #fff;
+  color: var(--on-accent);
   padding: 10px 18px;
   border-radius: 999px;
   font-size: 13.5px;

@@ -277,7 +277,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 4px;
   border: 2px solid var(--line);
-  background: #fff;
+  background: var(--card);
   color: var(--ink);
   font-family: inherit;
   font-size: 13px;
@@ -288,13 +288,13 @@ onBeforeUnmount(() => {
   transition: transform 0.14s ease, background 0.18s ease, border-color 0.18s ease;
 }
 .cp-back svg { width: 16px; height: 16px; }
-.cp-back:hover { background: #fff5f9; border-color: var(--pink); transform: translateX(-2px); }
+.cp-back:hover { background: var(--soft); border-color: var(--pink); transform: translateX(-2px); }
 .cp-head { margin: 0; font-size: 18px; font-weight: 800; }
 
 .cp-card {
   margin: 14px 30px 34px;
   padding: 20px 22px 18px;
-  background: #fff;
+  background: var(--card);
   border: 2px solid var(--line);
   border-radius: 24px;
   box-shadow: 0 18px 40px -20px rgba(124, 78, 140, 0.35);
@@ -318,7 +318,7 @@ onBeforeUnmount(() => {
   font-family: inherit;
   font-size: 14px;
   color: var(--ink);
-  background: #fdf6fb;
+  background: var(--soft);
   outline: none;
   transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
@@ -326,11 +326,11 @@ onBeforeUnmount(() => {
 .cp-input:focus,
 .cp-textarea:focus {
   border-color: var(--pink);
-  background: #fff;
+  background: var(--card);
   box-shadow: 0 0 0 4px rgba(255, 126, 179, 0.16);
 }
 .cp-input::placeholder,
-.cp-textarea::placeholder { color: #c9bccf; }
+.cp-textarea::placeholder { color: var(--ink-dim); }
 .cp-count {
   position: absolute;
   right: 10px;
@@ -344,7 +344,7 @@ onBeforeUnmount(() => {
 .cp-cats { display: flex; flex-wrap: wrap; gap: 8px; }
 .cp-cat {
   border: 2px solid var(--line);
-  background: #fff;
+  background: var(--card);
   color: var(--pink-deep);
   font-family: inherit;
   font-size: 13px;
@@ -354,8 +354,8 @@ onBeforeUnmount(() => {
   cursor: pointer;
   transition: all 0.18s ease;
 }
-.cp-cat:hover { background: #fff5f9; border-color: var(--pink); transform: translateY(-1px); }
-.cp-cat.active { color: #fff; box-shadow: 0 10px 18px -10px rgba(255, 92, 157, 0.7); }
+.cp-cat:hover { background: var(--soft); border-color: var(--pink); transform: translateY(-1px); }
+.cp-cat.active { color: var(--on-accent); box-shadow: 0 10px 18px -10px rgba(255, 92, 157, 0.7); }
 
 /* 上传区 */
 .cp-drop {
@@ -368,13 +368,13 @@ onBeforeUnmount(() => {
   padding: 22px 16px;
   border: 2px dashed var(--line);
   border-radius: 18px;
-  background: #fdf6fb;
+  background: var(--soft);
   cursor: pointer;
   text-align: center;
   transition: border-color 0.18s ease, background 0.18s ease, transform 0.14s ease;
 }
 .cp-drop:hover,
-.cp-drop.over { border-color: var(--pink); background: #fff5f9; }
+.cp-drop.over { border-color: var(--pink); background: var(--soft); }
 .cp-drop.over { transform: scale(1.01); }
 .cp-drop svg { width: 30px; height: 30px; color: var(--pink); }
 .cp-drop-main { margin: 6px 0 0; font-size: 13.5px; font-weight: 800; color: var(--ink); }
@@ -408,7 +408,7 @@ onBeforeUnmount(() => {
   padding: 2px 8px;
   border-radius: 999px;
   background: rgba(44, 36, 51, 0.66);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 10.5px;
   font-weight: 800;
 }
@@ -430,7 +430,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
   transition: background 0.16s ease, transform 0.14s ease;
 }
-.cp-preview-del:hover { background: #fff; transform: scale(1.08); }
+.cp-preview-del:hover { background: var(--card); transform: scale(1.08); }
 
 .cp-error {
   margin: 10px 0 0;
@@ -442,7 +442,7 @@ onBeforeUnmount(() => {
   margin: 0 0 14px;
   padding: 10px 14px;
   border-radius: 14px;
-  background: #fff2f4;
+  background: var(--soft);
 }
 
 /* 底部按钮 */
@@ -459,11 +459,11 @@ onBeforeUnmount(() => {
   cursor: pointer;
   transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
 }
-.cp-cancel { background: #f6eef4; color: var(--ink-soft); }
-.cp-cancel:hover:not(:disabled) { background: #f0e4ee; }
+.cp-cancel { background: var(--soft); color: var(--ink-soft); }
+.cp-cancel:hover:not(:disabled) { background: var(--soft); }
 .cp-submit {
   flex: 2;
-  color: #fff;
+  color: var(--on-accent);
   background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 55%, #ff8a5c 130%);
   box-shadow: 0 12px 22px -10px rgba(255, 92, 157, 0.7), inset 0 -3px 0 rgba(0, 0, 0, 0.08);
 }
@@ -481,7 +481,7 @@ onBeforeUnmount(() => {
 }
 .cp-note code {
   font-family: Consolas, "Courier New", monospace;
-  background: #fdf1f7;
+  background: var(--soft);
   color: var(--pink-deep);
   padding: 1px 5px;
   border-radius: 6px;

@@ -31,6 +31,87 @@
   --shadow: 0 22px 55px -18px rgba(124, 78, 140, 0.45);
   --font-round: "Yuanti SC", "YouYuan", "幼圆", "Microsoft YaHei", "PingFang SC",
                 -apple-system, "Segoe UI", sans-serif;
+
+  /* ---- 深色模式新增的语义变量（浅色下保持原有配色） ---- */
+  --soft: #fdf6fb;        /* 淡粉底：输入框 / 次级面板 */
+  --soft-2: #f3ecff;      /* 淡紫底：标签 / 提示块 */
+  --warn-bg: #fff4e2;     /* 琥珀底：等待中 / 已禁用 */
+  --warn-ink: #b8792a;    /* 琥珀字 */
+  --info-ink: #3a78c2;    /* 蓝色说明文字 */
+  --edge: #ffffff;        /* 卡片外描边 */
+  --on-accent: #ffffff;   /* 彩色按钮上的文字（两种主题都是白） */
+  --cloud: #ffffff;       /* 背景云朵 */
+  --hero-1: #fff8fc;      /* 首屏 / 顶部条 的渐变起点 */
+}
+
+/* =====================================================================
+ * 深色模式
+ * 做法：只覆盖 CSS 变量，所有组件自动跟随；少数硬编码场景在下方单独修正。
+ * 切换方式：<html data-theme="dark">，由 composables/useTheme.js 控制。
+ * ===================================================================== */
+[data-theme="dark"] {
+  --bg-1: #1d2b4d;
+  --bg-2: #43263f;
+  --bg-3: #262046;
+  --card: #2a2338;
+  --ink: #f3ecf8;
+  --ink-soft: #c3b6d0;
+  --ink-dim: #9a8daa;
+  --line: #4a3f5e;
+  --pink: #ff92c0;
+  --pink-deep: #ff6ea9;
+  --candy: #9b8cff;
+  --candy-2: #b3a6ff;
+  --mint: #6fe0bd;
+  --sun: #ffd77a;
+  --ok: #4fd39c;
+  --bad: #ff8095;
+  --shadow: 0 22px 55px -18px rgba(0, 0, 0, 0.72);
+
+  --soft: #352c46;
+  --soft-2: #342a54;
+  --warn-bg: #4a3a22;
+  --warn-ink: #ffcd85;
+  --info-ink: #8ab8f0;
+  --edge: #1a1526;
+  --on-accent: #ffffff;
+  --cloud: #3b3153;
+  --hero-1: #332a45;
+}
+
+/* 深色下的渐进增强：避免组件切换时闪白 */
+html[data-theme="dark"],
+html[data-theme="dark"] body { color-scheme: dark; }
+html, body { transition: background-color 0.3s ease, color 0.3s ease; }
+
+/* 云朵在深色底上要压暗，否则太抢眼 */
+html[data-theme="dark"] .cloud { opacity: 0.45; }
+html[data-theme="dark"] .star { filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.75)); }
+
+/* 顶部导航 / 注册左侧品牌面板：保持糖果渐变，但压深一档，避免刺眼 */
+html[data-theme="dark"] .nav {
+  background: linear-gradient(135deg, #b85f8e 0%, #a24a78 40%, #5a4bb0 100%);
+}
+html[data-theme="dark"] .reg-brand {
+  background:
+    radial-gradient(120% 80% at 18% 0%, rgba(255, 207, 92, 0.32) 0%, transparent 58%),
+    radial-gradient(110% 70% at 92% 100%, rgba(95, 212, 176, 0.28) 0%, transparent 62%),
+    linear-gradient(165deg, #b85f8e 0%, #9c4574 40%, #5546aa 100%);
+}
+/* 导航激活胶囊：深色下保持浅底 + 深粉字，比深色胶囊更清楚 */
+html[data-theme="dark"] .nav-links li.active {
+  background: #f6eefa;
+  color: #d6336c;
+  box-shadow: 0 6px 14px -6px rgba(0, 0, 0, 0.55);
+}
+/* 品牌面板里的白色圆点：在渐变底上保持浅色 */
+html[data-theme="dark"] .perk-dot {
+  background: #fdf3fa;
+  box-shadow: 0 4px 10px -3px rgba(0, 0, 0, 0.5);
+}
+/* 输入框聚焦光晕在深底上要更明显 */
+html[data-theme="dark"] .field input:focus {
+  box-shadow: 0 0 0 4px rgba(255, 146, 192, 0.28);
 }
 
 * { box-sizing: border-box; }
@@ -66,7 +147,7 @@ body {
 .cloud { position: absolute; opacity: 0.9; }
 .cloud i {
   position: absolute;
-  background: #fff;
+  background: var(--cloud);
   border-radius: 50%;
 }
 .cloud.c1 { top: 12%; left: 6%;  width: 150px; height: 52px; animation: drift 34s linear infinite; }
@@ -83,7 +164,7 @@ body {
 .star {
   position: absolute;
   width: 14px; height: 14px;
-  background: #fff;
+  background: #fff; /* 星星两种主题都保持白色：深色下正好是夜空效果 */
   clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
   animation: twinkle 2.6s ease-in-out infinite;
   filter: drop-shadow(0 0 6px rgba(255,255,255,.9));
@@ -122,7 +203,7 @@ body {
 .auth-card {
   position: relative;
   background: var(--card);
-  border: 4px solid #fff;
+  border: 4px solid var(--edge);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 64px 32px 26px;
@@ -221,15 +302,15 @@ body {
   font-size: 14px;
   font-family: inherit;
   color: var(--ink);
-  background: #fdf6fb;
+  background: var(--soft);
   border: 2px solid var(--line);
   border-radius: 16px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, transform 0.2s ease;
 }
-.field input::placeholder { color: #c9bccf; }
+.field input::placeholder { color: var(--ink-dim); }
 .field input:focus {
   outline: none;
-  background: #fff;
+  background: var(--card);
   border-color: var(--pink);
   box-shadow: 0 0 0 4px rgba(255, 126, 179, 0.18);
   transform: translateY(-1px);
@@ -253,7 +334,7 @@ body {
   position: absolute;
   right: 9px;
   border: 0;
-  background: #ffeef5;
+  background: var(--soft);
   color: var(--pink-deep);
   font-size: 12px;
   font-weight: 800;
@@ -263,7 +344,7 @@ body {
   font-family: inherit;
   transition: background 0.18s ease, transform 0.12s ease;
 }
-.toggle-pw:hover { background: #ffdfe9; }
+.toggle-pw:hover { background: var(--line); }
 .toggle-pw:active { transform: scale(0.92); }
 
 /* 密码强度 */
@@ -272,7 +353,7 @@ body {
 .strength-bar i {
   height: 6px; flex: 1;
   border-radius: 999px;
-  background: #f3e6f2;
+  background: var(--soft-2);
   transition: background 0.25s ease;
 }
 .strength.s1 .strength-bar i:nth-child(-n+1) { background: #ff8a9e; }
@@ -304,7 +385,7 @@ body {
   font-weight: 800;
   letter-spacing: 6px;
   text-indent: 6px;
-  color: #fff;
+  color: var(--on-accent);
   background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 55%, #ff8a5c 130%);
   cursor: pointer;
   box-shadow: 0 12px 24px -8px rgba(255, 92, 157, 0.6), inset 0 -3px 0 rgba(0,0,0,0.08);
@@ -328,11 +409,11 @@ body {
   font-size: 15px;
   font-weight: 800;
   color: var(--pink-deep);
-  background: #fff;
+  background: var(--card);
   cursor: pointer;
   transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
 }
-.btn-ghost:hover { background: #fff5f9; border-color: var(--pink); transform: translateY(-1px); }
+.btn-ghost:hover { background: var(--soft); border-color: var(--pink); transform: translateY(-1px); }
 
 .form-msg { margin: 2px 0 0; min-height: 17px; font-size: 13px; text-align: center; font-weight: 700; }
 .form-msg.ok  { color: var(--ok); }
@@ -355,9 +436,9 @@ body {
   border-radius: 50%;
   font-size: 26px;
   font-weight: 800;
-  color: #fff;
+  color: var(--on-accent);
   background: linear-gradient(135deg, var(--pink) 0%, var(--candy) 100%);
-  border: 4px solid #fff;
+  border: 4px solid var(--edge);
   box-shadow: 0 10px 24px -8px rgba(124, 108, 255, 0.55);
 }
 .dash-title { margin: 0; font-size: 24px; font-weight: 800; }
@@ -367,7 +448,7 @@ body {
   display: grid;
   gap: 11px;
   text-align: left;
-  background: #fdf6fb;
+  background: var(--soft);
   border: 2px dashed var(--line);
   border-radius: 18px;
   padding: 15px 18px;
@@ -389,7 +470,7 @@ body {
   display: grid;
   grid-template-columns: 372px 1fr;
   background: var(--card);
-  border: 4px solid #fff;
+  border: 4px solid var(--edge);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   overflow: hidden;
@@ -405,7 +486,7 @@ body {
   align-items: center;
   padding: 40px 28px 32px;
   text-align: center;
-  color: #fff;
+  color: var(--on-accent);
   background:
     radial-gradient(120% 80% at 18% 0%, rgba(255, 207, 92, 0.55) 0%, transparent 58%),
     radial-gradient(110% 70% at 92% 100%, rgba(95, 212, 176, 0.45) 0%, transparent 62%),
@@ -436,7 +517,7 @@ body {
   font-size: 27px;
   font-weight: 800;
   letter-spacing: 1px;
-  color: #fff;
+  color: var(--on-accent);
   text-shadow: 0 3px 10px rgba(120, 40, 90, 0.28);
 }
 .reg-brand .tilde { color: var(--sun); }
@@ -467,7 +548,7 @@ body {
   padding: 10px 12px;
   font-size: 12.5px;
   font-weight: 700;
-  color: #fff;
+  color: var(--on-accent);
   background: rgba(255, 255, 255, 0.18);
   border: 1.5px solid rgba(255, 255, 255, 0.38);
   border-radius: 14px;
@@ -482,7 +563,7 @@ body {
   border-radius: 50%;
   font-size: 12px;
   font-weight: 800;
-  background: #fff;
+  background: var(--card);
   box-shadow: 0 4px 10px -3px rgba(90, 30, 70, 0.35);
 }
 .perk-dot.d1 { color: var(--pink-deep); }
@@ -497,7 +578,7 @@ body {
   color: rgba(255, 255, 255, 0.92);
 }
 .reg-brand-foot .link-btn {
-  color: #fff;
+  color: var(--on-accent);
   border-bottom-color: rgba(255, 255, 255, 0.65);
 }
 .reg-brand-foot .link-btn:hover { color: var(--sun); border-bottom-color: var(--sun); }
@@ -555,7 +636,7 @@ body {
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
-  background: #f3ecff;
+  background: var(--soft-2);
   box-shadow: inset 0 0 0 1.5px rgba(124, 108, 255, 0.35);
   transition: transform 0.12s ease, box-shadow 0.18s ease;
 }
@@ -614,7 +695,7 @@ body {
   height: 2.4px;
   margin: -1.2px 0 0 -5px;
   border-radius: 2px;
-  background: #fff;
+  background: var(--card);
 }
 .field-flag.taken::before { transform: rotate(45deg); }
 .field-flag.taken::after { transform: rotate(-45deg); }
@@ -636,7 +717,7 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 7px 12px;
-  background: #fdf6fb;
+  background: var(--soft);
   border: 2px dashed var(--line);
   border-radius: 14px;
 }
@@ -736,7 +817,7 @@ body {
   display: grid;
   gap: 10px;
   text-align: left;
-  background: #fdf6fb;
+  background: var(--soft);
   border: 2px dashed var(--line);
   border-radius: 18px;
   padding: 14px 18px;

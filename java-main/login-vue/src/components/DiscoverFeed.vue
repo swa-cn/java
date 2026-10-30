@@ -267,7 +267,7 @@ defineExpose({ openPost })
   place-items: center;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--pink) 0%, var(--candy) 100%);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 12px;
   font-weight: 800;
 }
@@ -276,8 +276,8 @@ defineExpose({ openPost })
   margin-left: 6px;
   padding: 2px 10px;
   border-radius: 999px;
-  background: #fff4e2;
-  color: #b8792a;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
   font-size: 11px;
   font-weight: 800;
   vertical-align: middle;
@@ -297,7 +297,7 @@ defineExpose({ openPost })
   font-family: inherit;
   font-size: 14.5px;
   font-weight: 800;
-  color: #fff;
+  color: var(--on-accent);
   cursor: pointer;
   background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 55%, #ff8a5c 130%);
   box-shadow: 0 10px 20px -8px rgba(255, 92, 157, 0.6), inset 0 -3px 0 rgba(0, 0, 0, 0.08);
@@ -316,7 +316,7 @@ defineExpose({ openPost })
 }
 .filter-tab {
   border: 2px solid var(--line);
-  background: #fff;
+  background: var(--card);
   color: var(--pink-deep);
   font-family: inherit;
   font-size: 13px;
@@ -326,11 +326,11 @@ defineExpose({ openPost })
   cursor: pointer;
   transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
 }
-.filter-tab:hover { background: #fff5f9; border-color: var(--pink); transform: translateY(-1px); }
+.filter-tab:hover { background: var(--soft); border-color: var(--pink); transform: translateY(-1px); }
 .filter-tab.active {
   background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%);
   border-color: transparent;
-  color: #fff;
+  color: var(--on-accent);
   box-shadow: 0 8px 16px -8px rgba(255, 92, 157, 0.6);
 }
 
@@ -344,7 +344,7 @@ defineExpose({ openPost })
 .post-card {
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--card);
   border: 2px solid var(--line);
   border-radius: 20px;
   overflow: hidden;
@@ -377,7 +377,7 @@ defineExpose({ openPost })
   padding: 3px 9px;
   border-radius: 999px;
   background: rgba(44, 36, 51, 0.6);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 11px;
   font-weight: 800;
 }
@@ -386,7 +386,7 @@ defineExpose({ openPost })
   display: inline-block;
   padding: 2px 10px;
   border-radius: 999px;
-  color: #fff;
+  color: var(--on-accent);
   font-size: 11px;
   font-weight: 800;
 }
@@ -441,7 +441,7 @@ defineExpose({ openPost })
   bottom: 40px;
   transform: translateX(-50%);
   background: rgba(74, 59, 82, 0.92);
-  color: #fff;
+  color: var(--on-accent);
   padding: 10px 18px;
   border-radius: 999px;
   font-size: 13.5px;

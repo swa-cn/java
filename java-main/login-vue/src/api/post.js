@@ -28,6 +28,7 @@
 
 import * as store from '../composables/postStore'
 import { saveFiles, deleteMedia } from '../composables/mediaStore'
+import { scheduleSocialFeedback } from '../composables/socialSim'
 import { reactive } from 'vue'
 
 const API_BASE = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '')
@@ -145,6 +146,8 @@ export async function publishPost(payload) {
   const localPublish = async () => {
     const media = await saveFiles(files)
     const post = store.createPost({ ...payload, media })
+    // 本地演示：发帖后安排「星球居民」来点赞/评论，让通知中心有真实数据可看
+    if (post && post.id) scheduleSocialFeedback(post.id)
     return { ok: true, post, local: true }
   }
   return withFallback(() => {

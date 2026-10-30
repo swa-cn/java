@@ -581,7 +581,7 @@ defineExpose({ load, openChatWith })
   place-items: center;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--pink) 0%, var(--candy) 100%);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 12px;
   font-weight: 800;
 }
@@ -590,8 +590,8 @@ defineExpose({ load, openChatWith })
   margin-left: 6px;
   padding: 2px 10px;
   border-radius: 999px;
-  background: #fff4e2;
-  color: #b8792a;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
   font-size: 11px;
   font-weight: 800;
 }
@@ -599,7 +599,7 @@ defineExpose({ load, openChatWith })
   margin-left: auto;
   flex: none;
   border: 2px solid var(--line);
-  background: #fff;
+  background: var(--card);
   color: var(--pink-deep);
   font-family: inherit;
   font-size: 12.5px;
@@ -609,7 +609,7 @@ defineExpose({ load, openChatWith })
   cursor: pointer;
   transition: background 0.18s ease, border-color 0.18s ease;
 }
-.fr-refresh:hover:not(:disabled) { background: #fff5f9; border-color: var(--pink); }
+.fr-refresh:hover:not(:disabled) { background: var(--soft); border-color: var(--pink); }
 .fr-refresh:disabled { opacity: 0.6; cursor: default; }
 
 /* ---------- 找人搜索 ---------- */
@@ -618,7 +618,7 @@ defineExpose({ load, openChatWith })
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #fff;
+  background: var(--card);
   border: 2px solid var(--line);
   border-radius: 999px;
   padding: 6px 8px 6px 16px;
@@ -647,7 +647,7 @@ defineExpose({ load, openChatWith })
   font-family: inherit;
   font-size: 13px;
   font-weight: 800;
-  color: #fff;
+  color: var(--on-accent);
   cursor: pointer;
   background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%);
   transition: filter 0.18s ease;
@@ -674,7 +674,7 @@ defineExpose({ load, openChatWith })
   align-items: center;
   gap: 6px;
   border: 2px solid var(--line);
-  background: #fff;
+  background: var(--card);
   color: var(--pink-deep);
   font-family: inherit;
   font-size: 13px;
@@ -684,11 +684,11 @@ defineExpose({ load, openChatWith })
   cursor: pointer;
   transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
 }
-.fr-tab:hover { background: #fff5f9; border-color: var(--pink); transform: translateY(-1px); }
+.fr-tab:hover { background: var(--soft); border-color: var(--pink); transform: translateY(-1px); }
 .fr-tab.active {
   background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%);
   border-color: transparent;
-  color: #fff;
+  color: var(--on-accent);
   box-shadow: 0 8px 16px -8px rgba(255, 92, 157, 0.6);
 }
 .fr-tab-count {
@@ -697,8 +697,8 @@ defineExpose({ load, openChatWith })
   background: rgba(255, 255, 255, 0.28);
   font-size: 11px;
 }
-.fr-tab:not(.active) .fr-tab-count { background: #fff0f6; }
-.fr-tab-count.warn { background: var(--bad); color: #fff; }
+.fr-tab:not(.active) .fr-tab-count { background: var(--soft); }
+.fr-tab-count.warn { background: var(--bad); color: var(--on-accent); }
 
 /* ---------- 区块 ---------- */
 .fr-sec { padding: 16px 30px 0; }
@@ -715,7 +715,7 @@ defineExpose({ load, openChatWith })
 .fr-sec-count {
   padding: 1px 9px;
   border-radius: 999px;
-  background: #fff0f6;
+  background: var(--soft);
   color: var(--pink-deep);
   font-size: 11.5px;
 }
@@ -727,7 +727,7 @@ defineExpose({ load, openChatWith })
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #fff;
+  background: var(--card);
   border: 2px solid var(--line);
   border-radius: 18px;
   padding: 12px 16px;
@@ -746,7 +746,7 @@ defineExpose({ load, openChatWith })
   display: grid;
   place-items: center;
   border-radius: 50%;
-  color: #fff;
+  color: var(--on-accent);
   font-size: 16px;
   font-weight: 800;
 }
@@ -783,7 +783,7 @@ defineExpose({ load, openChatWith })
   padding: 0 5px;
   border-radius: 999px;
   background: var(--bad);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 11px;
   font-weight: 800;
 }
@@ -794,12 +794,12 @@ defineExpose({ load, openChatWith })
   font-size: 12px;
   font-weight: 800;
 }
-.fr-tag.done { background: #eaf9f0; color: #2f9e5f; }
+.fr-tag.done { background: var(--soft-2); color: var(--ok); }
 
 .fr-btn {
   flex: none;
-  border: 2px solid #ffd6de;
-  background: #fff;
+  border: 2px solid var(--line);
+  background: var(--card);
   color: var(--bad);
   font-family: inherit;
   font-size: 12.5px;
@@ -809,18 +809,18 @@ defineExpose({ load, openChatWith })
   cursor: pointer;
   transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
 }
-.fr-btn:hover:not(:disabled) { background: var(--bad); color: #fff; border-color: transparent; }
+.fr-btn:hover:not(:disabled) { background: var(--bad); color: var(--on-accent); border-color: transparent; }
 .fr-btn.ghost { border-color: var(--line); color: var(--ink-soft); }
-.fr-btn.ghost:hover { background: #f6eef4; color: var(--ink); border-color: transparent; }
+.fr-btn.ghost:hover { background: var(--soft); color: var(--ink); border-color: transparent; }
 .fr-btn.primary {
   border-color: transparent;
   background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%);
-  color: #fff;
+  color: var(--on-accent);
   box-shadow: 0 10px 20px -10px rgba(255, 92, 157, 0.7);
 }
 .fr-btn.primary:hover:not(:disabled) { filter: brightness(1.05); }
 .fr-btn.primary.small { padding: 6px 15px; font-size: 12.5px; }
-.fr-btn.muted { background: #fff4e2; color: #b8792a; border-color: transparent; cursor: default; }
+.fr-btn.muted { background: var(--warn-bg); color: var(--warn-ink); border-color: transparent; cursor: default; }
 
 .fr-tip { padding: 22px 0; text-align: center; font-size: 13px; color: var(--ink-soft); }
 .fr-tip.plain { padding: 6px 0 0; text-align: left; font-size: 12.5px; }
@@ -856,7 +856,7 @@ defineExpose({ load, openChatWith })
   align-items: center;
   gap: 4px;
   border: 2px solid var(--line);
-  background: #fff;
+  background: var(--card);
   color: var(--ink);
   font-family: inherit;
   font-size: 13px;
@@ -867,7 +867,7 @@ defineExpose({ load, openChatWith })
   transition: transform 0.14s ease, background 0.18s ease, border-color 0.18s ease;
 }
 .chat-back svg { width: 16px; height: 16px; }
-.chat-back:hover { background: #fff5f9; border-color: var(--pink); transform: translateX(-2px); }
+.chat-back:hover { background: var(--soft); border-color: var(--pink); transform: translateX(-2px); }
 .chat-avatar {
   width: 40px;
   height: 40px;
@@ -875,7 +875,7 @@ defineExpose({ load, openChatWith })
   display: grid;
   place-items: center;
   border-radius: 50%;
-  color: #fff;
+  color: var(--on-accent);
   font-size: 15.5px;
   font-weight: 800;
 }
@@ -893,7 +893,7 @@ defineExpose({ load, openChatWith })
   flex: 1;
   overflow-y: auto;
   padding: 16px 4px;
-  background: #fdf6fb;
+  background: var(--soft);
   border-radius: 18px;
   margin: 14px 0;
 }
@@ -909,7 +909,7 @@ defineExpose({ load, openChatWith })
   display: grid;
   place-items: center;
   border-radius: 50%;
-  color: #fff;
+  color: var(--on-accent);
   font-size: 12.5px;
   font-weight: 800;
 }
@@ -917,7 +917,7 @@ defineExpose({ load, openChatWith })
 .bubble {
   padding: 9px 14px;
   border-radius: 16px 16px 16px 4px;
-  background: #fff;
+  background: var(--card);
   border: 2px solid var(--line);
   font-size: 13.5px;
   line-height: 1.55;
@@ -928,7 +928,7 @@ defineExpose({ load, openChatWith })
   border-radius: 16px 16px 4px 16px;
   border-color: transparent;
   background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%);
-  color: #fff;
+  color: var(--on-accent);
 }
 .bubble-time {
   margin-top: 4px;
@@ -948,14 +948,14 @@ defineExpose({ load, openChatWith })
   font-family: inherit;
   font-size: 13.5px;
   color: var(--ink);
-  background: #fdf6fb;
+  background: var(--soft);
   outline: none;
   transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 .chat-field:focus {
   border-color: var(--pink);
   box-shadow: 0 0 0 4px rgba(255, 126, 179, 0.16);
-  background: #fff;
+  background: var(--card);
 }
 .chat-send {
   flex: none;
@@ -965,14 +965,14 @@ defineExpose({ load, openChatWith })
   font-family: inherit;
   font-size: 13.5px;
   font-weight: 800;
-  color: #fff;
+  color: var(--on-accent);
   cursor: pointer;
   background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%);
   box-shadow: 0 10px 18px -10px rgba(255, 92, 157, 0.7);
   transition: filter 0.2s ease, transform 0.14s ease;
 }
 .chat-send:hover:not(:disabled) { filter: brightness(1.05); transform: translateY(-1px); }
-.chat-send:disabled { background: #f0e6ee; color: var(--ink-dim); box-shadow: none; cursor: not-allowed; }
+.chat-send:disabled { background: var(--soft); color: var(--ink-dim); box-shadow: none; cursor: not-allowed; }
 
 /* ---------- 响应式 ---------- */
 @media (max-width: 640px) {
