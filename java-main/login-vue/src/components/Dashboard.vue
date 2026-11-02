@@ -9,11 +9,24 @@
       <dl class="dash-info">
         <div><dt>用户名</dt><dd>{{ user.username }}</dd></div>
         <div><dt>邮箱</dt><dd>{{ user.email || '未填写' }}</dd></div>
+        <div v-if="user.birthday"><dt>生日</dt><dd>{{ birthdayText }}</dd></div>
+        <div v-if="user.tags && user.tags.length">
+          <dt>个性标签</dt>
+          <dd class="dash-tags">
+            <span class="dash-tag" v-for="t in user.tags" :key="t">{{ t }}</span>
+          </dd>
+        </div>
         <div><dt>加入日期</dt><dd>{{ since }}</dd></div>
       </dl>
 
-      <button type="button" class="btn-ghost" @click="$emit('logout')">退出登录</button>
+      <div class="dash-actions">
+        <button type="button" class="btn-ghost" @click="$emit('logout')">退出登录</button>
+        <button type="button" class="btn-ghost setting" @click="showSettings = true">设置</button>
+      </div>
     </section>
+
+    <!-- ============ 设置面板（资料 / 字体等） ============ -->
+    <SettingsPanel v-if="showSettings" @close="showSettings = false" />
 
     <!-- ============ 我的发帖记录 ============ -->
     <section class="mine">
@@ -87,6 +100,7 @@
 import { computed, ref, watch, onMounted } from 'vue'
 import PetMascot from './PetMascot.vue'
 import PostMedia from './PostMedia.vue'
+import SettingsPanel from './SettingsPanel.vue'
 import { fetchPosts } from '../api/post'
 import { excerpt, formatTime, isLiked } from '../composables/postStore'
 import { categoryName, categoryColor, categoryIcon } from '../composables/petData'
@@ -96,6 +110,9 @@ const props = defineProps({
   user: { type: Object, required: true }
 })
 const emit = defineEmits(['logout', 'open-post', 'go-discover'])
+
+// 设置面板开关（资料 / 字体等）
+const showSettings = ref(false)
 
 const displayName = computed(
   () => props.user?.nickname || props.user?.username || '朋友'
@@ -110,6 +127,13 @@ const since = computed(() =>
     ? new Date(props.user.createdAt).toLocaleDateString('zh-CN')
     : '—'
 )
+// 生日存储为 YYYY-MM-DD（供 type=date 输入用），展示时格式化为「YYYY年M月D日」
+const birthdayText = computed(() => {
+  const b = props.user?.birthday
+  if (!b) return ''
+  const m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(b)
+  return m ? `${m[1]}年${Number(m[2])}月${Number(m[3])}日` : b
+})
 
 // 「我的」页用登录用户名作为作者标识（与发帖时传入的 author 一致）
 const userKey = computed(() => props.user?.username || 'guest')
@@ -171,6 +195,47 @@ defineExpose({ load })
 
 /* ---------- 账号信息卡（沿用原有 auth-card 视觉） ---------- */
 .auth-card { max-width: 460px; margin: 0 auto; }
+
+/* ---------- 账号卡底部操作区（退出 / 个性化设置） ---------- */
+/* 竖向排列：两个按钮各占一整行，宽度充足，文字不会被挤到折行 */
+.dash-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+.dash-actions .btn-ghost {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+.btn-ghost.setting {
+  color: var(--pink-deep);
+  border-color: var(--pink);
+  background: var(--soft);
+}
+.btn-ghost.setting:hover { background: var(--soft-2); }
+
+/* 账号卡个性标签 chips */
+.dash-info dd.dash-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.dash-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--soft-2);
+  color: var(--pink-deep);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.6;
+}
 
 /* ---------- 发帖记录 ---------- */
 .mine {

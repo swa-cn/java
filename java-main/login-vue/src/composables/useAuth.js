@@ -51,11 +51,51 @@ function persistSession(user, remember) {
       username: user.username,
       email: user.email,
       nickname: user.nickname,
+      // 个性化资料字段：昵称/生日/标签（缺省时 undefined 无害）
+      birthday: user.birthday || null,
+      tags: Array.isArray(user.tags) ? user.tags : null,
       createdAt: user.createdAt || null,
       // 管理员标记：仅控制「后台管理」入口显隐（后端接口另有会话级校验）
       isAdmin: !!user.isAdmin
     })
   )
+}
+
+/**
+ * 更新当前用户的个性化资料（昵称 / 生日 / 个性标签 等）。
+ * 三处同步：① 响应式 state（驱动全站显示）② localStorage 用户表（mock 模式真实数据源）
+ * ③ 精简会话 JSON（后端模式刷新恢复用，确保新字段也带得上）。
+ * 注意：username 视为不可改主键，不在 patch 内。
+ */
+function updateProfile(patch) {
+  const u = state.currentUser
+  if (!u || typeof u !== 'object') return
+  Object.assign(u, patch)
+
+  // ② 写回用户表
+  const users = authStore.getUsers()
+  const target = users.find((x) => x.username === u.username)
+  if (target) Object.assign(target, patch)
+  authStore.saveUsers(users)
+
+  // ③ 同步精简会话
+  const store = localStorage.getItem(SESSION_KEY)
+    ? localStorage
+    : sessionStorage.getItem(SESSION_KEY)
+      ? sessionStorage
+      : null
+  if (store) {
+    const raw = store.getItem(SESSION_USER_KEY)
+    if (raw) {
+      try {
+        const s = JSON.parse(raw)
+        Object.assign(s, patch)
+        store.setItem(SESSION_USER_KEY, JSON.stringify(s))
+      } catch (e) {
+        /* 忽略损坏数据 */
+      }
+    }
+  }
 }
 
 // 真实后端登录成功后，由 AuthCard 调用，设置当前用户并持久化会话
@@ -98,6 +138,7 @@ export function useAuth() {
     logout,
     restoreSession,
     setCurrentUser,
+    updateProfile,
     isUsernameTaken
   }
 }

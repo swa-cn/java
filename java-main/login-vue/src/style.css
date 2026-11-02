@@ -29,8 +29,20 @@
   --bad: #ff6b81;
   --radius: 30px;
   --shadow: 0 22px 55px -18px rgba(124, 78, 140, 0.45);
-  --font-round: "Yuanti SC", "YouYuan", "幼圆", "Microsoft YaHei", "PingFang SC",
+  /* 全站统一字体（不要在这里放「幼圆/YouYuan」这类老字体）：
+   * 幼圆是 90 年代的 GB2312 级别字库，缺字很多（喵 / 啮 / 啾 等都不在里面）。
+   * 浏览器是按「字」回退的 —— A 字有就画成圆体、B 字没有就换成下一档的雅黑，
+   * 于是同一行文字里会混进两种字体，字形、字宽、字重都不一样（就是「狗」字看着怪的原因）。
+   * 统一到一套字库完整的中文无衬线字体后，整行文字只会由同一款字体渲染。 */
+  --font-round: "PingFang SC", "HarmonyOS Sans SC",
+                "Microsoft YaHei UI", "Microsoft YaHei",
+                "Hiragino Sans GB", "Source Han Sans SC", "Noto Sans CJK SC",
+                "WenQuanYi Micro Hei", "Heiti SC",
                 -apple-system, "Segoe UI", sans-serif;
+
+  /* 当前生效字体：默认用上面的统一无衬线；html[data-font] 会覆盖它。
+   * 由 composables/usePersonalization.js 控制：用户选了哪种字体就给 <html> 加对应 data-font。 */
+  --app-font: var(--font-round);
 
   /* ---- 深色模式新增的语义变量（浅色下保持原有配色） ---- */
   --soft: #fdf6fb;        /* 淡粉底：输入框 / 次级面板 */
@@ -49,6 +61,27 @@
  * 做法：只覆盖 CSS 变量，所有组件自动跟随；少数硬编码场景在下方单独修正。
  * 切换方式：<html data-theme="dark">，由 composables/useTheme.js 控制。
  * ===================================================================== */
+/* =====================================================================
+ * 个性化字体（用户可在「我的 → 个性化设置」里切换）
+ * 做法：只覆盖 --app-font 变量，所有组件自动跟随（它们都用 font-family: inherit）。
+ * 切换方式：<html data-font="rounded|serif|system">，由 composables/usePersonalization.js 控制。
+ * 注意：这里用的都是「字库完整的字体」——圆润体是站酷快乐体（覆盖全部简体汉字），
+ * 不会再出现旧幼圆那种「缺字逐字回退、同一行混两种字体」的问题。
+ * ===================================================================== */
+html[data-font="rounded"] {
+  --app-font: "ZCOOL KuaiLe", "PingFang SC", "Microsoft YaHei",
+              "Hiragino Sans GB", "Source Han Sans SC", "Noto Sans CJK SC",
+              -apple-system, "Segoe UI", sans-serif;
+}
+html[data-font="serif"] {
+  --app-font: "Songti SC", "STSong", "SimSun", "Noto Serif CJK SC", "Source Han Serif SC",
+              serif;
+}
+html[data-font="system"] {
+  --app-font: system-ui, -apple-system, "Segoe UI", "PingFang SC",
+              "Microsoft YaHei", sans-serif;
+}
+
 [data-theme="dark"] {
   --bg-1: #1d2b4d;
   --bg-2: #43263f;
@@ -118,7 +151,7 @@ html[data-theme="dark"] .field input:focus {
 html, body { margin: 0; min-height: 100%; }
 
 body {
-  font-family: var(--font-round);
+  font-family: var(--app-font);
   color: var(--ink);
   background:
     radial-gradient(60% 50% at 85% 10%, rgba(255, 207, 92, 0.35) 0%, transparent 60%),
