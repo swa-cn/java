@@ -35,7 +35,7 @@ async function login({ account, password, remember }) {
   if (!ok) return { ok: false, error: 'wrongpw' }
 
   persistSession(match, remember)
-  state.currentUser = match
+  state.currentUser = mergeLocalProfile(match)
   return { ok: true, user: match }
 }
 
@@ -63,22 +63,39 @@ function persistSession(user, remember) {
 
 /**
  * 更新当前用户的个性化资料（昵称 / 生日 / 个性标签 等）。
- * 三处同步：① 响应式 state（驱动全站显示）② localStorage 用户表（mock 模式真实数据源）
- * ③ 精简会话 JSON（后端模式刷新恢复用，确保新字段也带得上）。
+ * 三处同步：① 响应式 state（驱动全站显示）② localStorage 用户表（aurora_users_v1，
+ *    本地持久化的唯一可靠来源，退出登录后仍能保留）③ 精简会话 JSON（刷新恢复用）。
  * 注意：username 视为不可改主键，不在 patch 内。
  */
 function updateProfile(patch) {
   const u = state.currentUser
   if (!u || typeof u !== 'object') return
+  const username = u.username
+  if (!username) return
+
+  // ① 响应式 state（驱动全站显示）
   Object.assign(u, patch)
 
-  // ② 写回用户表
+  // ② 写回用户数据表（aurora_users_v1）：按 username upsert。
+  //    真实后端模式下本地表里原本没有当前用户，这里找不到就新建一条，
+  //    以 username 为主键 —— 这样即使退出登录（清掉会话）再登录，资料也不会丢。
   const users = authStore.getUsers()
-  const target = users.find((x) => x.username === u.username)
-  if (target) Object.assign(target, patch)
+  const target = users.find((x) => x.username === username)
+  if (target) {
+    Object.assign(target, patch)
+  } else {
+    users.push({
+      username,
+      email: u.email || '',
+      nickname: u.nickname || '',
+      birthday: u.birthday || null,
+      tags: Array.isArray(u.tags) ? [...u.tags] : [],
+      createdAt: u.createdAt || null
+    })
+  }
   authStore.saveUsers(users)
 
-  // ③ 同步精简会话
+  // ③ 同步精简会话（刷新恢复用，确保新字段带得上）
   const store = localStorage.getItem(SESSION_KEY)
     ? localStorage
     : sessionStorage.getItem(SESSION_KEY)
@@ -98,10 +115,25 @@ function updateProfile(patch) {
   }
 }
 
+/**
+ * 把本地用户数据表里保存的昵称 / 生日 / 标签合并回当前用户。
+ * 用于：真实后端模式登录（data.user 不含本地资料）或会话恢复时，
+ * 让「退出登录再登录」后资料依然在。仅覆盖本地确实存过的字段。
+ */
+function mergeLocalProfile(user) {
+  if (!user || !user.username) return user
+  const local = authStore.getUsers().find((x) => x.username === user.username)
+  if (!local) return user
+  if (local.nickname != null && local.nickname !== '') user.nickname = local.nickname
+  if (local.birthday != null && local.birthday !== '') user.birthday = local.birthday
+  if (Array.isArray(local.tags) && local.tags.length) user.tags = local.tags
+  return user
+}
+
 // 真实后端登录成功后，由 AuthCard 调用，设置当前用户并持久化会话
 export function setCurrentUser(user, remember) {
-  state.currentUser = user
-  persistSession(user, remember)
+  state.currentUser = mergeLocalProfile(user)
+  persistSession(state.currentUser, remember)
 }
 
 function logout() {
