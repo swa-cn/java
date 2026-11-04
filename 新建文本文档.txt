@@ -1,0 +1,45 @@
+# 任务：优化 Aurora 宠物社区「我的」主页（方案 A）
+
+## 一、项目背景（必读）
+- 项目名：Aurora 宠物社区（宠物晒图/社区）
+- 前端：Vue 3 + Vite，根目录 `D:\workSpace\java\java-main\login-vue`
+- 后端：Spring Boot，根目录 `D:\workSpace\java\java-main\springBootTest`，端口 8081
+- 数据库：MySQL `aurora@localhost:3306`（root/123456）
+- 「我的」主页组件：`src/components/UserProfile.vue`
+  - 由点头像触发：`Home.vue` 的 `openUserProfile()` 以覆盖层（`pageUser`）形式打开
+  - 接收 props：`person`（= `{key, name}`，只有这两项）、`user`（= 当前登录用户完整对象 currentUser）
+
+## 二、已完成的改动（前置上下文，勿重复做）
+1. 用户资料已落库：`app_user` 表已有 `birthday DATE`、`tags VARCHAR(200)` 两列；
+   后端 `POST /api/auth/profile`（昵称/邮箱/生日/标签）已就绪，登录响应已带回 birthday/tags。
+2. 设置面板 `src/components/SettingsPanel.vue` 已有「邮箱」输入框，资料经 `useAuth.updateProfile` 防抖落库。
+3. 首页已优化：删假数字、删重复热门区块、加真实动态流（LatestPosts）。
+4. 「本地演示模式」提示已降级为小字（注意：帖子接口 `/content/posts` 后端仍未实现，前端自动本地模式，这是预期行为，不要误删）。
+
+## 三、「我的」主页当前的问题
+- `UserProfile.vue` 只展示 `person.name`、`@key`、统计（发帖/获赞/评论/加入）、帖子流、好友关系。
+- **已落库的 email / birthday / tags 完全没有展示**；本人视角没有「编辑资料」入口。
+- 统计「加入」列：非本人时显示「—」，略空洞。
+- 核心脱节：登录用户完整对象 `props.user` 已含 email/birthday/tags，但组件没用。
+
+## 四、目标方案（方案 A，纯前端，不碰后端）
+1. **展示资料（本人视角 `self===true` 时）**&#8203;：从 `props.user` 读取并渲染
+   - 邮箱、生日（格式 yyyy-MM-dd，直接显示）、个性标签（tags 渲染为 chips）
+   - 注意 tags 可能是 JSON 字符串或数组，需兼容解析；字段缺省显示「未填写」
+   - 隐私：非本人主页（看别人）不要展示 email 等隐私字段
+2. **「编辑资料」按钮**：名片区右上，仅本人视角显示，点击 emit 事件 `edit-profile`
+3. **接线打开设置面板**：设置面板 `SettingsPanel` 在 `Dashboard.vue`（Home 内的底部导航 tab），由 `showSettings` 状态控制（`Dashboard.vue` 约第 29 行 `<SettingsPanel v-if="showSettings">`）。
+   - `UserProfile` 与 `Dashboard` 同在 `Home.vue` 组件树内，因此 `Home.vue` 监听 `@edit-profile` 后，应切换到「我的」tab 并打开 `showSettings`（如需跨视图，把 showSettings 提升到 Home 或共享状态即可）。
+4. **视觉**：新增资料区用卡片样式，与现有名片/统计风格一致；可加「新增」角标提示。
+
+## 五、备选方案（按需选用）
+- 方案 B：加「我的点赞 / 收藏 / 关注」分栏 —— 需后端新增接口（目前无相关表），工作量大。
+- 方案 C：纯视觉润色（修「加入」列「—」、加主页封面图/宠物主题装饰）—— 低成本。
+
+## 六、验证与验收
+- 构建：`cd D:\workSpace\java\java-main\login-vue && npm run build` 通过
+- 前端 dev server 在 5173（Vite 热更新）；登录 admin 进「我的」页：
+  - 能看到自己填的邮箱/生日/标签
+  - 点「编辑资料」能打开设置面板，保存后回「我的」页数据实时更新
+  - 看别人的主页不泄露 email 等隐私字段
+- 不引入任何后端改动；构建必须通过。
