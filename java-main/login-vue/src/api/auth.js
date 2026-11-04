@@ -253,4 +253,19 @@ export async function checkUsername(username) {
   return httpPost('/auth/check-username', { username })
 }
 
+/* =====================================================================
+ * 我的资料（设置面板）：昵称 / 邮箱 / 生日 / 个性标签 → app_user 落库
+ * ===================================================================== */
+
+/**
+ * 保存当前用户资料：POST /auth/profile
+ * payload: { username, nickname, email, birthday(yyyy-MM-dd 或 ''), tags: [..] }
+ * 成功: { ok, user }；失败 4xx { error: 'email'|'nickname'|..., message }
+ * mock 模式下直接返回 ok（资料仍只存浏览器 localStorage）。
+ */
+export async function updateUserProfile(payload) {
+  if (USE_MOCK) return { ok: true, user: payload }
+  return httpPost('/auth/profile', payload)
+}
+
 export const apiConfig = { API_BASE, USE_MOCK }

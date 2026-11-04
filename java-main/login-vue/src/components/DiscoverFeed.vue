@@ -8,7 +8,7 @@
             <span class="disc-dot">发</span>
             发现萌宠
             <span v-if="postRuntime.localMode" class="mode-badge" :title="postRuntime.reason">
-              本地演示模式
+              本地数据
             </span>
           </h2>
           <p class="disc-sub">看看大家今天晒了什么萌物，也可以晒出你自己的宝贝~</p>
@@ -41,39 +41,13 @@
 
       <!-- 帖子列表 -->
       <div v-if="posts.length" class="posts">
-        <article
+        <PostCard
           v-for="p in posts"
           :key="p.id"
-          class="post-card"
-          @click="openPost(p.id)"
-        >
-          <div class="pc-cover">
-            <PostMedia v-if="coverOf(p)" :media="coverOf(p)" />
-            <div v-else class="pc-cover-empty" :style="{ background: tintOf(p) }">
-              {{ iconOf(p) }}
-            </div>
-            <span v-if="(p.media || []).length > 1" class="pc-count">
-              共 {{ p.media.length }} 张
-            </span>
-          </div>
-
-          <div class="pc-body">
-            <span class="pc-cat" :style="{ background: colorOf(p) }">{{ nameOf(p) }}</span>
-            <h3 class="pc-title">{{ p.title || excerpt(p.content, 18) }}</h3>
-            <p class="pc-excerpt">{{ excerpt(p.content, 44) }}</p>
-
-            <div class="pc-meta">
-              <span class="pc-author">{{ p.authorName }}</span>
-              <span class="pc-time">{{ formatTime(p.createdAt) }}</span>
-            </div>
-            <div class="pc-stats">
-              <span :class="{ liked: isLiked(p, userKey) }">
-                ♥ {{ (p.likes || []).length }}
-              </span>
-              <span>💬 {{ (p.comments || []).length }}</span>
-            </div>
-          </div>
-        </article>
+          :post="p"
+          :user-key="userKey"
+          @open="openPost"
+        />
       </div>
 
       <div v-else class="empty">
@@ -119,16 +93,10 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import PetMascot from './PetMascot.vue'
-import PostMedia from './PostMedia.vue'
 import PostDetail from './PostDetail.vue'
 import PostComposer from './PostComposer.vue'
-import {
-  petCategories,
-  categoryName,
-  categoryColor,
-  categoryIcon
-} from '../composables/petData'
-import { excerpt, formatTime, isLiked } from '../composables/postStore'
+import PostCard from './PostCard.vue'
+import { petCategories } from '../composables/petData'
 import { postRuntime, fetchPosts } from '../api/post'
 import { useTodayPet } from '../composables/dailyPet'
 
@@ -177,23 +145,6 @@ async function refresh() {
 // 分类切换 / 组件挂载时刷新
 watch(activeCat, refresh)
 onMounted(refresh)
-
-function coverOf(p) {
-  return (p.media || [])[0] || null
-}
-function nameOf(p) {
-  return categoryName(p.category)
-}
-function colorOf(p) {
-  return categoryColor(p.category)
-}
-function iconOf(p) {
-  return categoryIcon(p.category)
-}
-function tintOf(p) {
-  const c = categoryColor(p.category)
-  return `linear-gradient(135deg, ${c}33 0%, #ffe9f3 100%)`
-}
 
 function goFeed() {
   view.value = 'feed'
@@ -273,14 +224,17 @@ defineExpose({ openPost })
 }
 .disc-sub { margin: 0; font-size: 13px; color: var(--ink-soft); }
 .mode-badge {
-  margin-left: 6px;
-  padding: 2px 10px;
+  margin-left: 8px;
+  padding: 1px 8px;
   border-radius: 999px;
-  background: var(--warn-bg);
-  color: var(--warn-ink);
-  font-size: 11px;
-  font-weight: 800;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-dim);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
   vertical-align: middle;
+  opacity: 0.7;
 }
 
 .compose-btn {
@@ -341,88 +295,7 @@ defineExpose({ openPost })
   gap: 16px;
   padding: 0 30px 34px;
 }
-.post-card {
-  display: flex;
-  flex-direction: column;
-  background: var(--card);
-  border: 2px solid var(--line);
-  border-radius: 20px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: transform 0.16s ease, box-shadow 0.2s ease, border-color 0.18s ease;
-}
-.post-card:hover {
-  transform: translateY(-4px);
-  border-color: var(--pink);
-  box-shadow: 0 18px 32px -14px rgba(124, 78, 140, 0.45);
-}
-.pc-cover {
-  position: relative;
-  height: 146px;
-  background: linear-gradient(135deg, #ffe3c2 0%, #ffd0e4 100%);
-}
-.pc-cover-empty {
-  display: grid;
-  place-items: center;
-  width: 100%;
-  height: 100%;
-  font-size: 15px;
-  font-weight: 800;
-  color: var(--pink-deep);
-}
-.pc-count {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: rgba(44, 36, 51, 0.6);
-  color: var(--on-accent);
-  font-size: 11px;
-  font-weight: 800;
-}
-.pc-body { padding: 11px 13px 13px; }
-.pc-cat {
-  display: inline-block;
-  padding: 2px 10px;
-  border-radius: 999px;
-  color: var(--on-accent);
-  font-size: 11px;
-  font-weight: 800;
-}
-.pc-title {
-  margin: 7px 0 4px;
-  font-size: 15px;
-  font-weight: 800;
-  line-height: 1.35;
-}
-.pc-excerpt {
-  margin: 0 0 10px;
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--ink-soft);
-  min-height: 38px;
-}
-.pc-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 11.5px;
-  color: var(--ink-dim);
-  font-weight: 700;
-}
-.pc-stats {
-  display: flex;
-  gap: 14px;
-  margin-top: 7px;
-  padding-top: 8px;
-  border-top: 1px dashed var(--line);
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--ink-dim);
-}
-.pc-stats .liked { color: var(--pink-deep); }
+/* 帖子卡片样式已抽到 PostCard.vue（首页与发现页共用） */
 
 /* ---------- 空状态 / 提示 ---------- */
 .empty { text-align: center; color: var(--ink-soft); padding: 30px 16px 44px; }

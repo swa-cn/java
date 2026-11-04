@@ -472,12 +472,13 @@ onBeforeUnmount(() => {
 .cp-cancel:disabled { opacity: 0.65; cursor: not-allowed; }
 
 .cp-note {
-  margin: 14px 0 0;
-  font-size: 11.5px;
-  line-height: 1.6;
+  margin: 10px 0 0;
+  font-size: 10.5px;
+  line-height: 1.5;
   color: var(--ink-dim);
-  font-weight: 700;
+  font-weight: 500;
   text-align: center;
+  opacity: 0.75;
 }
 .cp-note code {
   font-family: Consolas, "Courier New", monospace;

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -23,6 +24,12 @@ public class AppUser {
 
     /** 昵称（选填） */
     private String nickname;
+
+    /** 生日（选填，yyyy-MM-dd）——「设置 → 我的资料」持久化字段 */
+    private LocalDate birthday;
+
+    /** 个性标签（选填）：JSON 数组字符串，如 ["猫奴","吃货"]，最多 6 个 × 8 字 */
+    private String tags;
 
     /** BCrypt 哈希后的密码（60 字符，预留 100） */
     private String password;
@@ -44,6 +51,12 @@ public class AppUser {
 
     public String getNickname() { return nickname; }
     public void setNickname(String nickname) { this.nickname = nickname; }
+
+    public LocalDate getBirthday() { return birthday; }
+    public void setBirthday(LocalDate birthday) { this.birthday = birthday; }
+
+    public String getTags() { return tags; }
+    public void setTags(String tags) { this.tags = tags; }
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }

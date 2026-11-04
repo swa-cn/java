@@ -1,9 +1,12 @@
 package com.fenglin.springboottest.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fenglin.springboottest.dto.CheckRequest;
 import com.fenglin.springboottest.dto.LoginRequest;
+import com.fenglin.springboottest.dto.ProfileUpdateRequest;
 import com.fenglin.springboottest.dto.RegisterRequest;
 import com.fenglin.springboottest.entity.AppUser;
+import com.fenglin.springboottest.exception.AuthException;
 import com.fenglin.springboottest.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -12,7 +15,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -73,11 +78,43 @@ public class AuthController {
         u.put("username", user.getUsername());
         u.put("email", user.getEmail());
         u.put("nickname", user.getNickname());
+        u.put("birthday", user.getBirthday() != null ? user.getBirthday().toString() : null);
+        u.put("tags", parseTags(user.getTags()));
         u.put("role", role);
         u.put("createdAt", user.getCreatedAt() != null ? user.getCreatedAt().toString() : null);
         // 是否管理员：前端据此显隐「后台管理」入口；真正的后台接口仍有会话 + 权限双重校验
         u.put("isAdmin", isAdmin);
         m.put("user", u);
         return m;
+    }
+
+    /**
+     * 保存「我的资料」：POST /api/auth/profile { username, nickname?, email?, birthday?(yyyy-MM-dd), tags?[...] }
+     * 持久化到 app_user.nickname / email / birthday / tags（JSON 数组字符串），退出登录后仍保留。
+     */
+    @PostMapping("/profile")
+    public Map<String, Object> profile(@RequestBody ProfileUpdateRequest req) {
+        AppUser user = authService.updateProfile(req);
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("ok", true);
+        Map<String, Object> u = new LinkedHashMap<>();
+        u.put("username", user.getUsername());
+        u.put("nickname", user.getNickname());
+        u.put("email", user.getEmail());
+        u.put("birthday", user.getBirthday() != null ? user.getBirthday().toString() : null);
+        u.put("tags", parseTags(user.getTags()));
+        m.put("user", u);
+        return m;
+    }
+
+    /** app_user.tags 存的是 JSON 数组字符串（如 ["猫奴","吃货"]），解析为 List 返回；空/坏数据返回空数组 */
+    private List<String> parseTags(String tagsJson) {
+        if (tagsJson == null || tagsJson.isBlank()) return new ArrayList<>();
+        try {
+            return new ObjectMapper().readValue(
+                    tagsJson, new ObjectMapper().getTypeFactory().constructCollectionType(List.class, String.class));
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
     }
 }

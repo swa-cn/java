@@ -14,11 +14,13 @@
 // =====================================================================
 import { reactive } from 'vue'
 import { authStore, SESSION_KEY } from './authStore'
+import { updateUserProfile } from '../api/auth'
 
 export const RE_USER = /^[A-Za-z0-9_]{3,20}$/
 
 // 模块级响应式状态：整个应用共享同一个 currentUser
-const state = reactive({ currentUser: null })
+// profileError：资料保存到后端失败时的提示（设置面板展示用）
+const state = reactive({ currentUser: null, profileError: '' })
 
 // 实时占用检测（供注册页做即时提示；仅本地演示用）
 export function isUsernameTaken(username) {
@@ -62,11 +64,44 @@ function persistSession(user, remember) {
 }
 
 /**
- * 更新当前用户的个性化资料（昵称 / 生日 / 个性标签 等）。
+ * 更新当前用户的个性化资料（昵称 / 邮箱 / 生日 / 个性标签 等）。
  * 三处同步：① 响应式 state（驱动全站显示）② localStorage 用户表（aurora_users_v1，
  *    本地持久化的唯一可靠来源，退出登录后仍能保留）③ 精简会话 JSON（刷新恢复用）。
+ * ④ 后端落库（app_user 表）：真实后端模式下防抖 600ms 后 POST /auth/profile，
+ *    退出登录 / 换浏览器 / 换设备资料仍在。失败时写入 state.profileError 供设置面板提示。
  * 注意：username 视为不可改主键，不在 patch 内。
  */
+let profileSyncTimer = null
+
+function syncProfileToServer(username) {
+  clearTimeout(profileSyncTimer)
+  profileSyncTimer = setTimeout(async () => {
+    const u = state.currentUser
+    if (!u || u.username !== username) return
+    state.profileError = ''
+    try {
+      const res = await updateUserProfile({
+        username,
+        nickname: u.nickname || '',
+        email: u.email || '',
+        birthday: u.birthday || '',
+        tags: Array.isArray(u.tags) ? u.tags : []
+      })
+      // 以后端落库结果为准（邮箱等字段可能被规范化）
+      if (res && res.user && state.currentUser === u) {
+        Object.assign(u, {
+          nickname: res.user.nickname ?? u.nickname,
+          email: res.user.email ?? u.email,
+          birthday: res.user.birthday ?? u.birthday,
+          tags: Array.isArray(res.user.tags) ? res.user.tags : u.tags
+        })
+      }
+    } catch (e) {
+      state.profileError = e.message || '资料保存失败，请稍后重试'
+    }
+  }, 600)
+}
+
 function updateProfile(patch) {
   const u = state.currentUser
   if (!u || typeof u !== 'object') return
@@ -113,6 +148,9 @@ function updateProfile(patch) {
       }
     }
   }
+
+  // ④ 后端落库（防抖，避免每敲一个字就发一次请求）
+  syncProfileToServer(username)
 }
 
 /**
@@ -137,11 +175,13 @@ export function setCurrentUser(user, remember) {
 }
 
 function logout() {
+  clearTimeout(profileSyncTimer)
   localStorage.removeItem(SESSION_KEY)
   sessionStorage.removeItem(SESSION_KEY)
   localStorage.removeItem(SESSION_USER_KEY)
   sessionStorage.removeItem(SESSION_USER_KEY)
   state.currentUser = null
+  state.profileError = ''
 }
 
 function restoreSession() {

@@ -302,26 +302,12 @@
         </div>
       </section>
 
-      <!-- ================= 热门搜索（结果统一在独立结果页展示） ================= -->
-      <section class="feed hot-search">
-        <header class="section-head">
-          <h2 class="section-title">
-            <span class="section-dot">搜</span>
-            热门搜索
-          </h2>
-          <p class="section-desc">点一下直接看全部相关分类、品种和动态</p>
-        </header>
-
-        <div class="chips hot-chips">
-          <button
-            v-for="c in hotChips"
-            :key="'hot-' + c"
-            type="button"
-            class="chip"
-            @click="pickChip(c)"
-          >{{ c }}</button>
-        </div>
-      </section>
+      <!-- ================= 最新动态（首页真实内容流，复用 PostCard） ================= -->
+      <LatestPosts
+        :user-key="ownerKey"
+        @more="goNav('discover')"
+        @open="openMyPost"
+      />
       </template>
     </template>
 
@@ -416,6 +402,7 @@ import KnowledgePage from './KnowledgePage.vue'
 import KnowledgeDetail from './KnowledgeDetail.vue'
 import SearchPage from './SearchPage.vue'
 import UserProfile from './UserProfile.vue'
+import LatestPosts from './LatestPosts.vue'
 import { petCategories, loadCategories } from '../composables/petData'
 import { petOfTheDay, bubbleOfPet } from '../composables/dailyPet'
 import { searchHistory, removeHistory, clearHistory } from '../composables/searchHistory'
@@ -625,12 +612,10 @@ const hotChips = ['布偶猫', '柯基', '小奶狗', '仓鼠', '鹦鹉']
 const todayPet = computed(() => petOfTheDay(props.user?.username))
 const petBubble = computed(() => bubbleOfPet(todayPet.value))
 
-// 首屏数据条（纯展示：分类数取自数据源，其余为运营位）
+// 首屏数据条（只保留真实可算的指标：分类数 / 品种数，取自数据源；删掉原先写死的假数字）
 const heroStats = computed(() => [
   { value: String(petCategories.length), label: '萌宠大类' },
-  { value: String(petCategories.reduce((n, c) => n + c.breeds.length, 0)), label: '品种图鉴' },
-  { value: '6', label: '今日动态' },
-  { value: '5', label: '热门话题' }
+  { value: String(petCategories.reduce((n, c) => n + c.breeds.length, 0)), label: '品种图鉴' }
 ])
 
 // 点击分类：整页跳转到品种图鉴页（不在首页下方展开）
@@ -1389,10 +1374,10 @@ async function openUserPost(postId) {
 .hd-heart  { bottom: 10px; left: 15%; font-size: 16px; --r: -8deg; animation-delay: -1.4s; }
 .hd-spark2 { bottom: 22%; right: -8px; font-size: 12px; color: #ff9ec4; animation: twinkle 3.6s ease-in-out infinite -1.6s; }
 
-/* 数据条：四等分，首尾对齐，视觉完全对称 */
+/* 数据条：自适应列数，随指标数量均匀平分（当前 2 项，各占一半） */
 .hero-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1606,9 +1591,6 @@ async function openUserPost(postId) {
 
 /* ---------- 内容区 ---------- */
 .feed { padding: 22px 30px 34px; min-height: 140px; }
-/* 热门搜索：首页只留入口，结果统一在 SearchPage 展示 */
-.hot-search { min-height: 0; }
-.hot-search .hot-chips { margin: 14px 0 0; }
 .feed-tip,
 .empty { text-align: center; color: var(--ink-soft); padding: 24px 10px; }
 .empty-cat {

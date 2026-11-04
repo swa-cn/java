@@ -11,6 +11,8 @@
         <section class="sp-sec">
           <h3 class="sp-sec-title">我的资料</h3>
 
+          <p v-if="state.profileError" class="sp-err">{{ state.profileError }}</p>
+
           <label class="sp-field">
             <span class="sp-label">昵称</span>
             <input
@@ -19,6 +21,17 @@
               maxlength="20"
               v-model="form.nickname"
               placeholder="给自己起个可爱名字"
+            />
+          </label>
+
+          <label class="sp-field">
+            <span class="sp-label">邮箱</span>
+            <input
+              class="sp-input"
+              type="email"
+              maxlength="120"
+              v-model.trim="form.email"
+              placeholder="例如 aurora@example.com（可留空）"
             />
           </label>
 
@@ -82,6 +95,7 @@ const { state, updateProfile } = useAuth()
 const me = state.currentUser || {}
 const form = reactive({
   nickname: me.nickname || '',
+  email: me.email || '',
   birthday: me.birthday || '',
   tags: Array.isArray(me.tags) ? [...me.tags] : []
 })
@@ -102,12 +116,13 @@ function removeTag(t) {
   if (i > -1) form.tags.splice(i, 1)
 }
 
-// 任意资料变动 → 回写当前用户并持久化（驱动「我的」页实时更新）
+// 任意资料变动 → 回写当前用户并持久化（本地立即生效；后端在 useAuth 内防抖落库）
 watch(
   form,
   () => {
     updateProfile({
       nickname: form.nickname,
+      email: form.email,
       birthday: form.birthday,
       tags: [...form.tags]
     })
@@ -187,6 +202,16 @@ watch(
   font-weight: 800;
   color: var(--pink-deep);
   letter-spacing: 0.5px;
+}
+
+.sp-err {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(232, 93, 117, 0.1);
+  color: #c0392b;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .sp-field { display: block; margin-bottom: 14px; }

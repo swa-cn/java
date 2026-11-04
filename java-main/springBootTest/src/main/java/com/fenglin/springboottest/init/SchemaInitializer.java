@@ -55,6 +55,8 @@ public class SchemaInitializer implements CommandLineRunner {
               username VARCHAR(20) NOT NULL,
               email VARCHAR(120) NULL,
               nickname VARCHAR(24),
+              birthday DATE NULL,
+              tags VARCHAR(200) NULL,
               password VARCHAR(100) NOT NULL,
               role TINYINT NOT NULL DEFAULT 1,
               created_at DATETIME,
@@ -72,6 +74,12 @@ public class SchemaInitializer implements CommandLineRunner {
     /** 兼容旧库：补权限列 role（0=管理员，1=默认）；列已存在时 execLenient 会忽略 1060 */
     private static final String ALTER_APP_USER_ROLE =
             "ALTER TABLE aurora.app_user ADD COLUMN role TINYINT NOT NULL DEFAULT 1";
+
+    /** 兼容旧库：补「我的资料」持久化列（生日 / 个性标签）；列已存在时忽略 1060 */
+    private static final String ALTER_APP_USER_BIRTHDAY =
+            "ALTER TABLE aurora.app_user ADD COLUMN birthday DATE NULL";
+    private static final String ALTER_APP_USER_TAGS =
+            "ALTER TABLE aurora.app_user ADD COLUMN tags VARCHAR(200) NULL";
 
     /* ---------------- 「发现」帖子模块（pet_post 系列） ---------------- */
 
@@ -291,7 +299,9 @@ public class SchemaInitializer implements CommandLineRunner {
             st.execute(CREATE_APP_USER);
             st.execute(ALTER_EMAIL_NULL);
             execLenient(st, ALTER_APP_USER_ROLE);
-            log.info("数据表 aurora.app_user 已就绪（含权限列 role: 0=管理员, 1=默认）");
+            execLenient(st, ALTER_APP_USER_BIRTHDAY);
+            execLenient(st, ALTER_APP_USER_TAGS);
+            log.info("数据表 aurora.app_user 已就绪（含权限列 role: 0=管理员, 1=默认；资料列 birthday/tags）");
             seedAdminIfAbsent(st);
             migrateLegacyHashedPasswords(st);
             st.execute(CREATE_PET_POST);

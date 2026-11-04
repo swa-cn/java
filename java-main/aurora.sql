@@ -11,7 +11,7 @@
  Target Server Version : 80039 (8.0.39)
  File Encoding         : 65001
 
- Date: 02/11/2026 11:57:56
+ Date: 04/11/2026 09:43:16
 */
 
 SET NAMES utf8mb4;
@@ -26,6 +26,8 @@ CREATE TABLE `app_user`  (
   `username` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `email` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
   `nickname` varchar(24) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  `birthday` date NULL DEFAULT NULL,
+  `tags` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
   `password` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `created_at` datetime NULL DEFAULT NULL,
   `updated_at` datetime NULL DEFAULT NULL,
@@ -38,10 +40,10 @@ CREATE TABLE `app_user`  (
 -- ----------------------------
 -- Records of app_user
 -- ----------------------------
-INSERT INTO `app_user` VALUES (3, 'eee', NULL, '33', 'eee123456', '2026-10-23 16:47:50', '2026-10-23 16:47:50', 1);
-INSERT INTO `app_user` VALUES (4, 'rrr', NULL, '44', 'rrr123456', '2026-10-23 16:48:40', '2026-10-23 16:48:40', 1);
-INSERT INTO `app_user` VALUES (5, 'admin', NULL, '管理员', 'admin123456', '2026-10-26 11:04:18', '2026-10-26 11:04:18', 0);
-INSERT INTO `app_user` VALUES (6, 'qqq', NULL, '11', 'qqq123456', '2026-10-28 08:58:05', '2026-10-28 08:58:05', 0);
+INSERT INTO `app_user` VALUES (3, 'eee', NULL, '33', NULL, NULL, 'eee123456', '2026-10-23 16:47:50', '2026-10-23 16:47:50', 1);
+INSERT INTO `app_user` VALUES (4, 'rrr', NULL, '44', NULL, NULL, 'rrr123456', '2026-10-23 16:48:40', '2026-10-23 16:48:40', 1);
+INSERT INTO `app_user` VALUES (5, 'admin', 'admin@aurora.pet', '管理员', '2026-01-01', '[\"猫奴\",\"吃货\"]', 'admin123456', '2026-10-26 11:04:18', '2026-11-04 08:59:58', 0);
+INSERT INTO `app_user` VALUES (6, 'qqq', NULL, '11', NULL, NULL, 'qqq123456', '2026-10-28 08:58:05', '2026-10-28 08:58:05', 0);
 
 -- ----------------------------
 -- Table structure for pet_breed
