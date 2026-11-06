@@ -79,6 +79,12 @@
             </li>
           </ul>
         </section>
+
+        <!-- ============ 账号 ============ -->
+        <section class="sp-sec">
+          <h3 class="sp-sec-title">账号</h3>
+          <button type="button" class="sp-logout" @click="$emit('logout')">退出登录</button>
+        </section>
       </div>
     </div>
   </div>
@@ -89,7 +95,7 @@ import { reactive, ref, computed, watch } from 'vue'
 import { prefs, FONT_OPTIONS, setFont } from '../composables/usePersonalization'
 import { useAuth, parseUserTags } from '../composables/useAuth'
 
-defineEmits(['close'])
+defineEmits(['close', 'logout'])
 
 const { state, updateProfile } = useAuth()
 const me = state.currentUser || {}
@@ -317,6 +323,24 @@ watch(
   line-height: 1.25;
   text-align: center;
 }
+
+/* ---------- 退出登录 ---------- */
+.sp-logout {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 16px;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--bad);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+}
+.sp-logout:hover { background: rgba(232, 93, 117, 0.08); border-color: var(--bad); }
+.sp-logout:active { transform: scale(0.98); }
 
 /* 很窄的屏：放不下一行就换行（2×2） */
 @media (max-width: 360px) {

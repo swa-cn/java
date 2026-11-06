@@ -109,27 +109,7 @@
             aria-label="回到首页"
             @click="goNav('home')"
           >{{ avatarLetter }}</button>
-          <button
-            v-if="user?.isAdmin"
-            type="button"
-            class="nav-admin"
-            title="仅管理员可见"
-            @click="$emit('go-admin')"
-          >
-            <svg class="admin-ico" viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="2" />
-              <path
-                d="M12 2.8l1.2 2.3 2.6.3-1.9 1.9.4 2.6L12 8.7l-2.3 1.2.4-2.6-1.9-1.9 2.6-.3L12 2.8z"
-                fill="currentColor" opacity="0.9" transform="translate(0 3.4) scale(0.92)"
-              />
-              <path
-                d="M4.6 15.5l1.7.9.2 1.9 1.9.6.8 1.8 1.9-.1 1.3 1.5 1.3-1.5 1.9.1.8-1.8 1.9-.6.2-1.9 1.7-.9"
-                fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity="0.55"
-              />
-            </svg>
-            后台管理
-          </button>
-          <button type="button" class="nav-logout" @click="$emit('logout')">退出</button>
+          <button type="button" class="nav-admin" v-if="user?.isAdmin" title="仅管理员可见" @click="$emit('go-admin')">后台管理</button>
         </div>
       </div>
     </nav>
@@ -145,6 +125,7 @@
         @friend-added="onFriendAdded"
         @toast="showToast"
         @edit-profile="onEditProfile"
+        @open-settings="showSettings = true"
       />
     </section>
 
@@ -350,14 +331,19 @@
       />
     </section>
 
-    <!-- 我的：账号信息 + 本人发帖记录 -->
+    <!-- 我的：与点头像进入的个人主页同一套 UI（封面 / 名片 / 统计 / 资料 / 帖子） -->
     <section v-else-if="activeNav === 'me'" class="me-wrap">
-      <Dashboard
+      <UserProfile
+        :person="selfPerson"
         :user="user"
-        @open-settings="showSettings = true"
-        @logout="$emit('logout')"
+        embedded
+        @back="goNav('home')"
+        @chat="openChatWith"
         @open-post="openMyPost"
-        @go-discover="goNav('discover')"
+        @friend-added="onFriendAdded"
+        @toast="showToast"
+        @edit-profile="onEditProfile"
+        @open-settings="showSettings = true"
       />
     </section>
     </template>
@@ -389,8 +375,8 @@
       <div v-if="toast" class="toast">{{ toast }}</div>
     </transition>
 
-    <!-- 设置面板：Home 统一持有开关，Dashboard「设置」与个人主页「编辑资料」共用 -->
-    <SettingsPanel v-if="showSettings" @close="showSettings = false" />
+    <!-- 设置面板：Home 统一持有开关；面板内的「退出登录」事件向上转发给 App -->
+    <SettingsPanel v-if="showSettings" @close="showSettings = false" @logout="$emit('logout')" />
   </div>
 </template>
 
@@ -399,7 +385,6 @@ import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import CatMascot from './CatMascot.vue'
 import PetMascot from './PetMascot.vue'
 import ThemeToggle from './ThemeToggle.vue'
-import Dashboard from './Dashboard.vue'
 import CategoryPage from './CategoryPage.vue'
 import DiscoverFeed from './DiscoverFeed.vue'
 import FriendsPage from './FriendsPage.vue'
@@ -435,6 +420,8 @@ const avatarLetter = computed(
   () => (displayName.value.charAt(0) || '喵').toUpperCase()
 )
 const ownerKey = computed(() => props.user?.username || 'guest')
+// 「我的」tab 复用 UserProfile，需要拼出本人视角的 person
+const selfPerson = computed(() => ({ key: ownerKey.value, name: displayName.value }))
 
 /* ---------------- 消息未读红点 ----------------
  * 导航栏「消息」右上角的小红点：有未读私信时显示，数字 = 未读条数（>99 显示 99+）。
@@ -1071,21 +1058,7 @@ async function openUserPost(postId) {
 }
 .nav-avatar:hover { background: rgba(255, 255, 255, 0.45); transform: translateY(-2px) scale(1.06); }
 .nav-avatar:active { transform: scale(0.96); }
-.nav-logout {
-  border: 2px solid rgba(255, 255, 255, 0.7);
-  background: transparent;
-  color: var(--on-accent);
-  font-family: inherit;
-  font-weight: 700;
-  font-size: 13px;
-  padding: 6px 14px;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: background 0.18s ease;
-}
-.nav-logout:hover { background: rgba(255, 255, 255, 0.2); }
-
-/* 后台管理入口：与退出按钮同款胶囊，加个齿轮图标区分 */
+/* 后台管理入口：胶囊按钮（退出登录已移至「设置」面板内） */
 .nav-admin {
   display: inline-flex;
   align-items: center;
@@ -1102,7 +1075,6 @@ async function openUserPost(postId) {
   transition: background 0.18s ease, transform 0.14s ease;
 }
 .nav-admin:hover { background: rgba(255, 255, 255, 0.32); transform: translateY(-1px); }
-.admin-ico { width: 14px; height: 14px; }
 
 /* ---------- 首屏 Hero：左文右猫 对称 ---------- */
 .hero {

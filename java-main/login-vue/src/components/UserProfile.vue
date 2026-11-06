@@ -8,6 +8,14 @@
         </svg>
         返回
       </button>
+      <button v-if="self" type="button" class="up-settings" title="设置" @click="$emit('open-settings')">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 7h8.6M17.8 7H20M4 17h2.8M11.2 17H20" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+          <circle cx="15.2" cy="7" r="2.5" fill="none" stroke="currentColor" stroke-width="2.2" />
+          <circle cx="8.8" cy="17" r="2.5" fill="none" stroke="currentColor" stroke-width="2.2" />
+        </svg>
+        设置
+      </button>
       <span v-if="self" class="up-self-tag">这是你自己</span>
     </div>
 
@@ -139,7 +147,7 @@
           <dd v-else class="empty">未填写</dd>
         </div>
       </dl>
-      <p class="up-info-hint">点右上角「编辑资料」可修改，保存后这里会立即更新</p>
+      <p class="up-info-hint">点「编辑资料」或右上角「设置」可修改，保存后这里会立即更新</p>
     </section>
 
     <!-- ================= TA 的帖子 ================= -->
@@ -209,9 +217,11 @@ const props = defineProps({
   // 要展示的人：{ key, name }
   person: { type: Object, required: true },
   // 当前登录用户
-  user: { type: Object, default: () => ({}) }
+  user: { type: Object, default: () => ({}) },
+  // 嵌入模式：「我的」tab 直接复用本组件（导航栏已在，返回键回到首页）
+  embedded: { type: Boolean, default: false }
 })
-const emit = defineEmits(['back', 'chat', 'open-post', 'friend-added', 'toast', 'edit-profile'])
+const emit = defineEmits(['back', 'chat', 'open-post', 'friend-added', 'toast', 'edit-profile', 'open-settings'])
 
 const ownerKey = computed(() => props.user?.username || 'guest')
 // 后端 /api/auth/login 返回的 user 没有 id 字段（mock 用户、会话恢复的精简 user 同样没有），
@@ -406,6 +416,30 @@ defineExpose({ reload: loadAll })
   color: var(--pink-deep);
   font-size: 12px;
   font-weight: 800;
+}
+/* 右上角「设置」入口：本人视角才显示，弹起 Home 统一持有的设置面板 */
+.up-settings {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 2px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 7px 15px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.14s ease, background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+.up-settings svg { width: 15px; height: 15px; }
+.up-settings:hover {
+  background: var(--soft);
+  border-color: var(--pink);
+  color: var(--pink-deep);
+  transform: translateY(-1px);
 }
 
 /* ---------- 主页封面（宠物主题装饰，全用主题变量，深浅色自适应） ---------- */
