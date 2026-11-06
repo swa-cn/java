@@ -1,7 +1,7 @@
 /*
  Navicat Premium Dump SQL
 
- Source Server         : test
+ Source Server         : xiangmu
  Source Server Type    : MySQL
  Source Server Version : 80039 (8.0.39)
  Source Host           : localhost:3306
@@ -11,7 +11,7 @@
  Target Server Version : 80039 (8.0.39)
  File Encoding         : 65001
 
- Date: 06/11/2026 16:45:29
+ Date: 07/11/2026 02:53:46
 */
 
 SET NAMES utf8mb4;
@@ -44,6 +44,32 @@ INSERT INTO `app_user` VALUES (3, 'eee', NULL, '33', NULL, NULL, 'eee123456', '2
 INSERT INTO `app_user` VALUES (4, 'rrr', NULL, '44', NULL, NULL, 'rrr123456', '2026-10-23 16:48:40', '2026-10-23 16:48:40', 1);
 INSERT INTO `app_user` VALUES (5, 'admin', 'admin@aurora.pet', '管理员', '2026-01-01', '[\"猫奴\",\"吃货\"]', 'admin123456', '2026-10-26 11:04:18', '2026-11-06 16:11:59', 0);
 INSERT INTO `app_user` VALUES (6, 'qqq', NULL, '11', NULL, NULL, 'qqq123456', '2026-10-28 08:58:05', '2026-10-28 08:58:05', 0);
+
+-- ----------------------------
+-- Table structure for pet
+-- ----------------------------
+DROP TABLE IF EXISTS `pet`;
+CREATE TABLE `pet`  (
+  `id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '宠物ID',
+  `user_key` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '所属用户',
+  `species_id` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '种类ID',
+  `name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '宠物昵称',
+  `status` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'egg' COMMENT 'egg=蛋, hatched=已孵化',
+  `intimacy` int NOT NULL DEFAULT 0 COMMENT '亲密度 0~100',
+  `satiety` int NOT NULL DEFAULT 60 COMMENT '饱食度 0~100',
+  `mood` int NOT NULL DEFAULT 80 COMMENT '心情 0~100',
+  `created_at` bigint NOT NULL COMMENT '领养时间',
+  `hatched_at` bigint NULL DEFAULT NULL COMMENT '孵化时间',
+  `last_fed` bigint NOT NULL DEFAULT 0 COMMENT '上次喂食时间戳',
+  `last_interact` bigint NOT NULL DEFAULT 0 COMMENT '上次互动时间戳',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_pet_user`(`user_key` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户宠物' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of pet
+-- ----------------------------
+INSERT INTO `pet` VALUES ('p1a1b1f65c92245', 'eee', 'cat', '???', 'hatched', 17, 60, 90, 1793987075218, 1793987082135, 0, 1793987089704);
 
 -- ----------------------------
 -- Table structure for pet_breed
@@ -144,6 +170,42 @@ INSERT INTO `pet_friend` VALUES (7, 'qqq', 'eee', '33', 'friend', 'post', '2026-
 INSERT INTO `pet_friend` VALUES (8, 'qqq', 'rrr', '44', 'pending', 'comment', '2026-10-28 08:59:34', NULL);
 INSERT INTO `pet_friend` VALUES (9, 'eee', 'qqq', '11', 'friend', 'post', '2026-10-28 08:59:53', '2026-10-28 08:59:53');
 INSERT INTO `pet_friend` VALUES (10, 'eee', 'admin', '管理员', 'friend', 'post', '2026-10-28 08:59:53', '2026-10-28 08:59:53');
+
+-- ----------------------------
+-- Table structure for pet_gift_log
+-- ----------------------------
+DROP TABLE IF EXISTS `pet_gift_log`;
+CREATE TABLE `pet_gift_log`  (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `user_key` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '领取方',
+  `friend_key` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '赠送方',
+  `gift_date` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '日期 yyyy-MM-dd',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_gift`(`user_key` ASC, `friend_key` ASC, `gift_date` ASC) USING BTREE,
+  INDEX `idx_gift_user`(`user_key` ASC, `gift_date` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '好友赠送记录' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of pet_gift_log
+-- ----------------------------
+
+-- ----------------------------
+-- Table structure for pet_interact_log
+-- ----------------------------
+DROP TABLE IF EXISTS `pet_interact_log`;
+CREATE TABLE `pet_interact_log`  (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `user_key` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `interact_date` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '日期 yyyy-MM-dd',
+  `interact_count` int NOT NULL DEFAULT 0 COMMENT '当日已摸次数',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_interact`(`user_key` ASC, `interact_date` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '每日互动次数' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of pet_interact_log
+-- ----------------------------
+INSERT INTO `pet_interact_log` VALUES (2, 'eee', '2026-11-07', 5);
 
 -- ----------------------------
 -- Table structure for pet_knowledge
@@ -311,5 +373,72 @@ CREATE TABLE `pet_post_media`  (
 -- ----------------------------
 -- Records of pet_post_media
 -- ----------------------------
+
+-- ----------------------------
+-- Table structure for pet_species
+-- ----------------------------
+DROP TABLE IF EXISTS `pet_species`;
+CREATE TABLE `pet_species`  (
+  `id` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '种类ID, 如 cat/dog',
+  `name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '名称',
+  `emoji` varchar(8) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '图标',
+  `color` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '主题色',
+  `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '' COMMENT '描述',
+  `hatch_cost` int NOT NULL DEFAULT 20 COMMENT '孵化所需养分',
+  `sort_order` int NOT NULL DEFAULT 0 COMMENT '展示顺序',
+  `created_at` bigint NOT NULL COMMENT '创建时间',
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '宠物种类目录' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of pet_species
+-- ----------------------------
+INSERT INTO `pet_species` VALUES ('bird', '玄凤鹦鹉', '🐦', '#3ec4a8', '黄冠腮红，吹口哨高手', 20, 5, 1793985378000);
+INSERT INTO `pet_species` VALUES ('cat', '布偶猫', '🐱', '#ff6fa8', '蓝眼睛小天使，黏人又温柔', 20, 1, 1793985378000);
+INSERT INTO `pet_species` VALUES ('dog', '小柯基', '🐶', '#ff8a5c', '蜜桃臀小短腿，快乐源泉', 25, 2, 1793985378000);
+INSERT INTO `pet_species` VALUES ('fish', '小金鱼', '🐠', '#4ab3e8', '圆肚小福星，慢悠悠摆尾', 15, 6, 1793985378000);
+INSERT INTO `pet_species` VALUES ('hamster', '三线仓鼠', '🐹', '#ffb35c', '腮帮子仓库，囤粮小能手', 15, 4, 1793985378000);
+INSERT INTO `pet_species` VALUES ('rabbit', '垂耳兔', '🐰', '#b98bff', '长耳软萌，安静小可爱', 20, 3, 1793985378000);
+
+-- ----------------------------
+-- Table structure for pet_task_progress
+-- ----------------------------
+DROP TABLE IF EXISTS `pet_task_progress`;
+CREATE TABLE `pet_task_progress`  (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `user_key` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `task_id` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '任务模板ID',
+  `task_date` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '日期 yyyy-MM-dd',
+  `completed` tinyint NOT NULL DEFAULT 0 COMMENT '是否已完成',
+  `claimed` tinyint NOT NULL DEFAULT 0 COMMENT '是否领取奖励',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_task`(`user_key` ASC, `task_id` ASC, `task_date` ASC) USING BTREE,
+  INDEX `idx_task_user`(`user_key` ASC, `task_date` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 9 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '每日任务进度' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of pet_task_progress
+-- ----------------------------
+INSERT INTO `pet_task_progress` VALUES (5, 'eee', 'sign', '2026-11-07', 1, 1);
+INSERT INTO `pet_task_progress` VALUES (6, 'eee', 'read', '2026-11-07', 1, 1);
+INSERT INTO `pet_task_progress` VALUES (7, 'eee', 'quiz', '2026-11-07', 1, 1);
+INSERT INTO `pet_task_progress` VALUES (8, 'eee', 'walk', '2026-11-07', 1, 0);
+
+-- ----------------------------
+-- Table structure for pet_user_resource
+-- ----------------------------
+DROP TABLE IF EXISTS `pet_user_resource`;
+CREATE TABLE `pet_user_resource`  (
+  `user_key` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '用户标识(用户名)',
+  `nutrients` int NOT NULL DEFAULT 0 COMMENT '养分',
+  `food` int NOT NULL DEFAULT 0 COMMENT '食物',
+  `updated_at` bigint NOT NULL COMMENT '更新时间',
+  PRIMARY KEY (`user_key`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户养成资源' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of pet_user_resource
+-- ----------------------------
+INSERT INTO `pet_user_resource` VALUES ('eee', 3, 0, 1793987082133);
 
 SET FOREIGN_KEY_CHECKS = 1;

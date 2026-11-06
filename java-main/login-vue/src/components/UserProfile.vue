@@ -16,7 +16,6 @@
         </svg>
         设置
       </button>
-      <span v-if="self" class="up-self-tag">这是你自己</span>
     </div>
 
     <!-- ================= 主页封面（宠物主题装饰：纯 CSS，无图片依赖） ================= -->
@@ -414,14 +413,6 @@ defineExpose({ reload: loadAll })
 }
 .up-back svg { width: 16px; height: 16px; }
 .up-back:hover { background: var(--soft); border-color: var(--pink); transform: translateX(-2px); }
-.up-self-tag {
-  padding: 5px 14px;
-  border-radius: 999px;
-  background: var(--soft);
-  color: var(--pink-deep);
-  font-size: 12px;
-  font-weight: 800;
-}
 /* 右上角「设置」入口：本人视角才显示，弹起 Home 统一持有的设置面板 */
 .up-settings {
   margin-left: auto;

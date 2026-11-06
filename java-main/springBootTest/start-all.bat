@@ -10,6 +10,15 @@ rem ============================================================
 chcp 936 >nul
 cd /d "%~dp0"
 
+
+rem --- auto-add npm/Node to PATH (double-click may miss Node in PATH) ---
+where npm >nul 2>&1 || (
+  for /d %%D in ("%USERPROFILE%\.workbuddy\binaries\node\versions\*") do (
+    if exist "%%D\npm.cmd" set "PATH=%PATH%;%%D"
+  )
+  if exist "C:\Program Files\nodejs\npm.cmd" set "PATH=%PATH%;C:\Program Files\nodejs"
+)
+
 rem --- 清除外部工具注入的端口环境变量, 避免后端端口被篡改 ---
 set "SERVER__PORT="
 set "SERVER__HOST="

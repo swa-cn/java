@@ -12,6 +12,7 @@
           <li :class="{ active: activeNav === 'home' }" @click="goNav('home')">首页</li>
           <li :class="{ active: activeNav === 'discover' }" @click="goNav('discover')">发现</li>
           <li :class="{ active: activeNav === 'knowledge' }" @click="goNav('knowledge')">知识课堂</li>
+          <li :class="{ active: activeNav === 'adopt' }" @click="goNav('adopt')">领养</li>
           <li :class="{ active: activeNav === 'message' }" @click="goNav('message')">
             消息
             <span
@@ -331,6 +332,11 @@
       />
     </section>
 
+    <!-- 领养：萌宠养成小游戏 -->
+    <section v-else-if="activeNav === 'adopt'" class="feed">
+      <PetAdoption :user="user" />
+    </section>
+
     <!-- 我的：与点头像进入的个人主页同一套 UI（封面 / 名片 / 统计 / 资料 / 帖子） -->
     <section v-else-if="activeNav === 'me'" class="me-wrap">
       <UserProfile
@@ -394,6 +400,7 @@ import SearchPage from './SearchPage.vue'
 import UserProfile from './UserProfile.vue'
 import LatestPosts from './LatestPosts.vue'
 import SettingsPanel from './SettingsPanel.vue'
+import PetAdoption from './PetAdoption.vue'
 import { petCategories, loadCategories } from '../composables/petData'
 import { petOfTheDay, bubbleOfPet } from '../composables/dailyPet'
 import { searchHistory, removeHistory, clearHistory } from '../composables/searchHistory'
