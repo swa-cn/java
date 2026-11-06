@@ -101,6 +101,11 @@
           >等待通过</button>
         </template>
       </div>
+
+      <!-- 公开个性标签：访客视角在名片内、徽章下方整宽展示（邮箱/生日等隐私仍仅本人可见） -->
+      <div v-if="!self && profileTags.length" class="up-card-tags">
+        <span v-for="t in profileTags" :key="t" class="up-info-chip">{{ t }}</span>
+      </div>
     </section>
 
     <!-- ================= 数据统计 ================= -->
@@ -499,6 +504,7 @@ defineExpose({ reload: loadAll })
 /* ---------- 个人名片 ---------- */
 .up-card {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 18px;
   margin: 14px 30px 0;
@@ -507,6 +513,16 @@ defineExpose({ reload: loadAll })
   border: 2px solid var(--line);
   border-radius: 24px;
   box-shadow: 0 18px 40px -26px rgba(124, 78, 140, 0.5);
+}
+/* 名片内整宽一行：访客可见的公开个性标签（位于徽章 / 按钮下方） */
+.up-card-tags {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 2px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line);
 }
 .up-avatar {
   width: 72px;
