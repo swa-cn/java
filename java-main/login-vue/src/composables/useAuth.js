@@ -214,3 +214,38 @@ export function useAuth() {
     isUsernameTaken
   }
 }
+
+/**
+ * 统一解析「个性标签」，兼容三种历史数据形态：
+ *  - 数组（后端 /api/auth/login、/api/auth/profile 已把库里的 JSON 串解析成 List）
+ *  - JSON 数组字符串（app_user.tags 的原始存储形态，旧会话恢复时可能直接带到前端）
+ *  - 逗号 / 顿号 / 分号分隔的字符串（更早期的本地数据）
+ * 返回去重后的字符串数组；脏数据一律返回空数组，避免把字符串逐字符渲染成 chips。
+ */
+export function parseUserTags(value) {
+  let list = value
+  if (typeof value === 'string') {
+    const s = value.trim()
+    if (!s) return []
+    if (s.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(s)
+        if (!Array.isArray(parsed)) return []
+        list = parsed
+      } catch (e) {
+        // 非标准 JSON（如 [猫奴,吃货]）：退化为按分隔符拆
+        list = s.replace(/^\[|\]$/g, '').split(/[,，、;；]+/)
+      }
+    } else {
+      list = s.split(/[,，、;；]+/)
+    }
+  }
+  if (!Array.isArray(list)) return []
+  const out = []
+  for (const item of list) {
+    if (typeof item !== 'string' && typeof item !== 'number') continue
+    const t = String(item).trim().replace(/^["']|["']$/g, '')
+    if (t && !out.includes(t)) out.push(t)
+  }
+  return out
+}

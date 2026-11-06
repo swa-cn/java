@@ -10,10 +10,10 @@
         <div><dt>用户名</dt><dd>{{ user.username }}</dd></div>
         <div><dt>邮箱</dt><dd>{{ user.email || '未填写' }}</dd></div>
         <div v-if="user.birthday"><dt>生日</dt><dd>{{ birthdayText }}</dd></div>
-        <div v-if="user.tags && user.tags.length">
+        <div v-if="userTags.length">
           <dt>个性标签</dt>
           <dd class="dash-tags">
-            <span class="dash-tag" v-for="t in user.tags" :key="t">{{ t }}</span>
+            <span class="dash-tag" v-for="t in userTags" :key="t">{{ t }}</span>
           </dd>
         </div>
         <div><dt>加入日期</dt><dd>{{ since }}</dd></div>
@@ -21,12 +21,11 @@
 
       <div class="dash-actions">
         <button type="button" class="btn-ghost" @click="$emit('logout')">退出登录</button>
-        <button type="button" class="btn-ghost setting" @click="showSettings = true">设置</button>
+        <button type="button" class="btn-ghost setting" @click="$emit('open-settings')">设置</button>
       </div>
     </section>
 
-    <!-- ============ 设置面板（资料 / 字体等） ============ -->
-    <SettingsPanel v-if="showSettings" @close="showSettings = false" />
+    <!-- 设置面板由 Home 统一渲染：从个人主页点「编辑资料」时也能打开 -->
 
     <!-- ============ 我的发帖记录 ============ -->
     <section class="mine">
@@ -100,8 +99,8 @@
 import { computed, ref, watch, onMounted } from 'vue'
 import PetMascot from './PetMascot.vue'
 import PostMedia from './PostMedia.vue'
-import SettingsPanel from './SettingsPanel.vue'
 import { fetchPosts } from '../api/post'
+import { parseUserTags } from '../composables/useAuth'
 import { excerpt, formatTime, isLiked } from '../composables/postStore'
 import { categoryName, categoryColor, categoryIcon } from '../composables/petData'
 import { petOfTheDay } from '../composables/dailyPet'
@@ -109,10 +108,8 @@ import { petOfTheDay } from '../composables/dailyPet'
 const props = defineProps({
   user: { type: Object, required: true }
 })
-const emit = defineEmits(['logout', 'open-post', 'go-discover'])
-
-// 设置面板开关（资料 / 字体等）
-const showSettings = ref(false)
+// 设置面板开关由 Home 持有：Dashboard 只发「请打开」信号，个人主页的「编辑资料」也走同一入口
+const emit = defineEmits(['logout', 'open-post', 'go-discover', 'open-settings'])
 
 const displayName = computed(
   () => props.user?.nickname || props.user?.username || '朋友'
@@ -120,6 +117,8 @@ const displayName = computed(
 const avatarLetter = computed(
   () => (displayName.value.charAt(0) || '喵').toUpperCase()
 )
+// 个性标签可能是数组，也可能是旧会话里的 JSON / 分隔字符串，统一解析后再渲染 chips
+const userTags = computed(() => parseUserTags(props.user?.tags))
 // 「我的」页空状态的吉祥物 = 首页同一只今日宠物（一天一换，点击可换表情）
 const todayPet = computed(() => petOfTheDay(props.user?.username))
 const since = computed(() =>

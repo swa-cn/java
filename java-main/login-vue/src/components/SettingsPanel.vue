@@ -87,7 +87,7 @@
 <script setup>
 import { reactive, ref, computed, watch } from 'vue'
 import { prefs, FONT_OPTIONS, setFont } from '../composables/usePersonalization'
-import { useAuth } from '../composables/useAuth'
+import { useAuth, parseUserTags } from '../composables/useAuth'
 
 defineEmits(['close'])
 
@@ -97,7 +97,8 @@ const form = reactive({
   nickname: me.nickname || '',
   email: me.email || '',
   birthday: me.birthday || '',
-  tags: Array.isArray(me.tags) ? [...me.tags] : []
+  // 兼容数组 / JSON 字符串 / 逗号串，避免旧数据被当成空标签逐个拆成字符
+  tags: parseUserTags(me.tags)
 })
 const tagDraft = ref('')
 

@@ -144,6 +144,7 @@
         @open-post="openUserPost"
         @friend-added="onFriendAdded"
         @toast="showToast"
+        @edit-profile="onEditProfile"
       />
     </section>
 
@@ -353,6 +354,7 @@
     <section v-else-if="activeNav === 'me'" class="me-wrap">
       <Dashboard
         :user="user"
+        @open-settings="showSettings = true"
         @logout="$emit('logout')"
         @open-post="openMyPost"
         @go-discover="goNav('discover')"
@@ -386,6 +388,9 @@
     <transition name="fade">
       <div v-if="toast" class="toast">{{ toast }}</div>
     </transition>
+
+    <!-- 设置面板：Home 统一持有开关，Dashboard「设置」与个人主页「编辑资料」共用 -->
+    <SettingsPanel v-if="showSettings" @close="showSettings = false" />
   </div>
 </template>
 
@@ -403,6 +408,7 @@ import KnowledgeDetail from './KnowledgeDetail.vue'
 import SearchPage from './SearchPage.vue'
 import UserProfile from './UserProfile.vue'
 import LatestPosts from './LatestPosts.vue'
+import SettingsPanel from './SettingsPanel.vue'
 import { petCategories, loadCategories } from '../composables/petData'
 import { petOfTheDay, bubbleOfPet } from '../composables/dailyPet'
 import { searchHistory, removeHistory, clearHistory } from '../composables/searchHistory'
@@ -573,6 +579,8 @@ watch(ownerKey, () => {
 
 const activeNav = ref('home')
 const friendsRef = ref(null)
+// 设置面板开关提升到 Home：Dashboard 的「设置」与个人主页的「编辑资料」共用同一个状态
+const showSettings = ref(false)
 // 用户主页详情页：非空时覆盖在导航下方展示（点头像进入）
 const pageUser = ref(null)
 // 知识课堂文章详情页：非空时整页展示该文章（点击文章卡片后跳转）
@@ -580,6 +588,7 @@ const pageArticle = ref(null)
 function goNav(name) {
   // 切换导航时收起「用户主页」「分类详情页」「搜索结果页」「知识文章详情页」
   pageUser.value = null
+  showSettings.value = false
   pageSearch.value = null
   pageArticle.value = null
   if (name !== 'home') pageCategory.value = null
@@ -774,6 +783,16 @@ function openUserProfile(payload) {
   pageSearch.value = null
   pageUser.value = { key: payload.key, name: payload.name || payload.key }
   window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+/**
+ * 个人主页「编辑资料」：导航状态切到「我的」，由 Home 直接弹出设置面板。
+ * 不清 pageUser —— 面板是覆盖层，关掉后仍停留在个人主页；
+ * props.user 与 useAuth.state.currentUser 共享响应式代理，保存的资料会立即显示。
+ */
+function onEditProfile() {
+  activeNav.value = 'me'
+  showSettings.value = true
 }
 
 /** 在用户主页里点开某篇帖子：回到「发现」并打开详情 */

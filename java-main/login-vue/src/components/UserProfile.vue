@@ -11,6 +11,36 @@
       <span v-if="self" class="up-self-tag">这是你自己</span>
     </div>
 
+    <!-- ================= 主页封面（宠物主题装饰：纯 CSS，无图片依赖） ================= -->
+    <section class="up-banner">
+      <span class="up-banner-cloud cloud-a" aria-hidden="true"></span>
+      <span class="up-banner-cloud cloud-b" aria-hidden="true"></span>
+      <span class="up-banner-star star-a" aria-hidden="true">✦</span>
+      <span class="up-banner-star star-b" aria-hidden="true">✧</span>
+      <svg class="up-banner-paw paw-a" viewBox="0 0 32 32" aria-hidden="true">
+        <g fill="currentColor">
+          <ellipse cx="16" cy="21.5" rx="8.5" ry="6.8" />
+          <circle cx="6.5" cy="13" r="3.2" />
+          <circle cx="12.8" cy="8.4" r="3.2" />
+          <circle cx="19.8" cy="8.4" r="3.2" />
+          <circle cx="26" cy="13" r="3.2" />
+        </g>
+      </svg>
+      <svg class="up-banner-paw paw-b" viewBox="0 0 32 32" aria-hidden="true">
+        <g fill="currentColor">
+          <ellipse cx="16" cy="21.5" rx="8.5" ry="6.8" />
+          <circle cx="6.5" cy="13" r="3.2" />
+          <circle cx="12.8" cy="8.4" r="3.2" />
+          <circle cx="19.8" cy="8.4" r="3.2" />
+          <circle cx="26" cy="13" r="3.2" />
+        </g>
+      </svg>
+      <div class="up-banner-text">
+        <strong>{{ self ? '欢迎回到我的小窝~' : '来 TA 的小窝串个门' }}</strong>
+        <span>ฅ^•ﻌ•^ฅ　今天也要被萌到哦</span>
+      </div>
+    </section>
+
     <!-- ================= 个人名片 ================= -->
     <section class="up-card">
       <span class="up-avatar" :style="{ background: tintFor(person.key) }">{{ letter }}</span>
@@ -26,34 +56,42 @@
         </div>
       </div>
 
-      <!-- 操作按钮：本人隐藏；已是好友显示发消息；对方申请中显示同意 -->
-      <div v-if="!self" class="up-actions">
+      <!-- 操作按钮：本人显示「编辑资料」；非本人按好友关系显示对应动作 -->
+      <div class="up-actions">
         <button
-          v-if="relation === 'none'"
+          v-if="self"
           type="button"
-          class="up-btn primary"
-          :disabled="adding"
-          @click="onAddFriend"
-        >{{ adding ? '发送中…' : '+ 加好友' }}</button>
-        <button
-          v-else-if="relation === 'pending_in'"
-          type="button"
-          class="up-btn primary"
-          :disabled="adding"
-          @click="onAcceptIncoming"
-        >{{ adding ? '处理中…' : '同意申请' }}</button>
-        <button
-          v-else-if="relation === 'friend'"
-          type="button"
-          class="up-btn primary"
-          @click="$emit('chat', person)"
-        >发消息</button>
-        <button
-          v-else
-          type="button"
-          class="up-btn muted"
-          disabled
-        >等待通过</button>
+          class="up-btn edit"
+          @click="$emit('edit-profile')"
+        >编辑资料</button>
+        <template v-else>
+          <button
+            v-if="relation === 'none'"
+            type="button"
+            class="up-btn primary"
+            :disabled="adding"
+            @click="onAddFriend"
+          >{{ adding ? '发送中…' : '+ 加好友' }}</button>
+          <button
+            v-else-if="relation === 'pending_in'"
+            type="button"
+            class="up-btn primary"
+            :disabled="adding"
+            @click="onAcceptIncoming"
+          >{{ adding ? '处理中…' : '同意申请' }}</button>
+          <button
+            v-else-if="relation === 'friend'"
+            type="button"
+            class="up-btn primary"
+            @click="$emit('chat', person)"
+          >发消息</button>
+          <button
+            v-else
+            type="button"
+            class="up-btn muted"
+            disabled
+          >等待通过</button>
+        </template>
       </div>
     </section>
 
@@ -75,6 +113,33 @@
         <strong>{{ since }}</strong>
         <span>加入</span>
       </div>
+    </section>
+
+    <!-- ================= 我的资料（仅本人视角可见，不对外泄露隐私字段） ================= -->
+    <section v-if="self" class="up-info-card">
+      <div class="up-info-head">
+        <h3 class="up-info-title">我的资料</h3>
+        <span class="up-new">新增</span>
+        <span class="up-info-private">仅自己可见</span>
+      </div>
+      <dl class="up-info-list">
+        <div class="up-info-row">
+          <dt>邮箱</dt>
+          <dd :class="{ empty: profileEmail === '未填写' }">{{ profileEmail }}</dd>
+        </div>
+        <div class="up-info-row">
+          <dt>生日</dt>
+          <dd :class="{ empty: profileBirthday === '未填写' }">{{ profileBirthday }}</dd>
+        </div>
+        <div class="up-info-row">
+          <dt>个性标签</dt>
+          <dd v-if="profileTags.length" class="up-info-tags">
+            <span v-for="t in profileTags" :key="t" class="up-info-chip">{{ t }}</span>
+          </dd>
+          <dd v-else class="empty">未填写</dd>
+        </div>
+      </dl>
+      <p class="up-info-hint">点右上角「编辑资料」可修改，保存后这里会立即更新</p>
     </section>
 
     <!-- ================= TA 的帖子 ================= -->
@@ -135,6 +200,7 @@ import { addFriend, fetchRelation, acceptFriend } from '../api/friend'
 import { excerpt, formatTime } from '../composables/postStore'
 import { categoryName, categoryColor, categoryIcon } from '../composables/petData'
 import { useTodayPet } from '../composables/dailyPet'
+import { parseUserTags } from '../composables/useAuth'
 
 // 空状态吉祥物 = 今日宠物（一天一换，点击可换表情）
 const todayPet = useTodayPet()
@@ -145,11 +211,19 @@ const props = defineProps({
   // 当前登录用户
   user: { type: Object, default: () => ({}) }
 })
-const emit = defineEmits(['back', 'chat', 'open-post', 'friend-added', 'toast'])
+const emit = defineEmits(['back', 'chat', 'open-post', 'friend-added', 'toast', 'edit-profile'])
 
 const ownerKey = computed(() => props.user?.username || 'guest')
-const isSelfUser = computed(() => !!props.user?.id)
-const self = computed(() => props.person?.key === ownerKey.value && isSelfUser.value)
+// 后端 /api/auth/login 返回的 user 没有 id 字段（mock 用户、会话恢复的精简 user 同样没有），
+// 因此「本人视角」只能按登录用户名与主页 key 是否一致来判定。
+const self = computed(() =>
+  !!props.user?.username && !!props.person?.key && props.person.key === ownerKey.value
+)
+
+/* ---------------- 我的资料（仅本人可见，直接读响应式 props.user） ---------------- */
+const profileEmail = computed(() => String(props.user?.email || '').trim() || '未填写')
+const profileBirthday = computed(() => String(props.user?.birthday || '').trim() || '未填写')
+const profileTags = computed(() => parseUserTags(props.user?.tags))
 
 const letter = computed(() =>
   String(props.person?.name || props.person?.key || '萌').charAt(0).toUpperCase()
@@ -259,7 +333,8 @@ const since = computed(() => {
       day: '2-digit'
     })
   }
-  return '—'
+  // 非本人主页没有公开的加入日期来源，用「未公开」代替空洞的破折号
+  return '未公开'
 })
 
 /* ---------------- 展示辅助 ---------------- */
@@ -333,6 +408,60 @@ defineExpose({ reload: loadAll })
   font-weight: 800;
 }
 
+/* ---------- 主页封面（宠物主题装饰，全用主题变量，深浅色自适应） ---------- */
+.up-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  height: 96px;
+  margin: 14px 30px 0;
+  padding: 0 26px;
+  border: 2px solid var(--line);
+  border-radius: 20px;
+  background: linear-gradient(115deg, var(--soft) 0%, var(--soft-2) 48%, var(--hero-1) 100%);
+}
+.up-banner-text { position: relative; z-index: 1; display: grid; gap: 5px; }
+.up-banner-text strong { font-size: 16px; font-weight: 800; color: var(--pink-deep); }
+.up-banner-text span { font-size: 11.5px; font-weight: 700; color: var(--ink-dim); }
+.up-banner-cloud {
+  position: absolute;
+  width: 118px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--card);
+  opacity: 0.45;
+}
+.up-banner-cloud::before,
+.up-banner-cloud::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: inherit;
+}
+.up-banner-cloud::before { width: 52px; height: 52px; left: 16px; top: -26px; }
+.up-banner-cloud::after { width: 36px; height: 36px; left: 64px; top: -16px; }
+.cloud-a { right: -20px; top: 34px; }
+.cloud-b { right: 104px; top: 58px; width: 84px; height: 22px; opacity: 0.3; }
+.up-banner-paw {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  color: var(--pink);
+  opacity: 0.32;
+}
+.paw-a { right: 48px; bottom: 6px; transform: rotate(-16deg); }
+.paw-b { right: 150px; top: 8px; width: 30px; height: 30px; opacity: 0.22; transform: rotate(16deg); }
+.up-banner-star {
+  position: absolute;
+  color: var(--pink-deep);
+  font-size: 17px;
+  font-weight: 800;
+  opacity: 0.55;
+}
+.star-a { right: 210px; top: 16px; }
+.star-b { right: 26px; top: 14px; font-size: 12px; opacity: 0.4; }
+
 /* ---------- 个人名片 ---------- */
 .up-card {
   display: flex;
@@ -391,6 +520,12 @@ defineExpose({ reload: loadAll })
 .up-btn.primary:hover:not(:disabled) { filter: brightness(1.05); transform: translateY(-1px); }
 .up-btn.muted { background: var(--warn-bg); color: var(--warn-ink); cursor: default; }
 .up-btn:disabled { opacity: 0.9; }
+.up-btn.edit {
+  background: var(--soft);
+  border-color: var(--pink);
+  color: var(--pink-deep);
+}
+.up-btn.edit:hover { background: var(--soft-2); transform: translateY(-1px); }
 
 /* ---------- 统计 ---------- */
 .up-stats {
@@ -408,6 +543,58 @@ defineExpose({ reload: loadAll })
 }
 .up-stat strong { display: block; font-size: 20px; font-weight: 800; color: var(--pink-deep); }
 .up-stat span { font-size: 11.5px; color: var(--ink-dim); font-weight: 700; }
+
+/* ---------- 我的资料卡（与名片 / 统计同款白卡 + 糖果描边） ---------- */
+.up-info-card {
+  margin: 14px 30px 0;
+  padding: 18px 22px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 14px 30px -24px rgba(124, 78, 140, 0.5);
+}
+.up-info-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.up-info-title { margin: 0; font-size: 15.5px; font-weight: 800; }
+.up-new {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--soft-2);
+  color: var(--pink-deep);
+  font-size: 10.5px;
+  font-weight: 800;
+}
+.up-info-private { font-size: 11.5px; font-weight: 700; color: var(--ink-dim); }
+.up-info-list { margin: 0; display: grid; gap: 10px; }
+.up-info-row { display: flex; align-items: flex-start; gap: 14px; }
+.up-info-row dt {
+  flex: none;
+  width: 64px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink-dim);
+  line-height: 1.7;
+}
+.up-info-row dd {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.7;
+  word-break: break-all;
+}
+.up-info-row dd.empty { color: var(--ink-dim); }
+.up-info-tags { display: flex; flex-wrap: wrap; gap: 7px; }
+.up-info-chip {
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--pink-deep);
+  font-size: 12px;
+  font-weight: 800;
+}
+.up-info-hint { margin: 12px 0 0; font-size: 11.5px; font-weight: 700; color: var(--ink-dim); }
 
 /* ---------- 帖子 ---------- */
 .up-sec { padding: 22px 30px 34px; }
@@ -527,6 +714,11 @@ defineExpose({ reload: loadAll })
 /* ---------- 响应式 ---------- */
 @media (max-width: 640px) {
   .up-bar { padding: 14px 16px 0; }
+  .up-banner { height: 80px; margin: 12px 16px 0; padding: 0 18px; border-radius: 16px; }
+  .up-banner-text strong { font-size: 14px; }
+  .up-banner-text span { font-size: 10.5px; }
+  .up-banner-cloud, .up-banner-paw.paw-b, .up-banner-star.star-a { display: none; }
+  .up-banner-paw.paw-a { width: 36px; height: 36px; right: 16px; }
   .up-card { margin: 12px 16px 0; padding: 16px; gap: 14px; flex-wrap: wrap; border-radius: 20px; }
   .up-avatar { width: 60px; height: 60px; font-size: 23px; }
   .up-name { font-size: 19px; }
@@ -535,6 +727,8 @@ defineExpose({ reload: loadAll })
   .up-stats { margin: 12px 16px 0; gap: 8px; }
   .up-stat { padding: 10px 6px; border-radius: 14px; }
   .up-stat strong { font-size: 17px; }
+  .up-info-card { margin: 12px 16px 0; padding: 14px 16px; }
+  .up-info-row dt { width: 56px; }
   .up-sec { padding: 18px 16px 24px; }
   .up-list { grid-template-columns: 1fr; gap: 10px; }
   .up-cover { width: 86px; height: 86px; }
