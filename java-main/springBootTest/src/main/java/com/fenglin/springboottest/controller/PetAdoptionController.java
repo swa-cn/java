@@ -21,7 +21,8 @@ import java.util.Map;
  *  POST /api/adoption/interact   { owner, petId }             -> dashboard + gain
  *  POST /api/adoption/task/complete { owner, taskId }         -> dashboard
  *  POST /api/adoption/task/claim    { owner, taskId }         -> dashboard + reward
- *  POST /api/adoption/gift/claim    { owner, friendKey }      -> dashboard + reward
+ *  POST /api/adoption/gift/send     { owner, friendKey }      -> dashboard（给好友赠送）
+ *  POST /api/adoption/gift/claim    { owner, giftId }         -> dashboard + reward（领取好友赠送）
  *
  * 写操作返回最新 dashboard，便于前端一次刷新。失败返回 { ok:false, reason }。
  * owner 为当前登录用户名（与项目现有内容接口一致，由客户端传入）。
@@ -71,9 +72,23 @@ public class PetAdoptionController {
         return service.claimTask(str(body, "owner"), str(body, "taskId"));
     }
 
+    @PostMapping("/gift/send")
+    public Map<String, Object> sendGift(@RequestBody Map<String, Object> body) {
+        return service.sendGift(str(body, "owner"), str(body, "friendKey"));
+    }
+
     @PostMapping("/gift/claim")
     public Map<String, Object> claimGift(@RequestBody Map<String, Object> body) {
-        return service.claimGift(str(body, "owner"), str(body, "friendKey"));
+        Object id = body == null ? null : body.get("giftId");
+        Long giftId = null;
+        if (id != null) {
+            try {
+                giftId = Long.valueOf(String.valueOf(id));
+            } catch (NumberFormatException e) {
+                giftId = null;
+            }
+        }
+        return service.claimGift(str(body, "owner"), giftId);
     }
 
     @PostMapping("/rename")

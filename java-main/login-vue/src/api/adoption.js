@@ -13,11 +13,13 @@
 //  POST /adoption/interact   { owner, petId }
 //  POST /adoption/task/complete { owner, taskId }
 //  POST /adoption/task/claim    { owner, taskId }
-//  POST /adoption/gift/claim    { owner, friendKey }
+//  POST /adoption/gift/send     { owner, friendKey }   -> 我赠送好友（落 pending）
+//  POST /adoption/gift/claim    { owner, giftId }      -> 领取好友的赠送
 //  POST /adoption/rename        { owner, petId, name }
 //
 // dashboard 字段：{ species[], nutrients, food, pets[], tasks[],
-//   interact{count,limit,canInteract}, gifts{count,limit,canGift,claimed{}},
+//   interact{count,limit,canInteract},
+//   gifts{ sentCount, sendLimit, canSend, sentTo{}, claimCount, claimLimit, canClaim, pending[{id,fromKey}] },
 //   friends[] }
 // 写操作返回最新 dashboard（+ gain / reward）。
 // =====================================================================
@@ -155,10 +157,17 @@ export async function claimTask(owner, taskId) {
   )
 }
 
-export async function claimGift(owner, friendKey) {
+export async function sendGift(owner, friendKey) {
   return withFallback(
-    async () => normalizeRemote(await httpPost('/adoption/gift/claim', { owner, friendKey })),
-    () => local.claimGift(friendKey)
+    async () => normalizeRemote(await httpPost('/adoption/gift/send', { owner, friendKey })),
+    () => local.sendGift(owner, friendKey)
+  )
+}
+
+export async function claimGift(owner, giftId) {
+  return withFallback(
+    async () => normalizeRemote(await httpPost('/adoption/gift/claim', { owner, giftId })),
+    () => local.claimGift(owner, giftId)
   )
 }
 

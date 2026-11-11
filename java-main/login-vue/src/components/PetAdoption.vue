@@ -32,7 +32,7 @@
       </button>
       <button :class="{ on: tab === 'task' }" @click="tab = 'task'">任务</button>
       <button v-if="friends.length" :class="{ on: tab === 'gift' }" @click="tab = 'gift'">
-        好友赠送<span v-if="petGame.gifts.count" class="tab-badge">{{ petGame.gifts.count }}/3</span>
+        好友赠送<span v-if="petGame.gifts.pending.length" class="tab-badge">{{ petGame.gifts.pending.length }}</span>
       </button>
     </div>
 
@@ -171,29 +171,46 @@
     <!-- ========== 好友赠送 ========== -->
     <section v-else-if="tab === 'gift'" class="panel">
       <template v-if="friends.length">
-        <p class="panel-tip">
-          每天最多领取 <b>3</b> 次好友赠送，每次 +🌱10 养分 +🍖1 食物。当前已领
-          <b>{{ petGame.gifts.count }}/3</b>。
-        </p>
+        <!-- 我赠送给好友（真实写入：好友需领取后才会出现在其待领取列表） -->
+        <h3 class="panel-h">
+          🎁 赠送好友
+          <span class="panel-count">每天 {{ GIFT_SEND_LIMIT }} 次 · 已送 {{ petGame.gifts.sentCount }}/{{ GIFT_SEND_LIMIT }}</span>
+        </h3>
         <ul class="gift-list">
           <li v-for="f in friends" :key="f.key" class="gift">
             <span class="gift-ava">{{ f.name.charAt(0) }}</span>
             <div class="gift-main">
               <h4 class="gift-name">{{ f.name }}</h4>
-              <p class="gift-sub">赠送你 🌱10 + 🍖1</p>
+              <p class="gift-sub">赠送 🌱10 + 🍖1</p>
             </div>
             <button
-              class="gift-btn"
-              :disabled="!!petGame.gifts.claimed[f.key] || !canGiftToday"
-              @click="onGift(f.key)"
+              class="gift-btn send"
+              :disabled="!!petGame.gifts.sentTo[f.key] || !canSendGift"
+              @click="onSendGift(f.key)"
             >
-              {{ petGame.gifts.claimed[f.key] ? '已领取' : '领取' }}
+              {{ petGame.gifts.sentTo[f.key] ? '已赠送' : '赠送' }}
             </button>
           </li>
         </ul>
-        <p v-if="!canGiftToday" class="hint">今日赠送次数已用完，明天再来吧～</p>
+
+        <!-- 好友赠送给我，只有好友真正送出后才会出现在待领取列表 -->
+        <h3 class="panel-h">
+          📥 待领取的赠送
+          <span class="panel-count">每天 {{ GIFT_CLAIM_LIMIT }} 次 · 已领 {{ petGame.gifts.claimCount }}/{{ GIFT_CLAIM_LIMIT }}</span>
+        </h3>
+        <ul v-if="petGame.gifts.pending.length" class="gift-list">
+          <li v-for="p in petGame.gifts.pending" :key="p.id" class="gift">
+            <span class="gift-ava">{{ friendName(p.fromKey).charAt(0) }}</span>
+            <div class="gift-main">
+              <h4 class="gift-name">{{ friendName(p.fromKey) }}</h4>
+              <p class="gift-sub">送你 🌱10 + 🍖1</p>
+            </div>
+            <button class="gift-btn" :disabled="!canClaimGift" @click="onGift(p.id)">领取</button>
+          </li>
+        </ul>
+        <p v-else class="panel-tip empty">暂无好友赠送你～ 去给好友赠送一下，或等好友回赠吧！</p>
       </template>
-      <p v-else class="panel-tip empty">暂无好友，添加好友后即可领取好友赠送～</p>
+      <p v-else class="panel-tip empty">暂无好友，添加好友后即可互相赠送好礼～</p>
     </section>
 
     <!-- 轻提示 -->
@@ -346,8 +363,11 @@ import {
   petGame,
   myEggs,
   myPets,
-  canGiftToday,
   canInteractToday,
+  canSendGift,
+  canClaimGift,
+  GIFT_SEND_LIMIT,
+  GIFT_CLAIM_LIMIT,
   speciesList,
   friendsList,
   getPetType
@@ -360,6 +380,7 @@ import {
   interact as apiInteract,
   completeTask as apiCompleteTask,
   claimTask as apiClaimTask,
+  sendGift as apiSendGift,
   claimGift as apiClaimGift,
   rename as apiRename
 } from '../api/adoption'
@@ -376,6 +397,12 @@ const popId = ref('')
 // 物种 / 好友列表均来自 petAdoption.js（后端数据同步或本地兜底）
 const petTypes = speciesList
 const friends = friendsList
+
+// 根据好友 key 反查昵称（用于「待领取」列表展示赠送者）
+const friendName = (key) => {
+  const f = friends.value.find((x) => x.key === key)
+  return f ? f.name : key || '好友'
+}
 
 const typeOf = (p) =>
   getPetType(p.typeId) ||
@@ -1121,12 +1148,23 @@ async function onTaskClaim(taskId) {
   }
 }
 
-async function onGift(friendKey) {
-  const r = await apiClaimGift(props.user.username, friendKey)
-  if (r.ok) showToast('领取成功：🌱+10 🍖+1')
+// 给某位好友赠送：真实写入一笔 pending 礼物（后端落库 / 本地记账单），好友需领取才到账
+async function onSendGift(friendKey) {
+  const r = await apiSendGift(props.user.username, friendKey)
+  if (r.ok) showToast('赠送成功，等待好友领取 🎁')
   else if (r.reason === 'limit') showToast('今日赠送次数已用完')
-  else if (r.reason === 'already') showToast('这位好友今天已领取过')
+  else if (r.reason === 'already') showToast('今天已经给这位好友赠送过啦')
   else if (r.reason === 'notfriend') showToast('对方不是你的好友')
+  else showToast('赠送失败，请稍后再试')
+}
+
+// 领取好友赠送的某一条礼物（按 giftId，仅当该礼物真实存在且为 pending）
+async function onGift(giftId) {
+  const r = await apiClaimGift(props.user.username, giftId)
+  if (r.ok) showToast('领取成功：🌱+10 🍖+1')
+  else if (r.reason === 'limit') showToast('今日领取次数已用完')
+  else if (r.reason === 'notfound') showToast('该礼物已领取或不存在')
+  else showToast('领取失败，请稍后再试')
 }
 </script>
 
@@ -1385,6 +1423,9 @@ async function onGift(friendKey) {
   color: #999;
   cursor: not-allowed;
 }
+/* 赠送按钮区别于领取 */
+.gift-btn.send { background: linear-gradient(135deg, #6fb1ff, #8b7bff); }
+.gift-btn.send:disabled { background: #ddd; color: #999; cursor: not-allowed; }
 
 /* 好友赠送 */
 .gift-ava {
@@ -1403,6 +1444,19 @@ async function onGift(friendKey) {
 .gift-main { flex: 1; }
 .gift-name { font-size: 15px; margin: 0 0 3px; color: #334; }
 .gift-sub { font-size: 12px; color: #99a; margin: 0; }
+
+/* 区块标题 + 计数 */
+.panel-h {
+  font-size: 15px;
+  margin: 18px 0 10px;
+  color: #445;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.panel-count { font-size: 12px; color: #99a; font-weight: 500; }
+.panel-tip.empty { color: #99a; font-size: 13px; padding: 8px 4px; }
 
 /* 提示 */
 .toast {

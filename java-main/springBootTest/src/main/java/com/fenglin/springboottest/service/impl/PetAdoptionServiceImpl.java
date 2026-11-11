@@ -36,7 +36,8 @@ import java.util.concurrent.ThreadLocalRandom;
 public class PetAdoptionServiceImpl implements PetAdoptionService {
 
     private static final int INTERACT_LIMIT = 5;     // 每日摸摸上限
-    private static final int GIFT_LIMIT = 3;         // 每日赠送上限
+    private static final int GIFT_LIMIT = 3;         // 每日领取上限
+    private static final int GIFT_SEND_LIMIT = 3;    // 每日赠送（送出）上限
     private static final int GIFT_NUTRIENT = 10;     // 每次赠送养分
     private static final int GIFT_FOOD = 1;          // 每次赠送食物
 
@@ -217,18 +218,43 @@ public class PetAdoptionServiceImpl implements PetAdoptionService {
         interactView.put("canInteract", interactCount < INTERACT_LIMIT);
         m.put("interact", interactView);
 
-        // 赠送（每日）
-        int giftCount = Math.toIntExact(giftMapper.selectCount(new LambdaQueryWrapper<PetGiftLog>()
+        // 赠送（每日）：拆成「我送出的」与「我收到的待领取」两部分
+        // 我今日送出的数量 + 已送达的好友集合（控制同好友每日 1 次、每日上限 3）
+        int sentCount = Math.toIntExact(giftMapper.selectCount(new LambdaQueryWrapper<PetGiftLog>()
                 .eq(PetGiftLog::getUserKey, owner).eq(PetGiftLog::getGiftDate, date)));
-        List<PetGiftLog> giftRows = giftMapper.selectList(new LambdaQueryWrapper<PetGiftLog>()
+        List<PetGiftLog> sentRows = giftMapper.selectList(new LambdaQueryWrapper<PetGiftLog>()
                 .eq(PetGiftLog::getUserKey, owner).eq(PetGiftLog::getGiftDate, date));
-        Map<String, Object> claimed = new LinkedHashMap<>();
-        for (PetGiftLog g : giftRows) claimed.put(g.getFriendKey(), true);
+        Map<String, Object> sentTo = new LinkedHashMap<>();
+        for (PetGiftLog g : sentRows) sentTo.put(g.getFriendKey(), true);
+
+        // 我今日已领取的数量（统计 friend_key=我 且今日 claimed 的记录）
+        int claimCount = Math.toIntExact(giftMapper.selectCount(new LambdaQueryWrapper<PetGiftLog>()
+                .eq(PetGiftLog::getFriendKey, owner)
+                .eq(PetGiftLog::getGiftDate, date)
+                .eq(PetGiftLog::getStatus, "claimed")));
+
+        // 我收到的、待领取的礼物
+        List<PetGiftLog> pendingRows = giftMapper.selectList(new LambdaQueryWrapper<PetGiftLog>()
+                .eq(PetGiftLog::getFriendKey, owner)
+                .eq(PetGiftLog::getStatus, "pending"));
+        List<Map<String, Object>> pendingView = new ArrayList<>(pendingRows.size());
+        for (PetGiftLog g : pendingRows) {
+            Map<String, Object> v = new LinkedHashMap<>();
+            v.put("id", g.getId());
+            v.put("fromKey", g.getUserKey());
+            v.put("date", g.getGiftDate());
+            pendingView.add(v);
+        }
+
         Map<String, Object> giftView = new LinkedHashMap<>();
-        giftView.put("count", giftCount);
-        giftView.put("limit", GIFT_LIMIT);
-        giftView.put("canGift", giftCount < GIFT_LIMIT);
-        giftView.put("claimed", claimed);
+        giftView.put("sentCount", sentCount);
+        giftView.put("sendLimit", GIFT_SEND_LIMIT);
+        giftView.put("canSend", sentCount < GIFT_SEND_LIMIT);
+        giftView.put("sentTo", sentTo);
+        giftView.put("claimCount", claimCount);
+        giftView.put("claimLimit", GIFT_LIMIT);
+        giftView.put("canClaim", claimCount < GIFT_LIMIT);
+        giftView.put("pending", pendingView);
         m.put("gifts", giftView);
 
         // 真实好友（用于赠送入口显隐与列表）
@@ -379,7 +405,7 @@ public class PetAdoptionServiceImpl implements PetAdoptionService {
     }
 
     @Override
-    public Map<String, Object> claimGift(String owner, String friendKey) {
+    public Map<String, Object> sendGift(String owner, String friendKey) {
         if (friendKey == null || friendKey.isBlank()) return fail("unknown");
         // 校验好友关系
         Long friendCnt = friendMapper.selectCount(new LambdaQueryWrapper<PetFriend>()
@@ -388,19 +414,40 @@ public class PetAdoptionServiceImpl implements PetAdoptionService {
                 .eq(PetFriend::getStatus, "friend"));
         if (friendCnt == null || friendCnt == 0) return fail("notfriend");
         String date = today();
-        int giftCount = Math.toIntExact(giftMapper.selectCount(new LambdaQueryWrapper<PetGiftLog>()
+        int sentCount = Math.toIntExact(giftMapper.selectCount(new LambdaQueryWrapper<PetGiftLog>()
                 .eq(PetGiftLog::getUserKey, owner).eq(PetGiftLog::getGiftDate, date)));
-        if (giftCount >= GIFT_LIMIT) return fail("limit");
+        if (sentCount >= GIFT_SEND_LIMIT) return fail("limit");
+        // 同好友每日只送 1 次（唯一索引兜底，这里提前给友好提示）
         Long already = giftMapper.selectCount(new LambdaQueryWrapper<PetGiftLog>()
                 .eq(PetGiftLog::getUserKey, owner)
                 .eq(PetGiftLog::getFriendKey, friendKey)
                 .eq(PetGiftLog::getGiftDate, date));
         if (already != null && already > 0) return fail("already");
         PetGiftLog g = new PetGiftLog();
-        g.setUserKey(owner);
-        g.setFriendKey(friendKey);
+        g.setUserKey(owner);     // 赠送方
+        g.setFriendKey(friendKey); // 领取方
         g.setGiftDate(date);
+        g.setStatus("pending");
         giftMapper.insert(g);
+        return dashboard(owner);
+    }
+
+    @Override
+    public Map<String, Object> claimGift(String owner, Long giftId) {
+        if (giftId == null) return fail("unknown");
+        PetGiftLog g = giftMapper.selectById(giftId);
+        if (g == null || !"pending".equals(g.getStatus())) return fail("notfound");
+        if (!owner.equals(g.getFriendKey())) return fail("notowner");
+        // 每日领取上限
+        String date = today();
+        int claimCount = Math.toIntExact(giftMapper.selectCount(new LambdaQueryWrapper<PetGiftLog>()
+                .eq(PetGiftLog::getFriendKey, owner)
+                .eq(PetGiftLog::getGiftDate, date)
+                .eq(PetGiftLog::getStatus, "claimed")));
+        if (claimCount >= GIFT_LIMIT) return fail("limit");
+        g.setStatus("claimed");
+        g.setClaimedAt(now());
+        giftMapper.updateById(g);
         PetUserResource r = getOrCreateResource(owner);
         r.setNutrients((r.getNutrients() == null ? 0 : r.getNutrients()) + GIFT_NUTRIENT);
         r.setFood((r.getFood() == null ? 0 : r.getFood()) + GIFT_FOOD);

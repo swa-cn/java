@@ -55,7 +55,7 @@ export const petGame = reactive({
   pets: [],    // 我的宠物
   tasks: [],   // 今日任务（含完成状态）
   taskDate: '',
-  gifts: { date: '', claimed: {}, count: 0 }, // 好友赠送（按天重置）
+  gifts: { date: '', sentCount: 0, sentTo: {}, claimCount: 0, pending: [] }, // 好友赠送（按天重置）
   interact: { date: '', count: 0 }            // 每日摸摸次数（按天重置，上限 5）
 })
 
@@ -63,7 +63,6 @@ export const petGame = reactive({
 export const myEggs = computed(() => petGame.pets.filter((p) => p.status === 'egg'))
 export const myPets = computed(() => petGame.pets.filter((p) => p.status === 'hatched'))
 export const nutrientEnough = (cost) => petGame.nutrients >= cost
-export const canGiftToday = computed(() => petGame.gifts.count < 3)
 export const canInteractToday = computed(() => petGame.interact.count < 5)
 
 /* ---------------- 后端同步（petAdoption.js 同时作为本地兜底） ---------------- */
@@ -95,11 +94,16 @@ export function setRemoteState(d) {
   }))
   const today = todayStr()
   petGame.interact = { date: today, count: (d.interact && d.interact.count) || 0 }
+  // 后端礼物态：sentCount/sentTo/claimCount/pending
+  const g = d.gifts || {}
   petGame.gifts = {
     date: today,
-    count: (d.gifts && d.gifts.count) || 0,
-    claimed: (d.gifts && d.gifts.claimed) || {}
+    sentCount: g.sentCount || 0,
+    sentTo: g.sentTo || {},
+    claimCount: g.claimCount || 0,
+    pending: Array.isArray(g.pending) ? g.pending.map((p) => ({ id: p.id, fromKey: p.fromKey })) : []
   }
+  syncLocalGifts() // 本地兜底：用跨账号账单补全 pending
 }
 
 /* ---------------- 工具函数 ---------------- */
@@ -156,7 +160,8 @@ function ensureDailyReset() {
     petGame.tasks = TASK_TEMPLATES.map((t) => ({ ...t, done: false, completed: false }))
   }
   if (petGame.gifts.date !== today) {
-    petGame.gifts = { date: today, claimed: {}, count: 0 }
+    petGame.gifts = { date: today, sentCount: 0, sentTo: {}, claimCount: 0, pending: [] }
+    syncLocalGifts()
   }
   if (petGame.interact.date !== today) {
     petGame.interact = { date: today, count: 0 }
@@ -327,15 +332,85 @@ export function hasRealFriends(userKey) {
   return giftFriends(userKey || petGame.userKey).length > 0
 }
 
-/** 领取某好友的赠送：+10 养分 +1 食物；同好友每天 1 次，每日最多 3 次 */
-export function claimGift(friendKey) {
+/* ---------------- 好友赠送（真实：先赠送才能领取） ---------------- */
+
+/** 跨账号礼物账单：本地兜底用，存所有「赠送事件」，按 toKey 让接收方看到待领取 */
+const GIFT_LEDGER_KEY = 'mengchong.gift_ledger.v1'
+export const GIFT_SEND_LIMIT = 3
+export const GIFT_CLAIM_LIMIT = 3
+const GIFT_NUTRIENT = 10
+const GIFT_FOOD = 1
+
+// 衍生：是否还能赠送 / 领取（按天上限，本体与后端 GIFT_SEND_LIMIT / GIFT_LIMIT 一致）
+export const canSendGift = computed(() => petGame.gifts.sentCount < GIFT_SEND_LIMIT)
+export const canClaimGift = computed(() => petGame.gifts.claimCount < GIFT_CLAIM_LIMIT)
+
+function loadLedger() {
+  try {
+    const raw = localStorage.getItem(GIFT_LEDGER_KEY)
+    const arr = raw ? JSON.parse(raw) : []
+    return Array.isArray(arr) ? arr : []
+  } catch (e) {
+    return []
+  }
+}
+function saveLedger(list) {
+  try {
+    localStorage.setItem(GIFT_LEDGER_KEY, JSON.stringify(list))
+  } catch (e) {
+    /* 忽略 */
+  }
+}
+/** 把账单里「指向我」的 pending 礼物同步进 petGame.gifts.pending */
+function syncLocalGifts() {
+  const me = petGame.userKey
+  const today = todayStr()
+  const ledger = loadLedger()
+  petGame.gifts.pending = ledger
+    .filter((g) => g.toKey === me && g.status === 'pending')
+    .map((g) => ({ id: g.id, fromKey: g.fromKey }))
+  // 重新统计今日已送/已领（按本地账单，避免和后端态叠加时重复）
+  petGame.gifts.sentCount = ledger.filter(
+    (g) => g.fromKey === me && g.date === today
+  ).length
+  petGame.gifts.sentTo = {}
+  ledger
+    .filter((g) => g.fromKey === me && g.date === today)
+    .forEach((g) => (petGame.gifts.sentTo[g.toKey] = true))
+  petGame.gifts.claimCount = ledger.filter(
+    (g) => g.toKey === me && g.date === today && g.status === 'claimed'
+  ).length
+}
+
+/** 给某个好友赠送：本地记一笔 pending 礼物（真实路径下由后端处理） */
+export function sendGift(owner, friendKey) {
   ensureDailyReset()
-  if (petGame.gifts.count >= 3) return { ok: false, reason: 'limit' }
-  if (petGame.gifts.claimed[friendKey]) return { ok: false, reason: 'already' }
-  petGame.gifts.claimed[friendKey] = true
-  petGame.gifts.count += 1
-  petGame.nutrients += 10
-  petGame.food += 1
+  if (!friendKey) return { ok: false, reason: 'unknown' }
+  const ledger = loadLedger()
+  const today = todayStr()
+  if (ledger.some((g) => g.fromKey === owner && g.toKey === friendKey && g.date === today)) {
+    return { ok: false, reason: 'already' }
+  }
+  if (petGame.gifts.sentCount >= GIFT_SEND_LIMIT) return { ok: false, reason: 'limit' }
+  ledger.push({ id: uid('g'), fromKey: owner, toKey: friendKey, status: 'pending', date: today })
+  saveLedger(ledger)
+  syncLocalGifts()
   persist()
   return { ok: true }
+}
+
+/** 领取某条礼物：+10 养分 +1 食物；每日最多领 3 次 */
+export function claimGift(owner, giftId) {
+  ensureDailyReset()
+  const ledger = loadLedger()
+  const g = ledger.find((x) => x.id === giftId)
+  if (!g || g.toKey !== owner || g.status !== 'pending') return { ok: false, reason: 'notfound' }
+  if (petGame.gifts.claimCount >= GIFT_CLAIM_LIMIT) return { ok: false, reason: 'limit' }
+  g.status = 'claimed'
+  saveLedger(ledger)
+  petGame.nutrients += GIFT_NUTRIENT
+  petGame.food += GIFT_FOOD
+  syncLocalGifts()
+  persist()
+  return { ok: true, reward: { nutrient: GIFT_NUTRIENT, food: GIFT_FOOD } }
 }

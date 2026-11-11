@@ -31,8 +31,11 @@ public interface PetAdoptionService {
     /** 领取任务奖励（必须已完成） */
     Map<String, Object> claimTask(String owner, String taskId);
 
-    /** 领取好友赠送（校验好友关系，每日上限 3） */
-    Map<String, Object> claimGift(String owner, String friendKey);
+    /** 给好友赠送（校验好友关系，每日上限 3，同好友每日 1 次） */
+    Map<String, Object> sendGift(String owner, String friendKey);
+
+    /** 领取好友赠送（按礼物 id 领取 pending 的赠送，每日上限 3） */
+    Map<String, Object> claimGift(String owner, Long giftId);
 
     /** 给宠物改名 */
     Map<String, Object> rename(String owner, String petId, String name);

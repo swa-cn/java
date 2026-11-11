@@ -178,18 +178,21 @@ INSERT INTO `pet_friend` VALUES (10, 'eee', 'admin', '管理员', 'friend', 'pos
 DROP TABLE IF EXISTS `pet_gift_log`;
 CREATE TABLE `pet_gift_log`  (
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `user_key` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '领取方',
-  `friend_key` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '赠送方',
+  `user_key` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '赠送方',
+  `friend_key` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '领取方',
   `gift_date` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '日期 yyyy-MM-dd',
+  `status` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'pending' COMMENT 'pending=待领取 claimed=已领取',
+  `claimed_at` bigint DEFAULT NULL COMMENT '领取时间戳',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_gift`(`user_key` ASC, `friend_key` ASC, `gift_date` ASC) USING BTREE,
+  INDEX `idx_gift_recipient`(`friend_key` ASC, `status` ASC) USING BTREE,
   INDEX `idx_gift_user`(`user_key` ASC, `gift_date` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '好友赠送记录' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '好友赠送记录（真实赠送/领取）' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_gift_log
+-- （老数据无 status 列，建表后请执行：UPDATE pet_gift_log SET status='claimed' WHERE status IS NULL;）
 -- ----------------------------
-INSERT INTO `pet_gift_log` VALUES (1, 'admin', 'eee', '2026-11-11');
 
 -- ----------------------------
 -- Table structure for pet_interact_log
