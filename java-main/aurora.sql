@@ -1,7 +1,7 @@
 /*
  Navicat Premium Dump SQL
 
- Source Server         : xiangmu
+ Source Server         : test
  Source Server Type    : MySQL
  Source Server Version : 80039 (8.0.39)
  Source Host           : localhost:3306
@@ -11,7 +11,7 @@
  Target Server Version : 80039 (8.0.39)
  File Encoding         : 65001
 
- Date: 07/11/2026 02:53:46
+ Date: 11/11/2026 09:40:37
 */
 
 SET NAMES utf8mb4;
@@ -64,12 +64,13 @@ CREATE TABLE `pet`  (
   `last_interact` bigint NOT NULL DEFAULT 0 COMMENT '上次互动时间戳',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_pet_user`(`user_key` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户宠物' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户宠物' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet
 -- ----------------------------
 INSERT INTO `pet` VALUES ('p1a1b1f65c92245', 'eee', 'cat', '???', 'hatched', 17, 60, 90, 1793987075218, 1793987082135, 0, 1793987089704);
+INSERT INTO `pet` VALUES ('p1a1c816e6c9dbe', 'admin', 'hamster', '三线仓鼠', 'hatched', 21, 60, 90, 1794358306505, 1794358379454, 0, 1794358390364);
 
 -- ----------------------------
 -- Table structure for pet_breed
@@ -183,11 +184,12 @@ CREATE TABLE `pet_gift_log`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_gift`(`user_key` ASC, `friend_key` ASC, `gift_date` ASC) USING BTREE,
   INDEX `idx_gift_user`(`user_key` ASC, `gift_date` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '好友赠送记录' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '好友赠送记录' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_gift_log
 -- ----------------------------
+INSERT INTO `pet_gift_log` VALUES (1, 'admin', 'eee', '2026-11-11');
 
 -- ----------------------------
 -- Table structure for pet_interact_log
@@ -200,12 +202,13 @@ CREATE TABLE `pet_interact_log`  (
   `interact_count` int NOT NULL DEFAULT 0 COMMENT '当日已摸次数',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_interact`(`user_key` ASC, `interact_date` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '每日互动次数' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '每日互动次数' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_interact_log
 -- ----------------------------
 INSERT INTO `pet_interact_log` VALUES (2, 'eee', '2026-11-07', 5);
+INSERT INTO `pet_interact_log` VALUES (3, 'admin', '2026-11-11', 5);
 
 -- ----------------------------
 -- Table structure for pet_knowledge
@@ -388,7 +391,7 @@ CREATE TABLE `pet_species`  (
   `sort_order` int NOT NULL DEFAULT 0 COMMENT '展示顺序',
   `created_at` bigint NOT NULL COMMENT '创建时间',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '宠物种类目录' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '宠物种类目录' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_species
@@ -414,7 +417,7 @@ CREATE TABLE `pet_task_progress`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_task`(`user_key` ASC, `task_id` ASC, `task_date` ASC) USING BTREE,
   INDEX `idx_task_user`(`user_key` ASC, `task_date` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 9 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '每日任务进度' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 13 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '每日任务进度' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_task_progress
@@ -423,6 +426,10 @@ INSERT INTO `pet_task_progress` VALUES (5, 'eee', 'sign', '2026-11-07', 1, 1);
 INSERT INTO `pet_task_progress` VALUES (6, 'eee', 'read', '2026-11-07', 1, 1);
 INSERT INTO `pet_task_progress` VALUES (7, 'eee', 'quiz', '2026-11-07', 1, 1);
 INSERT INTO `pet_task_progress` VALUES (8, 'eee', 'walk', '2026-11-07', 1, 0);
+INSERT INTO `pet_task_progress` VALUES (9, 'admin', 'sign', '2026-11-11', 1, 1);
+INSERT INTO `pet_task_progress` VALUES (10, 'admin', 'jump', '2026-11-11', 1, 1);
+INSERT INTO `pet_task_progress` VALUES (11, 'admin', 'post', '2026-11-11', 1, 1);
+INSERT INTO `pet_task_progress` VALUES (12, 'eee', 'sign', '2026-11-11', 1, 0);
 
 -- ----------------------------
 -- Table structure for pet_user_resource
@@ -434,11 +441,12 @@ CREATE TABLE `pet_user_resource`  (
   `food` int NOT NULL DEFAULT 0 COMMENT '食物',
   `updated_at` bigint NOT NULL COMMENT '更新时间',
   PRIMARY KEY (`user_key`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户养成资源' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户养成资源' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_user_resource
 -- ----------------------------
+INSERT INTO `pet_user_resource` VALUES ('admin', 7, 2, 1794359289485);
 INSERT INTO `pet_user_resource` VALUES ('eee', 3, 0, 1793987082133);
 
 SET FOREIGN_KEY_CHECKS = 1;
