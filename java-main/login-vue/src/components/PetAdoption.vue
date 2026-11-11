@@ -141,7 +141,7 @@
 
     <!-- ========== 任务 ========== -->
     <section v-else-if="tab === 'task'" class="panel">
-      <p class="panel-tip">点「去做」打开对应的小互动，<b>真正完成操作</b>后任务才会标记完成，再去「领取」奖励：养分（每次 5~10 点）或食物（每次 1 份）。</p>
+      <p class="panel-tip">点「去做」打开对应的小互动，<b>真正完成操作</b>后任务才会标记完成，再去「领取」奖励：养分（每次 5~10 点）或食物（每次 1 份）。「发布一条动态」和「给好友动态点赞」会跳转到导航栏的<b>发现</b>页，真实发帖 / 点赞后自动完成。</p>
       <ul class="task-list">
         <li v-for="t in petGame.tasks" :key="t.id" class="task" :class="{ done: t.done, ready: t.completed && !t.done }">
           <div class="task-main">
@@ -210,32 +210,31 @@
           <!-- 签到 -->
           <template v-if="activeTask && activeTask.id === 'sign'">
             <div class="modal-emoji">📅</div>
-            <h3 class="modal-title">本周签到打卡</h3>
-            <p class="modal-sub">依次点亮 7 天签到格，全部点亮即完成本周打卡～</p>
+            <h3 class="modal-title">每日签到打卡</h3>
+            <p class="modal-sub">每天点亮 1 格即完成当日打卡，打卡后就能领取奖励～</p>
             <div class="sign-card">
               <button
                 v-for="n in 7"
                 :key="n"
                 class="sign-day"
                 :class="{ on: signLit[n - 1] }"
-                :disabled="signLit[n - 1]"
+                :disabled="signLit[n - 1] || !canSignDay(n)"
                 @click="signClick(n)"
               >{{ signLit[n - 1] ? '✓' : '第' + n + '天' }}</button>
             </div>
-            <button v-if="!signAllLit" class="modal-btn" disabled>已点亮 {{ signCount }}/7</button>
-            <button v-else class="modal-btn" @click="finishTask">签到完成，确认打卡 ✅</button>
+            <button v-if="!signedToday" class="modal-btn" disabled>已点亮 {{ signCount }}/7</button>
+            <button v-else class="modal-btn" @click="signDoneClick">
+              {{ signCount >= 7 ? '本周打卡完成，开始新一周 🎉' : '今日打卡完成，去领取奖励 🎁' }}
+            </button>
           </template>
 
           <!-- 阅读小知识 -->
           <template v-else-if="activeTask && activeTask.id === 'read'">
             <div class="modal-emoji">📖</div>
             <h3 class="modal-title">阅读萌宠小知识</h3>
+            <p class="modal-sub">今日份 · {{ dailyFact.title }}</p>
             <div class="read-box">
-              <p>猫的胡须（触须）根部布满神经，是重要的「触觉雷达」：</p>
-              <p>① 黑暗中感知障碍与猎物位置；</p>
-              <p>② 判断缝隙能否通过（胡须宽度≈身体宽度）；</p>
-              <p>③ 根部有本体感受器，帮助保持平衡。</p>
-              <p>所以千万别随意剪猫咪的胡须哦～</p>
+              <p v-for="(line, i) in dailyFact.lines" :key="i">{{ line }}</p>
             </div>
             <label class="read-check">
               <input type="checkbox" v-model="readChecked" /> 我已认真阅读以上内容
@@ -248,10 +247,10 @@
             <div class="modal-emoji">🧠</div>
             <h3 class="modal-title">萌宠小测验</h3>
             <p class="modal-sub">答对下面这道题即可完成任务：</p>
-            <p class="quiz-q">狗狗主要靠什么方式散热降温？</p>
+            <p class="quiz-q">{{ dailyQuiz.q }}</p>
             <div class="quiz-opts">
               <button
-                v-for="o in quizOpts"
+                v-for="o in dailyQuiz.opts"
                 :key="o.k"
                 class="quiz-opt"
                 :class="{
@@ -294,43 +293,7 @@
           </template>
 
           <!-- 发布动态 -->
-          <template v-else-if="activeTask && activeTask.id === 'post'">
-            <div class="modal-emoji">✍️</div>
-            <h3 class="modal-title">发布一条动态</h3>
-            <p class="modal-sub">分享你和毛孩子的日常，发布后即可完成任务。</p>
-            <textarea
-              v-model="postText"
-              class="post-area"
-              placeholder="说点什么吧～（例如：今天带猫主子晒太阳啦）"
-            ></textarea>
-            <button class="modal-btn" :disabled="!postText.trim()" @click="doPost">发布 🚀</button>
-          </template>
-
-          <!-- 给好友动态点赞 -->
-          <template v-else-if="activeTask && activeTask.id === 'like'">
-            <div class="modal-emoji">💗</div>
-            <h3 class="modal-title">给社区动态点赞</h3>
-            <p class="modal-sub">在萌宠社区挑一条动态，送出你的爱心 ❤️</p>
-            <ul class="like-list">
-              <li
-                v-for="(p, i) in communityPosts"
-                :key="i"
-                class="like-item"
-                :class="{ liked: likePicked === i }"
-                @click="likePicked = i"
-              >
-                <span class="like-ava">{{ p.user.charAt(0) }}</span>
-                <div class="like-main">
-                  <b>{{ p.user }}</b>
-                  <p>{{ p.text }}</p>
-                </div>
-                <span class="like-heart" :class="{ on: likePicked === i }">❤</span>
-              </li>
-            </ul>
-            <button class="modal-btn" :disabled="likePicked === null" @click="finishTask">
-              送出爱心
-            </button>
-          </template>
+          <!-- 发布动态 / 好友点赞：已改为跳转导航栏「发现」页真实完成，不再用弹窗 -->
 
         </div>
       </div>
@@ -404,6 +367,8 @@ import {
 const props = defineProps({
   user: { type: Object, required: true }
 })
+// go-compose：「发布一条动态」直接打开发帖页；go-friends：「给好友动态点赞」进「发现」并选中「好友」分类
+const emit = defineEmits(['go-compose', 'go-friends'])
 
 const tab = ref('adopt')
 const toast = ref('')
@@ -428,7 +393,10 @@ function showToast(msg) {
 watch(
   () => props.user?.username,
   async (u) => {
-    if (u) await loadState(u)
+    if (u) {
+      await loadState(u)
+      loadSignState() // 切换用户时同步读取各自的签到进度
+    }
   },
   { immediate: true }
 )
@@ -477,36 +445,314 @@ async function onRename(p) {
 const showTaskModal = ref(false)
 const showJumpModal = ref(false)
 const activeTask = ref(null)
+/* ---------- 每周签到：每天只能点亮 1 格，进度跨天保留 ---------- */
+const SIGN_KEY = 'mengchong.sign.v1.'
 const signLit = ref([false, false, false, false, false, false, false])
+const signDates = ref(['', '', '', '', '', '', '']) // 每格点亮的日期，用于限制"一天一格"
 const signCount = computed(() => signLit.value.filter(Boolean).length)
-const signAllLit = computed(() => signLit.value.every(Boolean))
+const signedToday = computed(() => signDates.value.some((d) => d === todayStr()))
+
+function signTodayStr() {
+  const d = new Date()
+  return (
+    d.getFullYear() +
+    '-' +
+    String(d.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(d.getDate()).padStart(2, '0')
+  )
+}
+const todayStr = signTodayStr
+
+function nextSignIndex() {
+  return signLit.value.findIndex((v) => !v)
+}
+
+/** 第 n 天此刻是否可点：未点亮 + 按顺序 + 今天还没打过卡 */
+function canSignDay(n) {
+  const idx = n - 1
+  if (signLit.value[idx]) return false
+  if (idx !== nextSignIndex()) return false
+  return !signedToday.value
+}
+
+function loadSignState() {
+  try {
+    const raw = localStorage.getItem(SIGN_KEY + (props.user?.username || 'guest'))
+    const d = raw ? JSON.parse(raw) : null
+    if (d && Array.isArray(d.dates) && d.dates.length === 7) {
+      signDates.value = d.dates.map((x) => x || '')
+      signLit.value = signDates.value.map((x) => !!x)
+      return
+    }
+  } catch (e) {
+    /* 解析失败则用空数据 */
+  }
+  signLit.value = [false, false, false, false, false, false, false]
+  signDates.value = ['', '', '', '', '', '', '']
+}
+
+function persistSignState() {
+  try {
+    localStorage.setItem(
+      SIGN_KEY + (props.user?.username || 'guest'),
+      JSON.stringify({ dates: signDates.value })
+    )
+  } catch (e) {
+    /* 存储不可用时静默忽略 */
+  }
+}
+
 function signClick(n) {
-  if (signLit.value[n - 1]) return
-  signLit.value[n - 1] = true
+  const idx = n - 1
+  if (signLit.value[idx]) return
+  if (idx !== nextSignIndex()) {
+    showToast('要按顺序点亮哦，先点第 ' + (nextSignIndex() + 1) + ' 天')
+    return
+  }
+  if (signedToday.value) {
+    showToast('今天已经打过卡啦，明天再来～')
+    return
+  }
+  signLit.value[idx] = true
+  signDates.value[idx] = signTodayStr()
+  persistSignState()
+  // 当天打完卡即视为完成任务：自动标记完成，用户直接去「领取」
+  finishTask()
+}
+
+/** 打卡完成后的按钮：万一之前完成请求没成功，再补一次；否则直接关弹窗 */
+function signDoneClick() {
+  if (activeTask.value && !activeTask.value.completed) {
+    finishTask()
+    return
+  }
+  closeTaskModal()
 }
 const readChecked = ref(false)
+/* 萌宠小知识库：每天按日期轮换一篇，同一天内所有人看到的是同一篇 */
+const PET_FACTS = [
+  {
+    title: '猫的胡须是「触觉雷达」',
+    lines: [
+      '猫的胡须（触须）根部布满神经，是重要的「触觉雷达」：',
+      '① 黑暗中感知障碍与猎物位置；',
+      '② 判断缝隙能否通过（胡须宽度≈身体宽度）；',
+      '③ 根部有本体感受器，帮助保持平衡。',
+      '所以千万别随意剪猫咪的胡须哦～'
+    ]
+  },
+  {
+    title: '狗狗的鼻子纹路像指纹',
+    lines: [
+      '每只狗的鼻纹都是独一无二的，就像人类的指纹：',
+      '① 鼻纹可以用来做身份识别，准确率很高；',
+      '② 狗狗嗅觉受体约有 3 亿个，是人类的 40 多倍；',
+      '③ 湿润的鼻头能帮助吸附气味分子，闻得更清楚。',
+      '所以别嫌它鼻子湿湿的，那是它在「认真闻」～'
+    ]
+  },
+  {
+    title: '兔子其实不会「说话」',
+    lines: [
+      '兔子很少发出声音，它们主要靠肢体语言表达情绪：',
+      '① 开心时会原地起跳扭身，俗称「兔子蹦」；',
+      '② 轻轻磨牙表示舒服，大声磨牙则可能是疼痛；',
+      '③ 耳朵向后贴往往代表紧张或警告。',
+      '多观察它的动作，胜过听它「说话」～'
+    ]
+  },
+  {
+    title: '仓鼠的颊囊能装下体重 20% 的食物',
+    lines: [
+      '仓鼠腮帮子里藏着一对可伸缩的颊囊：',
+      '① 一次能搬运相当于自身体重约 20% 的食物；',
+      '② 野生仓鼠靠颊囊把粮食运回洞穴储存；',
+      '③ 但黏性大的食物（如巧克力）容易堵在颊囊里。',
+      '所以投喂要适量，别让小仓库「超载」哦～'
+    ]
+  },
+  {
+    title: '鹦鹉的左脚可能更「利手」',
+    lines: [
+      '很多鹦鹉和人一样有「利手」偏好：',
+      '① 多数鹦鹉习惯用左脚抓取食物；',
+      '② 这与大脑两侧分工有关，个体之间有差异；',
+      '③ 观察它先伸哪只脚，就能知道它的惯用爪。',
+      '你家的小鸟是「左撇子」还是「右撇子」呢？'
+    ]
+  },
+  {
+    title: '金鱼的记忆不止 7 秒',
+    lines: [
+      '「金鱼只有 7 秒记忆」其实是误传：',
+      '① 实验表明金鱼记忆可以维持数月；',
+      '② 它们能学会按时间、按信号觅食；',
+      '③ 还能认出经常喂它的人。',
+      '所以金鱼不是「健忘」，它记得你的好～'
+    ]
+  },
+  {
+    title: '猫咪一天的睡眠可达 16 小时',
+    lines: [
+      '猫咪是出了名的「睡觉大师」：',
+      '① 成年猫每天睡 12~16 小时很正常；',
+      '② 大部分是浅睡，随时能被声音唤醒；',
+      '③ 深度睡眠只占约 1/4，多在夜间和黎明前。',
+      '它趴在你身边打盹，其实是放松和信任的表现～'
+    ]
+  },
+  {
+    title: '狗摇尾巴的方向有讲究',
+    lines: [
+      '狗狗摇尾巴不只是开心，方向也有含义：',
+      '① 研究发现情绪积极时尾巴偏向右侧摇；',
+      '② 遇到陌生或紧张情境时偏向左侧摇；',
+      '③ 尾巴位置低、夹紧则代表害怕。',
+      '观察整只狗的状态，才能读懂它的心情哦～'
+    ]
+  },
+  {
+    title: '兔子吃自己的软便是正常的',
+    lines: [
+      '听起来有点意外，但对兔子来说很健康：',
+      '① 兔子会排出一种叫「盲肠便」的软便；',
+      '② 里面富含 B 族维生素和蛋白质，吃掉能二次吸收营养；',
+      '③ 这是完全正常的消化行为，不用担心。',
+      '毛孩子的「怪习惯」背后，往往有科学的道理～'
+    ]
+  },
+  {
+    title: '猫的呼噜声有治愈效果',
+    lines: [
+      '猫咪打呼噜（咕噜声）不只是舒服：',
+      '① 呼噜声频率约 25~150 赫兹，被认为有助于骨骼与组织修复；',
+      '② 猫在紧张时也会打呼噜，是自我安抚的方式；',
+      '③ 不少人说听猫呼噜能减压，这叫「猫疗」。',
+      '所以被猫压着睡觉时，好好享受这份「白噪音」吧～'
+    ]
+  }
+]
+const dailyFact = computed(() => {
+  const d = new Date()
+  const dayOfYear = Math.floor(
+    (d - new Date(d.getFullYear(), 0, 0)) / (24 * 60 * 60 * 1000)
+  )
+  return PET_FACTS[dayOfYear % PET_FACTS.length]
+})
 const quizPicked = ref('')
 const quizWrong = ref(false)
 const quizSolved = ref(false)
-const quizOpts = [
-  { k: 'a', t: '舌头和脚垫出汗', right: true },
-  { k: 'b', t: '耳朵大幅扇动', right: false },
-  { k: 'c', t: '全身毛孔排汗', right: false },
-  { k: 'd', t: '尾巴左右甩动', right: false }
+/* 萌宠测验题库：每天按日期轮换一题，同一天内所有人看到的是同一题 */
+const PET_QUIZZES = [
+  {
+    q: '狗狗主要靠什么方式散热降温？',
+    opts: [
+      { k: 'a', t: '舌头和脚垫出汗', right: true },
+      { k: 'b', t: '耳朵大幅扇动', right: false },
+      { k: 'c', t: '全身毛孔排汗', right: false },
+      { k: 'd', t: '尾巴左右甩动', right: false }
+    ]
+  },
+  {
+    q: '猫咪的胡须主要有什么作用？',
+    opts: [
+      { k: 'a', t: '纯装饰，没有用处', right: false },
+      { k: 'b', t: '感知障碍和判断缝隙宽度', right: true },
+      { k: 'c', t: '用来调节体温', right: false },
+      { k: 'd', t: '帮助消化食物', right: false }
+    ]
+  },
+  {
+    q: '兔子开心时最典型的动作是什么？',
+    opts: [
+      { k: 'a', t: '原地起跳扭身（兔子蹦）', right: true },
+      { k: 'b', t: '一直趴着不动', right: false },
+      { k: 'c', t: '不停地刨笼子', right: false },
+      { k: 'd', t: '大声叫唤', right: false }
+    ]
+  },
+  {
+    q: '仓鼠搬运食物靠的是身体的哪个部位？',
+    opts: [
+      { k: 'a', t: '背部驮运', right: false },
+      { k: 'b', t: '尾巴卷住', right: false },
+      { k: 'c', t: '腮帮子里的颊囊', right: true },
+      { k: 'd', t: '前爪捧着跑回去', right: false }
+    ]
+  },
+  {
+    q: '「金鱼只有 7 秒记忆」这个说法对吗？',
+    opts: [
+      { k: 'a', t: '对，是科学共识', right: false },
+      { k: 'b', t: '不对，金鱼记忆可达数月', right: true },
+      { k: 'c', t: '对，但只对观赏金鱼成立', right: false },
+      { k: 'd', t: '科学家还没研究过', right: false }
+    ]
+  },
+  {
+    q: '猫一天大约睡多久？',
+    opts: [
+      { k: 'a', t: '2~4 小时', right: false },
+      { k: 'b', t: '6~8 小时', right: false },
+      { k: 'c', t: '12~16 小时', right: true },
+      { k: 'd', t: '20 小时以上', right: false }
+    ]
+  },
+  {
+    q: '狗狗情绪积极开心时，尾巴一般往哪边偏着摇？',
+    opts: [
+      { k: 'a', t: '偏右侧摇', right: true },
+      { k: 'b', t: '偏左侧摇', right: false },
+      { k: 'c', t: '只转圈不偏侧', right: false },
+      { k: 'd', t: '夹紧不摇', right: false }
+    ]
+  },
+  {
+    q: '很多鹦鹉抓食物时更习惯用哪只脚？',
+    opts: [
+      { k: 'a', t: '右脚', right: false },
+      { k: 'b', t: '左脚', right: true },
+      { k: 'c', t: '双脚并用', right: false },
+      { k: 'd', t: '用喙叼，不用脚', right: false }
+    ]
+  },
+  {
+    q: '猫的呼噜声频率大约在什么范围？',
+    opts: [
+      { k: 'a', t: '25~150 赫兹', right: true },
+      { k: 'b', t: '1000~2000 赫兹', right: false },
+      { k: 'c', t: '5000 赫兹以上', right: false },
+      { k: 'd', t: '低于 5 赫兹', right: false }
+    ]
+  },
+  {
+    q: '狗的嗅觉受体数量大约是人类的多少倍？',
+    opts: [
+      { k: 'a', t: '差不多一样多', right: false },
+      { k: 'b', t: '约 3 倍', right: false },
+      { k: 'c', t: '约 40 倍', right: true },
+      { k: 'd', t: '约 500 倍', right: false }
+    ]
+  }
 ]
+const dailyQuiz = computed(() => {
+  const d = new Date()
+  const dayOfYear = Math.floor(
+    (d - new Date(d.getFullYear(), 0, 0)) / (24 * 60 * 60 * 1000)
+  )
+  return PET_QUIZZES[dayOfYear % PET_QUIZZES.length]
+})
 const walkStarted = ref(false)
 const walkItems = ref([])
 const walkCollected = ref(0)
-const postText = ref('')
-const likePicked = ref(null)
-const communityPosts = [
-  { user: '喵星人管家', text: '今天我家布偶终于肯让我梳毛了，感动！' },
-  { user: '柯基铲屎官', text: '蜜桃臀今天又卡在沙发缝里了哈哈哈' },
-  { user: '仓鼠囤粮王', text: '新买的磨牙棒它一口就啃秃了…' },
-  { user: '鹦鹉吹哨手', text: '教了三天，它终于学会吹生日歌前两句！' }
-]
 
 function openTask(t) {
+  // 这两个任务关联到「发现」页：发帖任务直开发帖页，点赞任务进「好友」分类，完成后自动同步任务状态
+  if (t.id === 'post' || t.id === 'like') {
+    emit(t.id === 'post' ? 'go-compose' : 'go-friends')
+    return
+  }
   if (t.id === 'jump') {
     // 跳障碍以独立弹窗运行：任务模式下胜利会自动完成任务
     activeTask.value = t
@@ -515,7 +761,10 @@ function openTask(t) {
     return
   }
   activeTask.value = t
-  signLit.value = [false, false, false, false, false, false, false]
+  if (t.id === 'sign') {
+    // 恢复本周签到进度（跨天保留），而不是每次打开都清零
+    loadSignState()
+  }
   readChecked.value = false
   quizPicked.value = ''
   quizWrong.value = false
@@ -523,8 +772,6 @@ function openTask(t) {
   walkStarted.value = false
   walkItems.value = []
   walkCollected.value = 0
-  postText.value = ''
-  likePicked.value = null
   showTaskModal.value = true
 }
 
@@ -548,6 +795,12 @@ async function finishTask() {
   stopJump()
   const r = await apiCompleteTask(props.user.username, activeTask.value.id)
   if (r.ok) {
+    // 签到：只有 7 天全部点亮（本周一轮结束）才清空记录，每天完成不能清
+    if (activeTask.value.id === 'sign' && signCount.value >= 7) {
+      signLit.value = [false, false, false, false, false, false, false]
+      signDates.value = ['', '', '', '', '', '', '']
+      persistSignState()
+    }
     showTaskModal.value = false
     showJumpModal.value = false
     showToast('任务完成，记得来领取奖励 🎁')
@@ -560,10 +813,7 @@ async function finishTask() {
 
 // 签到改为多步点亮（见 signClick / signAllLit），不再需要 doSign
 
-function doPost() {
-  if (!postText.value.trim()) return
-  finishTask()
-}
+// 发布动态 / 好友点赞已改为跳转「发现」页，doPost 不再需要
 
 function pickQuiz(o) {
   if (quizSolved.value) return
@@ -1394,49 +1644,6 @@ async function onGift(friendKey) {
 }
 
 /* 发布动态 */
-.post-area {
-  width: 100%;
-  min-height: 90px;
-  border: 2px solid #eee;
-  border-radius: 12px;
-  padding: 12px;
-  font-size: 14px;
-  resize: vertical;
-  box-sizing: border-box;
-  font-family: inherit;
-  color: #445;
-}
-.post-area:focus { border-color: #b98bff; outline: none; }
-
-/* 点赞 */
-.like-list { list-style: none; padding: 0; margin: 0; text-align: left; }
-.like-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px;
-  border-radius: 12px;
-  border: 2px solid #f0f0f5;
-  margin-bottom: 8px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.like-item.liked { border-color: #ff6fa8; background: #fff0f6; }
-.like-ava {
-  width: 38px; height: 38px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #8b7bff, #ff6fa8);
-  color: #fff;
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 800;
-  flex-shrink: 0;
-}
-.like-main { flex: 1; }
-.like-main b { font-size: 14px; color: #334; }
-.like-main p { font-size: 12px; color: #889; margin: 2px 0 0; }
-.like-heart { font-size: 22px; color: #ddd; transition: all 0.2s; }
-.like-heart.on { color: #ff4f7b; transform: scale(1.2); }
-
 /* 弹窗动画 */
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }

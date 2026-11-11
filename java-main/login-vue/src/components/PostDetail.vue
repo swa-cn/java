@@ -200,6 +200,7 @@ import { categoryName, categoryColor, categoryIcon } from '../composables/petDat
 import { formatTime, getPost, isLiked } from '../composables/postStore'
 import { resolveMediaUrl } from '../composables/mediaStore'
 import { deletePost, likePost, commentPost } from '../api/post'
+import { completeTask as completeAdoptionTask } from '../api/adoption'
 import { addFriend, fetchRelation, acceptFriend } from '../api/friend'
 
 const props = defineProps({
@@ -230,9 +231,19 @@ const gridClass = computed(() => {
 })
 
 async function onLike() {
+  const before = liked.value
   try {
     const res = await likePost(props.post.id, props.userKey)
     if (res && res.post) syncFrom(res.post)
+    // 关联萌宠任务：真实点赞成功（非取消赞）= 完成「给好友动态点赞」任务
+    if (!before && liked.value) {
+      try {
+        const r = await completeAdoptionTask(props.userKey, 'like')
+        if (r && r.ok) emit('toast', '萌宠任务「给好友动态点赞」已完成，去领奖励吧 🎁')
+      } catch (e) {
+        /* 任务同步失败不影响点赞 */
+      }
+    }
   } catch (e) {
     emit('toast', (e && e.message) || '操作失败，请稍后再试')
   }

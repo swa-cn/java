@@ -299,6 +299,7 @@
       <DiscoverFeed
         ref="discoverRef"
         :user="user"
+        :initial-view="discoverInitialView"
         @friend-added="onFriendAdded"
         @open-user="onOpenUser"
         @open-chat="openChatWith"
@@ -334,7 +335,11 @@
 
     <!-- 领养：萌宠养成小游戏 -->
     <section v-else-if="activeNav === 'adopt'" class="feed">
-      <PetAdoption :user="user" />
+      <PetAdoption
+        :user="user"
+        @go-compose="openDiscoverCompose"
+        @go-friends="openDiscoverFriends"
+      />
     </section>
 
     <!-- 我的：与点头像进入的个人主页同一套 UI（封面 / 名片 / 统计 / 资料 / 帖子） -->
@@ -586,6 +591,8 @@ function goNav(name) {
   pageSearch.value = null
   pageArticle.value = null
   if (name !== 'home') pageCategory.value = null
+  // 手动切到「发现」时回到动态列表；发帖页只由萌宠任务入口触发
+  if (name === 'discover') discoverInitialView.value = 'feed'
   activeNav.value = name
   // URL 同步回首页（replace：导航切换不产生历史记录，浏览器后退留给详情页用）
   syncUrl('/')
@@ -730,17 +737,35 @@ function pickChip(c) {
 
 // ------- 发现页：由 Home 负责切换导航，帖子详情/发帖在 DiscoverFeed 内部切换 -------
 const discoverRef = ref(null)
+const discoverInitialView = ref('feed')
 
 /** 「我的」发帖记录 / 搜索结果里点击帖子：切到「发现」并打开该帖详情（带真实 URL） */
 async function openMyPost(postId) {
   if (!postId) return
   pageCategory.value = null
   pageSearch.value = null
+  discoverInitialView.value = 'feed'
   activeNav.value = 'discover'
   navigate('/post/' + encodeURIComponent(postId))
   await nextTick() // 等 DiscoverFeed 挂载后再调用它暴露的 openPost
   const feed = discoverRef.value
   if (feed && typeof feed.openPost === 'function') feed.openPost(postId)
+}
+
+/** 萌宠任务「发布一条动态」点「去做」：切到「发现」并直接打开发帖页 */
+function openDiscoverCompose() {
+  pageCategory.value = null
+  pageSearch.value = null
+  discoverInitialView.value = 'compose'
+  activeNav.value = 'discover'
+}
+
+/** 萌宠任务「给好友动态点赞」点「去做」：切到「发现」并选中「好友」分类（只看好友帖子） */
+function openDiscoverFriends() {
+  pageCategory.value = null
+  pageSearch.value = null
+  discoverInitialView.value = 'friends'
+  activeNav.value = 'discover'
 }
 
 /** 在帖子里加了好友：消息页的好友列表需要刷新 */
