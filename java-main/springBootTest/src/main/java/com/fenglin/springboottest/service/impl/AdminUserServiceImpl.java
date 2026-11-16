@@ -5,6 +5,7 @@ import com.fenglin.springboottest.entity.AppUser;
 import com.fenglin.springboottest.exception.AuthException;
 import com.fenglin.springboottest.mapper.AppUserMapper;
 import com.fenglin.springboottest.service.AdminUserService;
+import com.fenglin.springboottest.util.PasswordUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -17,7 +18,7 @@ import java.util.regex.Pattern;
 /**
  * 后台「用户管理」实现（app_user 表）。
  *
- * 密码策略与 AuthServiceImpl 保持一致（≥8 位、≥2 种字符），明文入库（项目既定策略）。
+ * 密码策略与 AuthServiceImpl 保持一致（≥8 位、≥2 种字符），BCrypt 哈希入库。
  */
 @Service
 public class AdminUserServiceImpl implements AdminUserService {
@@ -79,7 +80,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         AppUser user = new AppUser();
         user.setUsername(username);
         user.setNickname(nickname == null || nickname.isEmpty() ? null : nickname);
-        user.setPassword(password);
+        user.setPassword(PasswordUtil.encode(password));
         user.setRole(role);
         LocalDateTime now = LocalDateTime.now();
         user.setCreatedAt(now);
@@ -102,7 +103,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         if (password != null && !password.isEmpty()) {
             String pwMsg = validatePassword(password);
             if (pwMsg != null) throw new AuthException("password", pwMsg);
-            user.setPassword(password);
+            user.setPassword(PasswordUtil.encode(password));
         }
 
         if (patch.containsKey("role")) {

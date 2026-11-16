@@ -268,4 +268,14 @@ export async function updateUserProfile(payload) {
   return httpPost('/auth/profile', payload)
 }
 
+/* =====================================================================
+ * 修改密码（设置面板）：POST /auth/password { oldPassword, newPassword }
+ * 身份取自登录会话；旧密码错误 -> { error:'wrongpw', message }；
+ * 新密码不合强度 -> { error:'password', message }。
+ * ===================================================================== */
+export async function changePassword(oldPassword, newPassword) {
+  if (USE_MOCK) return { ok: true, message: '本地演示模式：密码不会真的修改' }
+  return httpPost('/auth/password', { oldPassword, newPassword })
+}
+
 export const apiConfig = { API_BASE, USE_MOCK }

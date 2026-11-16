@@ -105,6 +105,58 @@ export async function loadState(owner) {
 }
 
 /* =====================================================================
+ * 排行榜：GET /adoption/ranking -> { ok, intimacyTop, activeTop }
+ * 本地回退：按本地宠物数据算一个简化榜
+ * ===================================================================== */
+export async function fetchRanking(owner) {
+  return withFallback(
+    () => httpGet('/adoption/ranking'),
+    () => {
+      const pets = (local.petGame.pets || [])
+        .filter((p) => p.status === 'hatched')
+        .sort((a, b) => (b.intimacy || 0) - (a.intimacy || 0))
+        .slice(0, 10)
+        .map((p, i) => ({
+          rank: i + 1,
+          owner: owner,
+          ownerName: owner,
+          petName: p.name,
+          speciesId: p.typeId,
+          intimacy: p.intimacy
+        }))
+      return { ok: true, intimacyTop: pets, activeTop: [] }
+    }
+  )
+}
+
+/* =====================================================================
+ * 成就徽章：GET /adoption/achievements（实时计算）
+ * 本地回退：返回全锁定的静态模板
+ * ===================================================================== */
+const ACHIEVEMENT_TPL = [
+  { id: 'hatch1', title: '初次见面', desc: '孵化第一只毛孩子', icon: '🥚', target: 1 },
+  { id: 'pets3', title: '多子多福', desc: '拥有 3 只宠物', icon: '🐾', target: 3 },
+  { id: 'intimacy100', title: '心有灵犀', desc: '任一宠物亲密度满 100', icon: '💗', target: 100 },
+  { id: 'interact25', title: '贴贴大师', desc: '累计摸摸 25 次', icon: '🤚', target: 25 },
+  { id: 'friends3', title: '呼朋唤友', desc: '好友达到 3 位', icon: '👥', target: 3 },
+  { id: 'post5', title: '晒宠达人', desc: '发布 5 条动态', icon: '📸', target: 5 },
+  { id: 'likes10', title: '人气之星', desc: '帖子收到 10 个赞', icon: '❤️', target: 10 },
+  { id: 'comment10', title: '热心肠', desc: '发表 10 条评论', icon: '💬', target: 10 },
+  { id: 'fav5', title: '收藏家', desc: '收藏 5 篇帖子', icon: '⭐', target: 5 },
+  { id: 'gift10', title: '慷慨大使', desc: '给好友赠送礼物 10 次', icon: '🎁', target: 10 }
+]
+
+export async function fetchAchievements(owner) {
+  return withFallback(
+    () => httpGet('/adoption/achievements'),
+    () => ({
+      ok: true,
+      achievements: ACHIEVEMENT_TPL.map((a) => ({ ...a, current: 0, unlocked: false, progress: 0 }))
+    })
+  )
+}
+
+/* =====================================================================
  * 写操作（远程成功会把返回的最新 dashboard 同步进 petGame）
  * 统一返回 { ok, gain?, reward?, reason? }
  * ===================================================================== */

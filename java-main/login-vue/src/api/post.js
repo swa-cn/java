@@ -107,21 +107,35 @@ async function httpPost(path, body, isForm) {
  * ===================================================================== */
 
 /**
- * 帖子列表。
+ * 帖子列表（分页）。
  * category：按萌宠分类筛选（空 = 全部）
- * author  ：按作者用户名筛选（用于「我的」页展示本账号的发帖记录）
- * 说明：后端 /content/posts 目前只认 category 参数，因此 author 在前端本地过滤，
- * 后端后续若支持 author 查询参数，只需把 author 拼进 query 即可无缝切换。
+ * author  ：按作者用户名筛选（用于「我的」页；后端要求 author=当前登录用户）
+ * page/size：分页参数（size<=0 时后端用默认 20）；返回 { ok, items, total, page, size, hasMore }
  */
-export async function fetchPosts({ category = '', author = '' } = {}) {
+export async function fetchPosts({ category = '', author = '', page = 0, size = 0 } = {}) {
+  const qs = new URLSearchParams()
+  if (category) qs.set('category', category)
+  if (author) qs.set('author', author)
+  if (page > 0) qs.set('page', String(page))
+  if (size > 0) qs.set('size', String(size))
+  const suffix = qs.toString() ? '?' + qs.toString() : ''
   const res = await withFallback(
-    () =>
-      httpGet('/content/posts' + (category ? '?category=' + encodeURIComponent(category) : '')),
-    () => ({ ok: true, items: store.listPosts(category) })
+    () => httpGet('/content/posts' + suffix),
+    () => {
+      // 本地 mock：客户端切片模拟分页
+      let items = store.listPosts(category)
+      if (author) items = items.filter((p) => p && p.author === author)
+      const pageSize = size > 0 ? size : items.length
+      const pageNo = page > 0 ? page : 1
+      return {
+        ok: true,
+        items: items.slice((pageNo - 1) * pageSize, pageNo * pageSize),
+        total: items.length,
+        hasMore: pageNo * pageSize < items.length
+      }
+    }
   )
-  if (!author) return res
-  const items = ((res && res.items) || []).filter((p) => p && p.author === author)
-  return { ...res, items }
+  return res
 }
 
 export async function fetchPostDetail(id) {
@@ -199,15 +213,51 @@ export async function likePost(id, userKey) {
   )
 }
 
-export async function commentPost(id, content, author) {
+export async function commentPost(id, content, author, replyToId = null) {
   return withFallback(
     () =>
       httpPost(`/content/posts/${encodeURIComponent(id)}/comments`, {
         content,
         author: author && author.author,
-        authorName: author && author.authorName
+        authorName: author && author.authorName,
+        replyToId: replyToId || null
       }),
     () => ({ ok: true, post: store.addComment(id, { ...author, content }) })
+  )
+}
+
+/**
+ * 收藏 / 取消收藏（切换）。返回 { ok, post }（post.favorited / post.favoriteCount 已更新）。
+ */
+export async function favoritePost(id, userKey) {
+  return withFallback(
+    () => httpPost(`/content/posts/${encodeURIComponent(id)}/favorite?userKey=` + encodeURIComponent(userKey || ''), {}),
+    () => {
+      const p = store.getPost(id)
+      if (!p) return { ok: false }
+      p.favorited = !p.favorited
+      p.favoriteCount = Math.max(0, (p.favoriteCount || 0) + (p.favorited ? 1 : -1))
+      return { ok: true, post: p }
+    }
+  )
+}
+
+/** 我的收藏列表 */
+export async function fetchFavorites(userKey) {
+  return withFallback(
+    () => httpGet('/content/favorites'),
+    () => ({
+      ok: true,
+      items: store.listPosts('').filter((p) => p && p.favorited)
+    })
+  )
+}
+
+/** 举报帖子 */
+export async function reportPost(id, userKey, reason) {
+  return withFallback(
+    () => httpPost(`/content/posts/${encodeURIComponent(id)}/report`, { reason }),
+    () => ({ ok: true, message: '本地演示模式：举报不会真的提交' })
   )
 }
 

@@ -9,6 +9,7 @@ import com.fenglin.springboottest.exception.AuthException;
 import com.fenglin.springboottest.mapper.AppUserMapper;
 import com.fenglin.springboottest.service.AuthService;
 import com.fenglin.springboottest.service.CaptchaService;
+import com.fenglin.springboottest.util.PasswordUtil;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -21,8 +22,8 @@ import java.util.regex.Pattern;
 /**
  * 认证实现。
  *
- * ⚠️ 密码策略变更（需求指定）：密码以「明文」保存与比对，不再做 BCrypt 哈希。
- *    这是内部学习/演示项目的要求，真实环境必须加盐哈希（bcrypt/argon2），不可明文。
+ * 密码策略（2026-11 起恢复）：密码以 BCrypt 哈希保存（盐内嵌于哈希串）。
+ * 存量明文账号在下次登录成功时自动升级为哈希（见 login 的透明升级逻辑），用户无感知。
  *
  * 权限：app_user.role —— 0=管理员，1=默认（注册用户）。
  */
@@ -78,8 +79,8 @@ public class AuthServiceImpl implements AuthService {
         // 不再收集邮箱：email 留空（NULL），登录一律走用户名
         String nickname = req.getNickname() == null ? null : req.getNickname().trim();
         user.setNickname(nickname == null || nickname.isEmpty() ? null : nickname);
-        // 明文密码（需求指定）：不做加密，原样入库
-        user.setPassword(password);
+        // BCrypt 加密入库（盐内嵌于哈希串，无需单独存盐列）
+        user.setPassword(PasswordUtil.encode(password));
         // 注册用户统一为「默认权限」；管理员权限只能由管理员/DBA 在库中设置 role=0
         user.setRole(ROLE_DEFAULT);
         user.setCreatedAt(LocalDateTime.now());
@@ -105,10 +106,16 @@ public class AuthServiceImpl implements AuthService {
         if (user == null) {
             throw new AuthException("notfound", "账号不存在", 401);
         }
-        // 明文比对（需求指定）
+        // 密码比对：兼容 BCrypt 哈希（新账号）与旧明文（存量账号）
         String stored = user.getPassword();
-        if (password == null || stored == null || !stored.equals(password)) {
+        if (password == null || !PasswordUtil.matches(password, stored)) {
             throw new AuthException("wrongpw", "密码错误", 401);
+        }
+        // 透明升级：存量明文密码在登录成功后立即改存为 BCrypt 哈希，用户无感知
+        if (stored != null && !PasswordUtil.isHashed(stored)) {
+            user.setPassword(PasswordUtil.encode(password));
+            user.setUpdatedAt(LocalDateTime.now());
+            userMapper.updateById(user);
         }
         return user;
     }
@@ -199,6 +206,32 @@ public class AuthServiceImpl implements AuthService {
         user.setUpdatedAt(LocalDateTime.now());
         userMapper.updateById(user);
         return user;
+    }
+
+    // ---------------- 修改密码 ----------------
+
+    @Override
+    public void changePassword(String username, String oldPassword, String newPassword) {
+        QueryWrapper<AppUser> qw = new QueryWrapper<>();
+        qw.apply("LOWER(username) = {0}", username == null ? "" : username.trim().toLowerCase());
+        AppUser user = userMapper.selectOne(qw);
+        if (user == null) {
+            throw new AuthException("notfound", "账号不存在", 401);
+        }
+        // 旧密码校验（兼容存量明文账号）
+        if (!PasswordUtil.matches(oldPassword, user.getPassword())) {
+            throw new AuthException("wrongpw", "原密码不正确", 400);
+        }
+        String pwMsg = validatePassword(newPassword);
+        if (pwMsg != null) {
+            throw new AuthException("password", pwMsg);
+        }
+        if (PasswordUtil.matches(newPassword, user.getPassword())) {
+            throw new AuthException("password", "新密码不能与原密码相同");
+        }
+        user.setPassword(PasswordUtil.encode(newPassword));
+        user.setUpdatedAt(LocalDateTime.now());
+        userMapper.updateById(user);
     }
 
     // ---------------- 内部辅助 ----------------

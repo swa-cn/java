@@ -112,6 +112,40 @@
             {{ liked ? '已点赞' : '点赞' }} {{ (post.likes || []).length }}
           </button>
           <span class="pd-comment-count">💬 {{ (post.comments || []).length }} 条评论</span>
+          <button
+            type="button"
+            class="pd-like pd-fav"
+            :class="{ active: post.favorited }"
+            @click="onFavorite"
+          >
+            {{ post.favorited ? '⭐ 已收藏' : '☆ 收藏' }} {{ post.favoriteCount || 0 }}
+          </button>
+          <button
+            v-if="!canDelete"
+            type="button"
+            class="pd-report-btn"
+            @click="reportOpen = !reportOpen"
+          >🚩 举报</button>
+        </div>
+
+        <!-- 举报面板 -->
+        <div v-if="reportOpen" class="pd-report">
+          <textarea
+            v-model="reportReason"
+            class="pd-report-text"
+            rows="2"
+            maxlength="200"
+            placeholder="请填写举报理由（例如：广告骚扰 / 不当内容）"
+          ></textarea>
+          <div class="pd-report-actions">
+            <button type="button" class="pd-report-cancel" @click="reportOpen = false">取消</button>
+            <button
+              type="button"
+              class="pd-report-submit"
+              :disabled="!reportReason.trim() || reporting"
+              @click="onReport"
+            >{{ reporting ? '提交中…' : '提交举报' }}</button>
+          </div>
         </div>
 
         <!-- 评论区 -->
@@ -124,16 +158,22 @@
               class="pd-input"
               type="text"
               maxlength="300"
-              placeholder="说点什么吧，友善交流喵~"
+              :placeholder="replyTarget ? `回复 @${replyTarget.name}：` : '说点什么吧，友善交流喵~'"
               @keyup.enter="submitComment"
             />
             <button type="button" class="pd-send" :disabled="!draft.trim()" @click="submitComment">
               发送
             </button>
           </div>
+          <button
+            v-if="replyTarget"
+            type="button"
+            class="pd-reply-cancel"
+            @click="replyTarget = null"
+          >取消回复 @{{ replyTarget.name }} ×</button>
 
-          <ul v-if="(post.comments || []).length" class="pd-comment-list">
-            <li v-for="c in sortedComments" :key="c.id" class="pd-comment">
+          <ul v-if="topComments.length" class="pd-comment-list">
+            <li v-for="c in topComments" :key="c.id" class="pd-comment">
               <span
                 class="pd-c-avatar"
                 :class="{ clickable: canFriendOf(c) }"
@@ -156,6 +196,26 @@
                   >{{ cState(c).text }}</button>
                 </div>
                 <p class="pd-c-text">{{ c.content }}</p>
+                <button type="button" class="pd-c-reply" @click="setReplyTarget(c)">回复</button>
+
+                <!-- 楼中楼：这条评论的回复（平铺缩进展示） -->
+                <ul v-if="repliesOf(c.id).length" class="pd-reply-list">
+                  <li v-for="r in repliesOf(c.id)" :key="r.id" class="pd-reply">
+                    <span class="pd-r-avatar">{{ (r.authorName || '萌').charAt(0) }}</span>
+                    <div class="pd-r-main">
+                      <div class="pd-c-head">
+                        <span class="pd-c-name">{{ r.authorName }}</span>
+                        <span class="pd-c-time">{{ formatTime(r.createdAt) }}</span>
+                      </div>
+                      <p class="pd-c-text">
+                        <em v-if="r.replyToAuthor && r.replyToAuthor !== c.author" class="pd-r-at">
+                          回复 @{{ r.replyToAuthor }}：
+                        </em>{{ r.content }}
+                      </p>
+                      <button type="button" class="pd-c-reply" @click="setReplyTarget(r, c)">回复</button>
+                    </div>
+                  </li>
+                </ul>
               </div>
             </li>
           </ul>
@@ -199,7 +259,7 @@ import PostMedia from './PostMedia.vue'
 import { categoryName, categoryColor, categoryIcon } from '../composables/petData'
 import { formatTime, getPost, isLiked } from '../composables/postStore'
 import { resolveMediaUrl } from '../composables/mediaStore'
-import { deletePost, likePost, commentPost } from '../api/post'
+import { deletePost, likePost, commentPost, favoritePost, reportPost } from '../api/post'
 import { completeTask as completeAdoptionTask } from '../api/adoption'
 import { addFriend, fetchRelation, acceptFriend } from '../api/friend'
 
@@ -215,12 +275,72 @@ const draft = ref('')
 const confirmingDelete = ref(false)
 const deleting = ref(false)
 
-const mediaList = computed(() => props.post.media || [])
-const authorLetter = computed(() => (props.post.authorName || '萌').charAt(0).toUpperCase())
-const liked = computed(() => isLiked(props.post, props.userKey))
+/* ---------- 楼中楼回复 / 收藏 / 举报 ---------- */
+// 当前正在回复的目标：{ id, name, rootId }（rootId = 所属顶层评论 id）
+const replyTarget = ref(null)
+const reportOpen = ref(false)
+const reportReason = ref('')
+const reporting = ref(false)
+
 const sortedComments = computed(() =>
   [...(props.post.comments || [])].sort((a, b) => a.createdAt - b.createdAt)
 )
+// 顶层评论（非回复）
+const topComments = computed(() => sortedComments.value.filter((c) => !c.replyToId))
+// id -> 评论 的索引，用于把「回复的回复」归到同一层楼
+function rootIdOf(c, map) {
+  let cur = c
+  let guard = 0
+  while (cur && cur.replyToId && guard++ < 10) {
+    const parent = map.get(String(cur.replyToId))
+    if (!parent) return String(cur.replyToId)
+    cur = parent
+  }
+  return cur ? String(cur.id) : null
+}
+// 某条顶层评论下的全部回复（含回复的回复，前缀「回复 @xxx」说明直接目标）
+function repliesOf(rootId) {
+  const map = new Map(sortedComments.value.map((c) => [String(c.id), c]))
+  return sortedComments.value.filter((c) => c.replyToId && rootIdOf(c, map) === String(rootId))
+}
+function setReplyTarget(c, root = null) {
+  replyTarget.value = { id: c.id, name: c.authorName || c.author || 'Ta', rootId: root ? root.id : c.id }
+}
+
+async function onFavorite() {
+  try {
+    const res = await favoritePost(props.post.id, props.userKey)
+    if (res && res.post) syncFrom(res.post)
+    emit('toast', props.post.favorited ? '已收藏，去「我的」页查看 ⭐' : '已取消收藏')
+  } catch (e) {
+    emit('toast', (e && e.message) || '操作失败，请稍后再试')
+  }
+}
+
+async function onReport() {
+  const reason = reportReason.value.trim()
+  if (!reason) return
+  reporting.value = true
+  try {
+    const res = await reportPost(props.post.id, props.userKey, reason)
+    if (res && res.ok) {
+      reportOpen.value = false
+      reportReason.value = ''
+      emit('toast', res.message || '举报成功，管理员会尽快处理')
+    } else {
+      emit('toast', (res && res.message) || '举报失败，请稍后再试')
+    }
+  } catch (e) {
+    emit('toast', (e && e.message) || '举报失败，请稍后再试')
+  } finally {
+    reporting.value = false
+  }
+}
+
+
+const mediaList = computed(() => props.post.media || [])
+const authorLetter = computed(() => (props.post.authorName || '萌').charAt(0).toUpperCase())
+const liked = computed(() => isLiked(props.post, props.userKey))
 
 // 多图时的网格样式（2 张并排 / 3 张以上九宫格）
 const gridClass = computed(() => {
@@ -249,22 +369,28 @@ async function onLike() {
   }
 }
 
-/** 把服务端（或本地 store）返回的最新点赞/评论同步到当前视图对象 */
+/** 把服务端（或本地 store）返回的最新点赞/评论/收藏同步到当前视图对象 */
 function syncFrom(p) {
   if (Array.isArray(p.likes)) props.post.likes = p.likes
   if (Array.isArray(p.comments)) props.post.comments = p.comments
+  if (p.favoriteCount !== undefined) props.post.favoriteCount = p.favoriteCount
+  if (p.favorited !== undefined) props.post.favorited = p.favorited
 }
 
 async function submitComment() {
   const text = draft.value.trim()
   if (!text) return
   try {
-    const res = await commentPost(props.post.id, text, {
-      author: props.userKey,
-      authorName: props.userName
-    })
+    const res = await commentPost(
+      props.post.id,
+      text,
+      { author: props.userKey, authorName: props.userName },
+      // 楼中楼：回复目标存在时带上其 id（回复的回复统一挂到顶层楼，由后端记录直接目标）
+      replyTarget.value ? replyTarget.value.id : null
+    )
     if (res && res.post) syncFrom(res.post)
     draft.value = ''
+    replyTarget.value = null
     emit('toast', '评论成功~')
   } catch (e) {
     emit('toast', (e && e.message) || '评论失败，请稍后再试')
@@ -736,6 +862,100 @@ watch(
   box-shadow: 0 10px 20px -10px rgba(255, 92, 157, 0.7);
 }
 .pd-comment-count { font-size: 12.5px; font-weight: 700; color: var(--ink-dim); }
+
+/* ---------- 收藏 / 举报 ---------- */
+.pd-fav { flex: none; }
+.pd-fav.active {
+  border-color: transparent;
+  background: linear-gradient(135deg, #ffc94d 0%, #ff9d3c 100%);
+  color: #fff;
+  box-shadow: 0 10px 20px -10px rgba(255, 157, 60, 0.7);
+}
+.pd-report-btn {
+  margin-left: auto;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--ink-dim);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+}
+.pd-report-btn:hover { color: #c0392b; background: rgba(192, 57, 43, 0.08); }
+.pd-report { margin-top: 10px; padding: 10px; border: 1px dashed var(--line); border-radius: 12px; }
+.pd-report-text {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 12.5px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+.pd-report-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+.pd-report-cancel, .pd-report-submit {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 2px solid var(--line);
+  background: var(--card);
+}
+.pd-report-submit { border-color: var(--pink); background: var(--soft); color: var(--pink-deep); }
+.pd-report-submit:disabled { opacity: 0.6; cursor: default; }
+
+/* ---------- 楼中楼 ---------- */
+.pd-c-reply {
+  margin-top: 4px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--pink-deep);
+  cursor: pointer;
+  padding: 2px 0;
+}
+.pd-c-reply:hover { text-decoration: underline; }
+.pd-reply-cancel {
+  margin: 8px 0 0;
+  border: none;
+  background: var(--soft);
+  color: var(--ink-dim);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.pd-reply-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  background: var(--soft, #faf5f8);
+  border-radius: 12px;
+}
+.pd-reply { display: flex; gap: 8px; padding: 6px 0; }
+.pd-reply + .pd-reply { border-top: 1px dashed var(--line); }
+.pd-r-avatar {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--soft-2, #f1e6ee);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--pink-deep);
+}
+.pd-r-main { flex: 1; min-width: 0; }
+.pd-r-at { font-style: normal; color: var(--pink-deep); font-weight: 700; }
 
 /* ---------- 评论 ---------- */
 .pd-comments { margin-top: 20px; }

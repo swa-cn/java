@@ -41,6 +41,12 @@
         :class="{ active: tab === 'knowledge' }"
         @click="switchTab('knowledge')"
       >知识管理（{{ knowledges.length }}）</button>
+      <button
+        type="button"
+        class="tab"
+        :class="{ active: tab === 'report', warn: pendingReports.length > 0 }"
+        @click="switchTab('report')"
+      >举报管理{{ pendingReports.length ? `（待处理 ${pendingReports.length}）` : '' }}</button>
     </nav>
 
     <!-- ============ 分类管理 ============ -->
@@ -261,6 +267,53 @@
       </table>
     </section>
 
+    <!-- ============ 举报管理 ============ -->
+    <section v-else-if="tab === 'report'" class="panel">
+      <div class="panel-bar">
+        <p class="panel-tip">处理用户举报：确认内容违规则删帖，无问题则驳回。待处理的排在前面</p>
+        <button type="button" class="add-btn" :disabled="loadingReports" @click="loadReports">
+          {{ loadingReports ? '刷新中…' : '刷新' }}
+        </button>
+      </div>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>帖子</th>
+            <th>作者</th>
+            <th>举报理由</th>
+            <th>举报人</th>
+            <th>状态</th>
+            <th class="th-ops">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="r in reports" :key="r.id">
+            <td class="mono">{{ r.id }}</td>
+            <td class="strong" :title="r.postExcerpt">
+              {{ r.postExists ? (r.postTitle || '(无标题)') : '（帖子已删除）' }}
+            </td>
+            <td>{{ r.postAuthor || '—' }}</td>
+            <td class="report-reason">{{ r.reason }}</td>
+            <td>{{ r.reporter }}</td>
+            <td>
+              <span class="report-status" :class="`st-${r.status}`">{{ reportStatusText(r.status) }}</span>
+            </td>
+            <td class="ops">
+              <template v-if="r.status === 'pending' && r.postExists">
+                <button type="button" class="row-btn danger" @click="handleReport(r, 'delete')">删帖</button>
+                <button type="button" class="row-btn" @click="handleReport(r, 'dismiss')">驳回</button>
+              </template>
+              <span v-else class="mono">已处理</span>
+            </td>
+          </tr>
+          <tr v-if="!reports.length && !loadingReports">
+            <td colspan="7" class="empty-cell">暂无举报记录</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
     <!-- ============ 弹层表单（分类 / 品种 / 用户 / 知识共用外壳） ============ -->
     <transition name="fade">
       <div v-if="modal" class="modal-mask" @click.self="modal = null">
@@ -474,7 +527,8 @@ import {
   adminListCategories, adminCreateCategory, adminUpdateCategory, adminDeleteCategory,
   adminListBreeds, adminCreateBreed, adminUpdateBreed, adminDeleteBreed, adminLogout,
   adminListUsers, adminCreateUser, adminUpdateUser, adminDeleteUser,
-  adminListKnowledge, adminCreateKnowledge, adminUpdateKnowledge, adminDeleteKnowledge
+  adminListKnowledge, adminCreateKnowledge, adminUpdateKnowledge, adminDeleteKnowledge,
+  adminListReports, adminHandleReport
 } from '../api/admin'
 import { loadCategories } from '../composables/petData'
 
@@ -498,6 +552,7 @@ function switchTab(t) {
   }
   if (t === 'user') loadUsers()
   if (t === 'knowledge') loadKnowledges()
+  if (t === 'report') loadReports()
 }
 
 /** 分类行点「品种」：直接切到品种管理并定位到该分类 */
@@ -785,6 +840,39 @@ function catNameOfId(id) {
   if (!id || id === 'all') return '通用'
   return categories.value.find((c) => c.id === id)?.name || id
 }
+
+/* ---------------- 举报管理 ---------------- */
+const reports = ref([])
+const loadingReports = ref(false)
+const pendingReports = computed(() => reports.value.filter((r) => r.status === 'pending'))
+
+async function loadReports() {
+  loadingReports.value = true
+  try {
+    const data = await adminListReports()
+    reports.value = data.items || []
+  } catch (e) {
+    handleAuthError(e)
+  } finally {
+    loadingReports.value = false
+  }
+}
+
+function reportStatusText(s) {
+  return s === 'pending' ? '待处理' : s === 'dismissed' ? '已驳回' : s === 'deleted' ? '已删帖' : s
+}
+
+async function handleReport(r, action) {
+  const label = action === 'delete' ? '删除该帖子' : '驳回该举报'
+  if (!confirm(`确定要${label}吗？`)) return
+  try {
+    await adminHandleReport(r.id, action)
+    await loadReports()
+  } catch (e) {
+    handleAuthError(e)
+  }
+}
+
 
 const EMPTY_KNOWLEDGE_SECTION = { h: '', p: '' }
 const knowledgeForm = ref({ cat: 'cat', title: '', summary: '', tagsText: '', sections: [{ ...EMPTY_KNOWLEDGE_SECTION }] })
@@ -1092,6 +1180,14 @@ onMounted(() => {
 .level-chip[data-level='高'] { background: #e85d75; }
 .dim { color: var(--ink-dim); }
 .empty-cell { text-align: center; color: var(--ink-dim); padding: 26px 10px; font-weight: 700; }
+
+/* 举报管理 */
+.report-reason { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.report-status { font-size: 12px; font-weight: 800; padding: 2px 10px; border-radius: 999px; }
+.report-status.st-pending { background: #fff3d6; color: #b8860b; }
+.report-status.st-dismissed { background: var(--soft-2, #f1e6ee); color: var(--ink-dim); }
+.report-status.st-deleted { background: rgba(192, 57, 43, 0.1); color: #c0392b; }
+.tab.warn { color: #c0392b; border-color: rgba(192, 57, 43, 0.5); }
 
 /* ---------- 弹层 ---------- */
 .modal-mask {

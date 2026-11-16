@@ -20,4 +20,10 @@ public interface AuthService {
      * 退出登录再登录后资料仍在（此前只存浏览器 localStorage 导致丢失）。
      */
     AppUser updateProfile(ProfileUpdateRequest req);
+
+    /**
+     * 修改密码：校验旧密码后把新密码加密入库。旧密码错误抛 AuthException('wrongpw', 400)；
+     * 新密码不符合强度要求抛 AuthException('password', ...)。
+     */
+    void changePassword(String username, String oldPassword, String newPassword);
 }

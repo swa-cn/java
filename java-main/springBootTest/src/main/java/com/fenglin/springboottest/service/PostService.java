@@ -17,13 +17,16 @@ import java.util.Map;
  *   comments: [{ id, author, authorName, content, createdAt }]
  * }
  *
- * 说明：当前没有登录会话/JWT，author 由前端透传（演示级实现）；
- * 生产环境必须改为从登录态取当前用户，且删除/评论要做归属与权限校验。
+ * 身份：2026-11 起登录用户名由后端会话（CurrentUser）取得并覆盖前端传参，
+ * 前端传的 author/userKey 仅作兼容保留；删除/评论均校验会话身份。
  */
 public interface PostService {
 
-    /** 帖子列表（按发布时间倒序）；category 为空返回全部 */
-    List<Map<String, Object>> list(String category, String userKey);
+    /**
+     * 帖子分页列表（按发布时间倒序）；category / author 为空返回全部。
+     * 返回 { items: [Post视图], total: 总数 }。
+     */
+    Map<String, Object> page(String category, String author, String userKey, int page, int size);
 
     /** 帖子详情；不存在返回 null */
     Map<String, Object> detail(Long id, String userKey);
@@ -38,6 +41,21 @@ public interface PostService {
     /** 点赞 / 取消点赞（切换），返回更新后的帖子视图 */
     Map<String, Object> toggleLike(Long id, String userKey);
 
-    /** 发表评论，返回更新后的帖子视图 */
-    Map<String, Object> addComment(Long id, String author, String authorName, String content);
+    /** 发表评论（replyToId 非空 = 楼中楼回复），返回更新后的帖子视图 */
+    Map<String, Object> addComment(Long id, String author, String authorName, String content, Long replyToId);
+
+    /** 收藏 / 取消收藏（切换），返回更新后的帖子视图 */
+    Map<String, Object> toggleFavorite(Long id, String userKey);
+
+    /** 我的收藏列表（按收藏时间倒序；帖子已被删除的自动跳过） */
+    java.util.List<Map<String, Object>> listFavorites(String userKey);
+
+    /** 举报帖子（同一人对同一帖只能举报一次） */
+    void addReport(Long postId, String reporter, String reason);
+
+    /** 后台：举报列表（含帖子摘要，待处理的排前面），返回 { items } 供控制器包装 */
+    java.util.List<Map<String, Object>> adminListReports();
+
+    /** 后台：处理举报（action = dismiss 驳回 | delete 删帖），返回处理后的举报视图 */
+    Map<String, Object> adminHandleReport(Long reportId, String action);
 }

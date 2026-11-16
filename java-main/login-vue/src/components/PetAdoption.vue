@@ -31,6 +31,10 @@
         我的宠物<span v-if="petGame.pets.length" class="tab-badge">{{ petGame.pets.length }}</span>
       </button>
       <button :class="{ on: tab === 'task' }" @click="tab = 'task'">任务</button>
+      <button :class="{ on: tab === 'achv' }" @click="openAchv">
+        成就<span v-if="unlockedCount" class="tab-badge">{{ unlockedCount }}</span>
+      </button>
+      <button :class="{ on: tab === 'rank' }" @click="openRank">排行榜</button>
       <button v-if="friends.length" :class="{ on: tab === 'gift' }" @click="tab = 'gift'">
         好友赠送<span v-if="petGame.gifts.pending.length" class="tab-badge">{{ petGame.gifts.pending.length }}</span>
       </button>
@@ -130,6 +134,7 @@
                 class="act play"
                 @click="openFunJump(typeOf(p).emoji)"
               >🎮 陪它跳</button>
+              <button class="act play" @click="open3D(p)">🧊 3D</button>
             </div>
             <p class="hint">
               今日摸摸剩余 <b>{{ 5 - petGame.interact.count }}</b> 次 · 点宠物身体也能摸摸
@@ -137,6 +142,62 @@
           </div>
         </article>
       </div>
+    </section>
+
+    <!-- ========== 成就徽章 ========== -->
+    <section v-else-if="tab === 'achv'" class="panel">
+      <p class="panel-tip">
+        已解锁 <b>{{ unlockedCount }}</b> / {{ achvList.length }} 枚徽章 🏅（实时统计，解锁即刻点亮）
+      </p>
+      <div class="achv-grid">
+        <div
+          v-for="a in achvList"
+          :key="a.id"
+          class="achv-card"
+          :class="{ locked: !a.unlocked }"
+        >
+          <span class="achv-icon">{{ a.unlocked ? a.icon : '🔒' }}</span>
+          <h4 class="achv-title">{{ a.title }}</h4>
+          <p class="achv-desc">{{ a.desc }}</p>
+          <div class="achv-bar"><i :style="{ width: Math.min(100, (a.progress / a.target) * 100) + '%' }"></i></div>
+          <p class="achv-num">
+            {{ a.unlocked ? '已解锁 🎉' : `${Math.min(a.current, a.target)} / ${a.target}` }}
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 排行榜 ========== -->
+    <section v-else-if="tab === 'rank'" class="panel">
+      <p class="panel-tip">全站铲屎官的比拼：谁的毛孩子最粘人、谁最勤快晒帖 👑（每 60 秒自动刷新）</p>
+
+      <h3 class="panel-h">💕 亲密度 Top 10</h3>
+      <ul v-if="rankIntimacy.length" class="rank-list">
+        <li v-for="r in rankIntimacy" :key="r.rank" class="rank-item" :class="`top${r.rank}`">
+          <span class="rank-medal">{{ medalOf(r.rank) }}</span>
+          <span class="rank-emoji">{{ emojiOf(r.speciesId) }}</span>
+          <div class="rank-main">
+            <b class="rank-name">{{ r.petName }}</b>
+            <span class="rank-owner">{{ r.ownerName }}</span>
+          </div>
+          <span class="rank-val">{{ r.intimacy }}</span>
+        </li>
+      </ul>
+      <p v-else class="panel-tip empty">还没有上榜数据，去喂喂你的毛孩子吧～</p>
+
+      <h3 class="panel-h">🔥 活跃铲屎官 Top 10</h3>
+      <ul v-if="rankActive.length" class="rank-list">
+        <li v-for="r in rankActive" :key="r.rank" class="rank-item" :class="`top${r.rank}`">
+          <span class="rank-medal">{{ medalOf(r.rank) }}</span>
+          <span class="rank-emoji">📝</span>
+          <div class="rank-main">
+            <b class="rank-name">{{ r.authorName }}</b>
+            <span class="rank-owner">@{{ r.author }}</span>
+          </div>
+          <span class="rank-val">{{ r.posts }} 帖</span>
+        </li>
+      </ul>
+      <p v-else class="panel-tip empty">还没有人发帖，去「发现」晒晒你家宝贝吧～</p>
     </section>
 
     <!-- ========== 任务 ========== -->
@@ -354,11 +415,22 @@
         </div>
       </div>
     </transition>
+
+    <!-- ========== 3D 互动弹窗 ========== -->
+    <Pet3DPlayground
+      v-if="pet3d"
+      :pet="pet3d"
+      :can-touch="canInteractToday"
+      :can-feed="petGame.food > 0"
+      @close="close3D"
+      @interact="onInteract(pet3d.id)"
+      @feed="onFeed(pet3d.id)"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, watch, computed, nextTick } from 'vue'
+import { ref, watch, computed, nextTick, onUnmounted } from 'vue'
 import {
   petGame,
   myEggs,
@@ -382,8 +454,11 @@ import {
   claimTask as apiClaimTask,
   sendGift as apiSendGift,
   claimGift as apiClaimGift,
-  rename as apiRename
+  rename as apiRename,
+  fetchRanking,
+  fetchAchievements
 } from '../api/adoption'
+import Pet3DPlayground from './Pet3DPlayground.vue'
 
 const props = defineProps({
   user: { type: Object, required: true }
@@ -394,6 +469,70 @@ const emit = defineEmits(['go-compose', 'go-friends'])
 const tab = ref('adopt')
 const toast = ref('')
 const popId = ref('')
+
+/* ---------- 3D 互动 ---------- */
+const pet3d = ref(null)
+function open3D(p) {
+  pet3d.value = p
+}
+function close3D() {
+  pet3d.value = null
+}
+
+/* ---------- 排行榜 ---------- */
+const rankIntimacy = ref([])
+const rankActive = ref([])
+let rankTimer = null
+
+async function loadRank() {
+  try {
+    const r = await fetchRanking(props.user?.username)
+    if (r && r.ok) {
+      rankIntimacy.value = r.intimacyTop || []
+      rankActive.value = r.activeTop || []
+    }
+  } catch (e) {
+    /* 排行榜加载失败不打断页面 */
+  }
+}
+function openRank() {
+  tab.value = 'rank'
+  loadRank()
+  // 打开期间每 60 秒自动刷新一次
+  clearInterval(rankTimer)
+  rankTimer = setInterval(loadRank, 60000)
+}
+// 离开排行榜页签时停止刷新
+watch(tab, (t) => {
+  if (t !== 'rank') clearInterval(rankTimer)
+})
+
+function medalOf(rank) {
+  return rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : String(rank)
+}
+function emojiOf(speciesId) {
+  return typeOf({ typeId: speciesId }).emoji || '🐾'
+}
+
+/* ---------- 成就徽章 ---------- */
+const achvList = ref([])
+const unlockedCount = computed(() => achvList.value.filter((a) => a.unlocked).length)
+
+async function loadAchv() {
+  try {
+    const r = await fetchAchievements(props.user?.username)
+    if (r && r.ok) achvList.value = r.achievements || []
+  } catch (e) {
+    /* 加载失败不打断页面 */
+  }
+}
+function openAchv() {
+  tab.value = 'achv'
+  loadAchv()
+}
+
+onUnmounted(() => clearInterval(rankTimer))
+
 // 物种 / 好友列表均来自 petAdoption.js（后端数据同步或本地兜底）
 const petTypes = speciesList
 const friends = friendsList
@@ -1387,6 +1526,38 @@ async function onGift(giftId) {
 
 /* 任务 */
 .task-list, .gift-list { list-style: none; padding: 0; margin: 0; }
+
+/* ---------- 排行榜 ---------- */
+.rank-list { list-style: none; padding: 0; margin: 0 0 18px; }
+.rank-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.04);
+}
+.rank-item.top1 { background: linear-gradient(135deg, #fff7d6, #fff); }
+.rank-item.top2 { background: linear-gradient(135deg, #f3f0ff, #fff); }
+.rank-item.top3 { background: linear-gradient(135deg, #ffeef3, #fff); }
+.rank-medal {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--soft-2, #f6ecf3);
+  font-size: 13px;
+  font-weight: 800;
+}
+.rank-emoji { flex: none; font-size: 20px; }
+.rank-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rank-name { font-size: 14px; color: #334; }
+.rank-owner { font-size: 11px; color: #99a; }
+.rank-val { flex: none; font-size: 14px; font-weight: 800; color: var(--pink-deep, #d6467e); }
 .task, .gift {
   display: flex;
   align-items: center;

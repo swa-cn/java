@@ -56,7 +56,14 @@
         />
       </div>
 
-      <div v-else class="empty">
+      <!-- 加载更多 -->
+      <div v-if="posts.length && hasMore" class="load-more-wrap">
+        <button type="button" class="load-more" :disabled="loadingMore" @click="loadMore">
+          {{ loadingMore ? '加载中…' : '加载更多 ↓' }}
+        </button>
+      </div>
+
+      <div v-if="!posts.length" class="empty">
         <PetMascot :pet="todayPet" class="empty-cat" />
         <p v-if="activeCat === 'friends'">好友还没有发过动态哦～去「全部」逛逛，或认识更多铲屎官吧！</p>
         <p v-else>这个分类还没有帖子哦，来发第一条吧~</p>
@@ -145,6 +152,11 @@ function showToast(msg) {
 
 // 列表数据：始终经 api 层获取（真实模式=服务端；接口不可用=自动回退本地 store）
 const posts = ref([])
+// 分页状态：服务端每页 20 条，触底「加载更多」追加
+const pageNo = ref(1)
+const hasMore = ref(false)
+const loadingMore = ref(false)
+const PAGE_SIZE = 20
 
 /* 好友 key 集合：好友关系以 friendStore（本地）为准，叠加萌宠模块同步来的好友列表 */
 const friendKeys = computed(() => {
@@ -156,16 +168,44 @@ const friendKeys = computed(() => {
 
 async function refresh() {
   try {
-    // 「好友」分类不是服务端分类：先拉全量，再按好友 key 过滤
-    const res = await fetchPosts({ category: activeCat.value === 'friends' ? '' : activeCat.value })
+    pageNo.value = 1
+    // 「好友」分类不是服务端分类：拉大页一次，再按好友 key 过滤（无加载更多）
+    const isFriends = activeCat.value === 'friends'
+    const res = await fetchPosts({
+      category: isFriends ? '' : activeCat.value,
+      page: 1,
+      size: isFriends ? 50 : PAGE_SIZE
+    })
     let items = (res && res.items) || []
-    if (activeCat.value === 'friends') {
+    if (isFriends) {
       items = items.filter((p) => friendKeys.value.has(String(p.author)))
+      hasMore.value = false
+    } else {
+      hasMore.value = !!res.hasMore
     }
     posts.value = items
   } catch (e) {
     posts.value = []
+    hasMore.value = false
     showToast((e && e.message) || '加载失败，请稍后再试')
+  }
+}
+
+/** 加载下一页并追加到列表 */
+async function loadMore() {
+  if (loadingMore.value || !hasMore.value) return
+  loadingMore.value = true
+  try {
+    const next = pageNo.value + 1
+    const res = await fetchPosts({ category: activeCat.value, page: next, size: PAGE_SIZE })
+    const items = (res && res.items) || []
+    posts.value = posts.value.concat(items)
+    pageNo.value = next
+    hasMore.value = !!res.hasMore
+  } catch (e) {
+    showToast((e && e.message) || '加载失败，请稍后再试')
+  } finally {
+    loadingMore.value = false
   }
 }
 
@@ -334,6 +374,23 @@ defineExpose({ openPost, openCompose })
 /* ---------- 空状态 / 提示 ---------- */
 .empty { text-align: center; color: var(--ink-soft); padding: 30px 16px 44px; }
 .empty p { margin: 8px 0; font-size: 14px; }
+
+/* 加载更多 */
+.load-more-wrap { display: grid; place-items: center; padding: 6px 0 28px; }
+.load-more {
+  border: 2px solid var(--line);
+  background: var(--card);
+  color: var(--pink-deep);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 10px 34px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.16s ease;
+}
+.load-more:hover:not(:disabled) { background: var(--soft); border-color: var(--pink); transform: translateY(-2px); }
+.load-more:disabled { opacity: 0.6; cursor: default; }
 .empty-cat {
   position: static;
   width: 84px;

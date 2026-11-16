@@ -284,7 +284,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import PetMascot from './PetMascot.vue'
 import { useTodayPet } from '../composables/dailyPet'
 import {
@@ -303,6 +303,7 @@ import {
   markConversationRead,
   messageRuntime
 } from '../api/message'
+import { connectChatSocket, disconnectChatSocket } from '../composables/chatSocket'
 
 const props = defineProps({
   user: { type: Object, default: () => ({}) }
@@ -349,8 +350,29 @@ async function load() {
   }
 }
 
-onMounted(load)
-watch(ownerKey, load)
+onMounted(() => {
+  load()
+  // WebSocket 实时私信：收到推送即刷新会话（历史消息走 HTTP，这里只做「提醒后刷新」）
+  connectChatSocket(ownerKey.value, (d) => {
+    load()
+    // 正在和对方聊天且推送不是自己发的 -> 滚到底部看新消息
+    if (d.type === 'message' && !d.self && chatting.value && chatting.value.peerKey === d.from) {
+      scrollToBottom()
+    }
+  })
+})
+watch(ownerKey, (v, old) => {
+  // 切换账号：断开旧连接再连新账号
+  disconnectChatSocket()
+  load()
+  connectChatSocket(v, (d) => {
+    load()
+    if (d.type === 'message' && !d.self && chatting.value && chatting.value.peerKey === d.from) {
+      scrollToBottom()
+    }
+  })
+})
+onUnmounted(disconnectChatSocket)
 
 /* ---------------- 找人 / 加好友 ---------------- */
 const keyword = ref('')

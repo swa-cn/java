@@ -172,3 +172,20 @@ export function adminUpdateKnowledge(id, patch) {
 export function adminDeleteKnowledge(id) {
   return http('/admin/knowledge/' + encodeURIComponent(id), { method: 'DELETE' })
 }
+
+/* =====================================================================
+ * 举报管理（2026-11 新增）
+ * ===================================================================== */
+
+/** 举报列表（待处理的排前面） */
+export function adminListReports() {
+  return http('/admin/reports')
+}
+
+/** 处理举报：action = 'dismiss'（驳回）| 'delete'（删帖） */
+export function adminHandleReport(id, action) {
+  return http(`/admin/reports/${encodeURIComponent(id)}/handle`, {
+    method: 'POST',
+    body: JSON.stringify({ action })
+  })
+}

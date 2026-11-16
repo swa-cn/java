@@ -1,11 +1,12 @@
 package com.fenglin.springboottest.controller;
 
+import com.fenglin.springboottest.auth.CurrentUser;
 import com.fenglin.springboottest.service.PetAdoptionService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.LinkedHashMap;
@@ -14,18 +15,20 @@ import java.util.Map;
 /**
  * 萌宠领养养成接口（供前端 login-vue 领养模块使用）：
  *
- *  GET  /api/adoption/state?owner=             -> dashboard（物种/资源/宠物/任务/互动/赠送/好友）
- *  POST /api/adoption/adopt      { owner, speciesId, name? }  -> dashboard
- *  POST /api/adoption/hatch      { owner, petId }             -> dashboard
- *  POST /api/adoption/feed       { owner, petId }             -> dashboard + gain
- *  POST /api/adoption/interact   { owner, petId }             -> dashboard + gain
- *  POST /api/adoption/task/complete { owner, taskId }         -> dashboard
- *  POST /api/adoption/task/claim    { owner, taskId }         -> dashboard + reward
- *  POST /api/adoption/gift/send     { owner, friendKey }      -> dashboard（给好友赠送）
- *  POST /api/adoption/gift/claim    { owner, giftId }         -> dashboard + reward（领取好友赠送）
+ *  GET  /api/adoption/state              -> dashboard（物种/资源/宠物/任务/互动/赠送/好友）
+ *  POST /api/adoption/adopt              { speciesId, name? }      -> dashboard
+ *  POST /api/adoption/hatch              { petId }                 -> dashboard
+ *  POST /api/adoption/feed               { petId }                 -> dashboard + gain
+ *  POST /api/adoption/interact           { petId }                 -> dashboard + gain
+ *  POST /api/adoption/task/complete      { taskId }                -> dashboard
+ *  POST /api/adoption/task/claim         { taskId }                -> dashboard + reward
+ *  POST /api/adoption/gift/send          { friendKey }             -> dashboard（给好友赠送）
+ *  POST /api/adoption/gift/claim         { giftId }                -> dashboard + reward（领取好友赠送）
+ *  POST /api/adoption/rename             { petId, name }           -> dashboard
+ *  GET  /api/adoption/ranking            -> 排行榜（亲密度/活跃用户）
  *
  * 写操作返回最新 dashboard，便于前端一次刷新。失败返回 { ok:false, reason }。
- * owner 为当前登录用户名（与项目现有内容接口一致，由客户端传入）。
+ * 身份（2026-11 起）：owner 一律取登录会话用户，前端传参仅作兼容、忽略 —— 养宠数据只能操作自己的。
  */
 @RestController
 @RequestMapping("/api/adoption")
@@ -38,47 +41,47 @@ public class PetAdoptionController {
     }
 
     @GetMapping("/state")
-    public Map<String, Object> state(@RequestParam String owner) {
-        return service.dashboard(owner);
+    public Map<String, Object> state(HttpServletRequest request) {
+        return service.dashboard(CurrentUser.require(request));
     }
 
     @PostMapping("/adopt")
-    public Map<String, Object> adopt(@RequestBody Map<String, Object> body) {
-        return service.adopt(str(body, "owner"), str(body, "speciesId"), str(body, "name"));
+    public Map<String, Object> adopt(@RequestBody Map<String, Object> body, HttpServletRequest request) {
+        return service.adopt(CurrentUser.require(request), str(body, "speciesId"), str(body, "name"));
     }
 
     @PostMapping("/hatch")
-    public Map<String, Object> hatch(@RequestBody Map<String, Object> body) {
-        return service.hatch(str(body, "owner"), str(body, "petId"));
+    public Map<String, Object> hatch(@RequestBody Map<String, Object> body, HttpServletRequest request) {
+        return service.hatch(CurrentUser.require(request), str(body, "petId"));
     }
 
     @PostMapping("/feed")
-    public Map<String, Object> feed(@RequestBody Map<String, Object> body) {
-        return service.feed(str(body, "owner"), str(body, "petId"));
+    public Map<String, Object> feed(@RequestBody Map<String, Object> body, HttpServletRequest request) {
+        return service.feed(CurrentUser.require(request), str(body, "petId"));
     }
 
     @PostMapping("/interact")
-    public Map<String, Object> interact(@RequestBody Map<String, Object> body) {
-        return service.interact(str(body, "owner"), str(body, "petId"));
+    public Map<String, Object> interact(@RequestBody Map<String, Object> body, HttpServletRequest request) {
+        return service.interact(CurrentUser.require(request), str(body, "petId"));
     }
 
     @PostMapping("/task/complete")
-    public Map<String, Object> completeTask(@RequestBody Map<String, Object> body) {
-        return service.completeTask(str(body, "owner"), str(body, "taskId"));
+    public Map<String, Object> completeTask(@RequestBody Map<String, Object> body, HttpServletRequest request) {
+        return service.completeTask(CurrentUser.require(request), str(body, "taskId"));
     }
 
     @PostMapping("/task/claim")
-    public Map<String, Object> claimTask(@RequestBody Map<String, Object> body) {
-        return service.claimTask(str(body, "owner"), str(body, "taskId"));
+    public Map<String, Object> claimTask(@RequestBody Map<String, Object> body, HttpServletRequest request) {
+        return service.claimTask(CurrentUser.require(request), str(body, "taskId"));
     }
 
     @PostMapping("/gift/send")
-    public Map<String, Object> sendGift(@RequestBody Map<String, Object> body) {
-        return service.sendGift(str(body, "owner"), str(body, "friendKey"));
+    public Map<String, Object> sendGift(@RequestBody Map<String, Object> body, HttpServletRequest request) {
+        return service.sendGift(CurrentUser.require(request), str(body, "friendKey"));
     }
 
     @PostMapping("/gift/claim")
-    public Map<String, Object> claimGift(@RequestBody Map<String, Object> body) {
+    public Map<String, Object> claimGift(@RequestBody Map<String, Object> body, HttpServletRequest request) {
         Object id = body == null ? null : body.get("giftId");
         Long giftId = null;
         if (id != null) {
@@ -88,12 +91,24 @@ public class PetAdoptionController {
                 giftId = null;
             }
         }
-        return service.claimGift(str(body, "owner"), giftId);
+        return service.claimGift(CurrentUser.require(request), giftId);
     }
 
     @PostMapping("/rename")
-    public Map<String, Object> rename(@RequestBody Map<String, Object> body) {
-        return service.rename(str(body, "owner"), str(body, "petId"), str(body, "name"));
+    public Map<String, Object> rename(@RequestBody Map<String, Object> body, HttpServletRequest request) {
+        return service.rename(CurrentUser.require(request), str(body, "petId"), str(body, "name"));
+    }
+
+    /** 排行榜：GET /api/adoption/ranking -> { ok, intimacyTop, activeTop } */
+    @GetMapping("/ranking")
+    public Map<String, Object> ranking() {
+        return service.ranking();
+    }
+
+    /** 成就徽章：GET /api/adoption/achievements -> { ok, achievements } */
+    @GetMapping("/achievements")
+    public Map<String, Object> achievements(HttpServletRequest request) {
+        return service.achievements(CurrentUser.require(request));
     }
 
     private static String str(Map<String, Object> body, String key) {

@@ -42,7 +42,7 @@ public class SchemaInitializer implements CommandLineRunner {
     /** 后台管理账号：登录后台管理系统用（见 AdminController） */
     @Value("${admin.username:admin}")
     private String adminUsername;
-    /** 后台管理密码（明文入库，AB测试用） */
+    /** 后台管理默认密码（BCrypt 哈希后入库，仅创建/明文重置时使用） */
     @Value("${admin.default-password:admin123456}")
     private String adminDefaultPassword;
 
@@ -131,9 +131,61 @@ public class SchemaInitializer implements CommandLineRunner {
               author VARCHAR(20) NOT NULL,
               author_name VARCHAR(24),
               content VARCHAR(300) NOT NULL,
+              reply_to_id BIGINT NULL,
+              reply_to_author VARCHAR(20) NULL,
               created_at DATETIME,
               PRIMARY KEY (id),
               KEY idx_post (post_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            """;
+
+    /** 兼容旧库：评论表补「回复目标」两列（楼中楼）；列已存在时 execLenient 忽略 1060 */
+    private static final String ALTER_COMMENT_REPLY_TO_ID =
+            "ALTER TABLE aurora.pet_post_comment ADD COLUMN reply_to_id BIGINT NULL";
+    private static final String ALTER_COMMENT_REPLY_TO_AUTHOR =
+            "ALTER TABLE aurora.pet_post_comment ADD COLUMN reply_to_author VARCHAR(20) NULL";
+
+    /* ---------------- 帖子收藏 / 举报 ---------------- */
+
+    private static final String CREATE_PET_POST_FAVORITE = """
+            CREATE TABLE IF NOT EXISTS aurora.pet_post_favorite (
+              id BIGINT NOT NULL AUTO_INCREMENT,
+              post_id BIGINT NOT NULL,
+              user_key VARCHAR(20) NOT NULL,
+              created_at DATETIME,
+              PRIMARY KEY (id),
+              UNIQUE KEY uk_post_user (post_id, user_key),
+              KEY idx_user (user_key)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            """;
+
+    private static final String CREATE_PET_POST_REPORT = """
+            CREATE TABLE IF NOT EXISTS aurora.pet_post_report (
+              id BIGINT NOT NULL AUTO_INCREMENT,
+              post_id BIGINT NOT NULL,
+              reporter VARCHAR(20) NOT NULL,
+              reason VARCHAR(200) NOT NULL,
+              status VARCHAR(16) NOT NULL DEFAULT 'pending',
+              created_at DATETIME,
+              handled_at DATETIME NULL,
+              PRIMARY KEY (id),
+              KEY idx_status (status),
+              UNIQUE KEY uk_post_reporter (post_id, reporter)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            """;
+
+    /* ---------------- 关注 / 粉丝（pet_follow） ---------------- */
+
+    private static final String CREATE_PET_FOLLOW = """
+            CREATE TABLE IF NOT EXISTS aurora.pet_follow (
+              id BIGINT NOT NULL AUTO_INCREMENT,
+              follower_key VARCHAR(20) NOT NULL,
+              followee_key VARCHAR(20) NOT NULL,
+              created_at DATETIME,
+              PRIMARY KEY (id),
+              UNIQUE KEY uk_follower_followee (follower_key, followee_key),
+              KEY idx_followee (followee_key),
+              KEY idx_follower (follower_key)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """;
 
@@ -303,12 +355,17 @@ public class SchemaInitializer implements CommandLineRunner {
             execLenient(st, ALTER_APP_USER_TAGS);
             log.info("数据表 aurora.app_user 已就绪（含权限列 role: 0=管理员, 1=默认；资料列 birthday/tags）");
             seedAdminIfAbsent(st);
-            migrateLegacyHashedPasswords(st);
+            upgradePlaintextPasswords(st);
             st.execute(CREATE_PET_POST);
             st.execute(CREATE_PET_POST_MEDIA);
             st.execute(CREATE_PET_POST_LIKE);
             st.execute(CREATE_PET_POST_COMMENT);
-            log.info("数据表 aurora.pet_post / pet_post_media / pet_post_like / pet_post_comment 已就绪");
+            execLenient(st, ALTER_COMMENT_REPLY_TO_ID);
+            execLenient(st, ALTER_COMMENT_REPLY_TO_AUTHOR);
+            st.execute(CREATE_PET_POST_FAVORITE);
+            st.execute(CREATE_PET_POST_REPORT);
+            st.execute(CREATE_PET_FOLLOW);
+            log.info("数据表 aurora.pet_post / media / like / comment(含楼中楼) / favorite / report / follow 已就绪");
             st.execute(CREATE_PET_CATEGORY);
             st.execute(CREATE_PET_BREED);
             execLenient(st, ALTER_BREED_TEMPERAMENT);
@@ -403,22 +460,22 @@ public class SchemaInitializer implements CommandLineRunner {
         }
 
         if (exists) {
-            // 已存在：确保其为管理员（role=0）；密码仅在「仍是旧 BCrypt 密文」时才重置，
-            // 这样管理员手动改成明文密码后不会被每次启动覆盖
+            // 已存在：确保其为管理员（role=0）；密码仅在「仍是明文」时才重置为配置默认值
+            // （2026-11 起密码统一 BCrypt 加密，哈希以 $2 开头，绝不能动）
             String fix = """
                     UPDATE aurora.app_user
                        SET role = 0,
                            nickname = ?,
-                           password = IF(password LIKE '$2%', ?, password)
+                           password = IF(password NOT LIKE '$2%', ?, password)
                      WHERE LOWER(username) = ?
                     """;
             try (PreparedStatement ps = st.getConnection().prepareStatement(fix)) {
                 ps.setString(1, "管理员");
-                ps.setString(2, adminDefaultPassword);
+                ps.setString(2, passwordEncoder.encode(adminDefaultPassword));
                 ps.setString(3, adminUsername.toLowerCase());
                 ps.executeUpdate();
             }
-            log.info("管理员账号 {} 已就绪（role=0；仍为旧密文时才会重置为配置密码）", adminUsername);
+            log.info("管理员账号 {} 已就绪（role=0；仅明文密码会被重置为配置默认值，BCrypt 哈希不动）", adminUsername);
             return;
         }
 
@@ -429,38 +486,46 @@ public class SchemaInitializer implements CommandLineRunner {
         try (PreparedStatement ps = st.getConnection().prepareStatement(insert)) {
             ps.setString(1, adminUsername);
             ps.setString(2, "管理员");
-            ps.setString(3, adminDefaultPassword); // 明文入库（需求指定）
+            ps.setString(3, passwordEncoder.encode(adminDefaultPassword)); // BCrypt 加密入库
             ps.executeUpdate();
         }
-        log.info("已创建后台管理员账号: {}（role=0，明文密码取自 admin.default-password）", adminUsername);
+        log.info("已创建后台管理员账号: {}（role=0，BCrypt 加密密码）", adminUsername);
     }
 
+    /** BCrypt 编码器（只用于启动期迁移，独立于业务层 PasswordUtil） */
+    private final org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder passwordEncoder =
+            new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
+
     /**
-     * 密码策略迁移：历史账号的密码是 BCrypt 哈希，无法用于明文比对。
-     * 这里把仍为哈希值（以 $2a$/$2b$/$2y$ 开头）的密码重置为「用户名 + 123456」，并在日志里列出受影响的账号。
+     * 密码策略迁移（2026-11 反向修复）：此前一段迁移逻辑会在每次启动把 BCrypt 哈希
+     * 重置回明文（明文时代的遗留），已删除。现在反过来：把仍是明文的密码升级为 BCrypt 哈希，
+     * 用户无需重新登录即可完成迁移。
      */
-    private void migrateLegacyHashedPasswords(Statement st) throws Exception {
-        final String selectHashed =
-                "SELECT id, username FROM aurora.app_user WHERE password LIKE '$2%'";
-        var targets = new ArrayList<String>();
+    private void upgradePlaintextPasswords(Statement st) throws Exception {
+        final String selectPlain =
+                "SELECT id, username, password FROM aurora.app_user WHERE password NOT LIKE '$2%'";
         var ids = new ArrayList<Long>();
-        try (PreparedStatement ps = st.getConnection().prepareStatement(selectHashed);
+        var hashes = new ArrayList<String>();
+        var targets = new ArrayList<String>();
+        try (PreparedStatement ps = st.getConnection().prepareStatement(selectPlain);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 ids.add(rs.getLong("id"));
+                hashes.add(passwordEncoder.encode(rs.getString("password")));
                 targets.add(rs.getString("username"));
             }
         }
         if (ids.isEmpty()) return;
 
-        String upd = "UPDATE aurora.app_user SET password = CONCAT(username, '123456') WHERE id = ?";
+        String upd = "UPDATE aurora.app_user SET password = ? WHERE id = ?";
         try (PreparedStatement ps = st.getConnection().prepareStatement(upd)) {
-            for (Long id : ids) {
-                ps.setLong(1, id);
+            for (int i = 0; i < ids.size(); i++) {
+                ps.setString(1, hashes.get(i));
+                ps.setLong(2, ids.get(i));
                 ps.addBatch();
             }
             ps.executeBatch();
         }
-        log.warn("已把 {} 个历史账号的 BCrypt 密码重置为「用户名+123456」：{}", targets.size(), targets);
+        log.info("[密码迁移] 已把 {} 个明文密码账号升级为 BCrypt：{}", targets.size(), targets);
     }
 }

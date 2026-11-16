@@ -1,5 +1,6 @@
 package com.fenglin.springboottest.controller;
 
+import com.fenglin.springboottest.auth.CurrentUser;
 import com.fenglin.springboottest.dto.AdminLoginRequest;
 import com.fenglin.springboottest.entity.AppUser;
 import com.fenglin.springboottest.entity.PetBreed;
@@ -9,6 +10,7 @@ import com.fenglin.springboottest.service.AdminUserService;
 import com.fenglin.springboottest.service.AuthService;
 import com.fenglin.springboottest.service.KnowledgeService;
 import com.fenglin.springboottest.service.PetAdminService;
+import com.fenglin.springboottest.service.PostService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Value;
@@ -83,12 +85,16 @@ public class AdminController {
     private final KnowledgeService knowledgeService;
 
     public AdminController(AuthService authService, PetAdminService petAdminService,
-                           AdminUserService adminUserService, KnowledgeService knowledgeService) {
+                           AdminUserService adminUserService, KnowledgeService knowledgeService,
+                           PostService postService) {
         this.authService = authService;
         this.petAdminService = petAdminService;
         this.adminUserService = adminUserService;
         this.knowledgeService = knowledgeService;
+        this.postService = postService;
     }
+
+    private final PostService postService;
 
     /* ================= 登录 / 登出 ================= */
 
@@ -107,6 +113,8 @@ public class AdminController {
         }
         HttpSession session = request.getSession(true);
         session.setAttribute(SESSION_ADMIN, user.getUsername());
+        // 同步写入前台身份：管理员也能在前台发帖/养宠等
+        session.setAttribute(CurrentUser.SESSION_USER, user.getUsername());
         // 管理权限永久有效：会话不因空闲而过期（约 68 年）
         session.setMaxInactiveInterval(Integer.MAX_VALUE);
 
@@ -340,6 +348,32 @@ public class AdminController {
         knowledgeService.delete(id);
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("ok", true);
+        return m;
+    }
+
+    /* ================= 举报处理 ================= */
+
+    /** 举报列表：GET /api/admin/reports -> { ok, items }（待处理的排前面） */
+    @GetMapping("/reports")
+    public Map<String, Object> reports(HttpSession session) {
+        requireAdmin(session);
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("ok", true);
+        m.put("items", postService.adminListReports());
+        return m;
+    }
+
+    /** 处理举报：POST /api/admin/reports/{id}/handle { action: dismiss=驳回 | delete=删帖 } */
+    @PostMapping("/reports/{id}/handle")
+    public Map<String, Object> handleReport(@PathVariable Long id,
+                                            @RequestBody Map<String, String> body,
+                                            HttpSession session) {
+        requireAdmin(session);
+        Map<String, Object> r = postService.adminHandleReport(
+                id, body == null ? null : body.get("action"));
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("ok", true);
+        m.put("report", r);
         return m;
     }
 

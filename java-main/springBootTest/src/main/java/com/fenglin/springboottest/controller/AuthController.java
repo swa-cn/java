@@ -1,6 +1,7 @@
 package com.fenglin.springboottest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fenglin.springboottest.auth.CurrentUser;
 import com.fenglin.springboottest.dto.CheckRequest;
 import com.fenglin.springboottest.dto.LoginRequest;
 import com.fenglin.springboottest.dto.ProfileUpdateRequest;
@@ -61,13 +62,15 @@ public class AuthController {
     @PostMapping("/login")
     public Map<String, Object> login(@RequestBody LoginRequest req, HttpServletRequest request) {
         AppUser user = authService.login(req.getAccount(), req.getPassword());
+        // 所有登录用户：用户名写入 Session，供内容接口做身份校验（防前端冒充传参）
+        HttpSession session = request.getSession(true);
+        session.setAttribute(CurrentUser.SESSION_USER, user.getUsername());
         // 权限来自 app_user.role：0=管理员，1=默认（注册用户）
         Integer role = user.getRole() == null ? 1 : user.getRole();
         boolean isAdmin = role == AdminController.ROLE_ADMIN;
         // 管理员登录前台时直接授予后台会话：点「后台管理」免二次登录，直达管理面板。
         // 会话与前台共用同一个 JSESSIONID，后台接口校验的正是 AdminController.SESSION_ADMIN 属性。
         if (isAdmin) {
-            HttpSession session = request.getSession(true);
             session.setAttribute(AdminController.SESSION_ADMIN, user.getUsername());
             // 管理权限永久有效：会话不因空闲而过期（约 68 年，等同永久）
             session.setMaxInactiveInterval(Integer.MAX_VALUE);
@@ -89,11 +92,13 @@ public class AuthController {
     }
 
     /**
-     * 保存「我的资料」：POST /api/auth/profile { username, nickname?, email?, birthday?(yyyy-MM-dd), tags?[...] }
+     * 保存「我的资料」：POST /api/auth/profile { nickname?, email?, birthday?(yyyy-MM-dd), tags?[...] }
      * 持久化到 app_user.nickname / email / birthday / tags（JSON 数组字符串），退出登录后仍保留。
+     * 身份取自登录会话（前端传的 username 仅作兼容，忽略），只能改自己的资料。
      */
     @PostMapping("/profile")
-    public Map<String, Object> profile(@RequestBody ProfileUpdateRequest req) {
+    public Map<String, Object> profile(@RequestBody ProfileUpdateRequest req, HttpServletRequest request) {
+        req.setUsername(CurrentUser.require(request));
         AppUser user = authService.updateProfile(req);
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("ok", true);
@@ -104,6 +109,18 @@ public class AuthController {
         u.put("birthday", user.getBirthday() != null ? user.getBirthday().toString() : null);
         u.put("tags", parseTags(user.getTags()));
         m.put("user", u);
+        return m;
+    }
+
+    /** 修改密码：POST /api/auth/password { oldPassword, newPassword }（身份取自登录会话） */
+    @PostMapping("/password")
+    public Map<String, Object> changePassword(@RequestBody Map<String, String> body,
+                                              HttpServletRequest request) {
+        authService.changePassword(
+                CurrentUser.require(request), body.get("oldPassword"), body.get("newPassword"));
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("ok", true);
+        m.put("message", "密码修改成功，下次登录请使用新密码");
         return m;
     }
 

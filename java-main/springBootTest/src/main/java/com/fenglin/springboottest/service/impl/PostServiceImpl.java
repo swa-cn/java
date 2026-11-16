@@ -3,13 +3,17 @@ package com.fenglin.springboottest.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fenglin.springboottest.entity.PetPost;
 import com.fenglin.springboottest.entity.PetPostComment;
+import com.fenglin.springboottest.entity.PetPostFavorite;
 import com.fenglin.springboottest.entity.PetPostLike;
 import com.fenglin.springboottest.entity.PetPostMedia;
+import com.fenglin.springboottest.entity.PetPostReport;
 import com.fenglin.springboottest.exception.AuthException;
 import com.fenglin.springboottest.mapper.PetPostCommentMapper;
+import com.fenglin.springboottest.mapper.PetPostFavoriteMapper;
 import com.fenglin.springboottest.mapper.PetPostLikeMapper;
 import com.fenglin.springboottest.mapper.PetPostMapper;
 import com.fenglin.springboottest.mapper.PetPostMediaMapper;
+import com.fenglin.springboottest.mapper.PetPostReportMapper;
 import com.fenglin.springboottest.service.PostService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,6 +66,8 @@ public class PostServiceImpl implements PostService {
     private final PetPostMediaMapper mediaMapper;
     private final PetPostLikeMapper likeMapper;
     private final PetPostCommentMapper commentMapper;
+    private final PetPostFavoriteMapper favoriteMapper;
+    private final PetPostReportMapper reportMapper;
 
     /** 媒体根目录（同时是 /uploads/** 的静态映射根） */
     @Value("${post.upload.root:uploads}")
@@ -72,27 +78,44 @@ public class PostServiceImpl implements PostService {
     private String uploadSubdir;
 
     public PostServiceImpl(PetPostMapper postMapper, PetPostMediaMapper mediaMapper,
-                           PetPostLikeMapper likeMapper, PetPostCommentMapper commentMapper) {
+                           PetPostLikeMapper likeMapper, PetPostCommentMapper commentMapper,
+                           PetPostFavoriteMapper favoriteMapper, PetPostReportMapper reportMapper) {
         this.postMapper = postMapper;
         this.mediaMapper = mediaMapper;
         this.likeMapper = likeMapper;
         this.commentMapper = commentMapper;
+        this.favoriteMapper = favoriteMapper;
+        this.reportMapper = reportMapper;
     }
 
     /* ================= 查询 ================= */
 
     @Override
-    public List<Map<String, Object>> list(String category, String userKey) {
+    public Map<String, Object> page(String category, String author, String userKey, int page, int size) {
         LambdaQueryWrapper<PetPost> qw = new LambdaQueryWrapper<>();
         if (StringUtils.hasText(category)) {
             qw.eq(PetPost::getCategory, category);
         }
-        qw.orderByDesc(PetPost::getCreatedAt).orderByDesc(PetPost::getId);
-        List<PetPost> posts = postMapper.selectList(qw);
-        List<Map<String, Object>> out = new ArrayList<>(posts.size());
-        for (PetPost p : posts) {
-            out.add(toView(p, userKey));
+        if (StringUtils.hasText(author)) {
+            qw.eq(PetPost::getAuthor, author);
         }
+        qw.orderByDesc(PetPost::getCreatedAt).orderByDesc(PetPost::getId);
+        // 手动分页：先 count，再 LIMIT（page/size 由控制器层保证为正整数，无注入风险）
+        long total = postMapper.selectCount(qw);
+        long offset = (long) (page - 1) * size;
+        if (offset > 0) {
+            qw.last("LIMIT " + offset + ", " + size);
+        } else {
+            qw.last("LIMIT " + size);
+        }
+        List<PetPost> posts = postMapper.selectList(qw);
+        List<Map<String, Object>> items = new ArrayList<>(posts.size());
+        for (PetPost p : posts) {
+            items.add(toView(p, userKey));
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("items", items);
+        out.put("total", total);
         return out;
     }
 
@@ -217,6 +240,8 @@ public class PostServiceImpl implements PostService {
         mediaMapper.delete(new LambdaQueryWrapper<PetPostMedia>().eq(PetPostMedia::getPostId, id));
         likeMapper.delete(new LambdaQueryWrapper<PetPostLike>().eq(PetPostLike::getPostId, id));
         commentMapper.delete(new LambdaQueryWrapper<PetPostComment>().eq(PetPostComment::getPostId, id));
+        favoriteMapper.delete(new LambdaQueryWrapper<PetPostFavorite>().eq(PetPostFavorite::getPostId, id));
+        reportMapper.delete(new LambdaQueryWrapper<PetPostReport>().eq(PetPostReport::getPostId, id));
         postMapper.deleteById(id);
     }
 
@@ -245,7 +270,7 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public Map<String, Object> addComment(Long id, String author, String authorName, String content) {
+    public Map<String, Object> addComment(Long id, String author, String authorName, String content, Long replyToId) {
         requirePost(id);
         String text = trimTo(content, 300);
         if (!StringUtils.hasText(text)) {
@@ -256,9 +281,151 @@ public class PostServiceImpl implements PostService {
         c.setAuthor(trimTo(author, 20));
         c.setAuthorName(trimTo(authorName, 24));
         c.setContent(text);
+        // 楼中楼：回复目标必须存在且属于同一篇帖子
+        if (replyToId != null) {
+            PetPostComment parent = commentMapper.selectById(replyToId);
+            if (parent == null || !id.equals(parent.getPostId())) {
+                throw bad(400, "bad_reply", "回复的评论不存在");
+            }
+            c.setReplyToId(parent.getId());
+            c.setReplyToAuthor(parent.getAuthor());
+        }
         c.setCreatedAt(LocalDateTime.now());
         commentMapper.insert(c);
         return toView(postMapper.selectById(id), author);
+    }
+
+    /* ================= 收藏 ================= */
+
+    @Override
+    public Map<String, Object> toggleFavorite(Long id, String userKey) {
+        requirePost(id);
+        String key = trimTo(userKey, 20);
+        if (!StringUtils.hasText(key)) {
+            throw bad(400, "bad_request", "缺少用户标识");
+        }
+        PetPostFavorite exist = favoriteMapper.selectOne(new LambdaQueryWrapper<PetPostFavorite>()
+                .eq(PetPostFavorite::getPostId, id)
+                .eq(PetPostFavorite::getUserKey, key));
+        if (exist != null) {
+            favoriteMapper.deleteById(exist.getId());
+        } else {
+            PetPostFavorite f = new PetPostFavorite();
+            f.setPostId(id);
+            f.setUserKey(key);
+            f.setCreatedAt(LocalDateTime.now());
+            favoriteMapper.insert(f);
+        }
+        return toView(postMapper.selectById(id), key);
+    }
+
+    @Override
+    public List<Map<String, Object>> listFavorites(String userKey) {
+        String key = trimTo(userKey, 20);
+        List<PetPostFavorite> favs = favoriteMapper.selectList(new LambdaQueryWrapper<PetPostFavorite>()
+                .eq(PetPostFavorite::getUserKey, key)
+                .orderByDesc(PetPostFavorite::getCreatedAt)
+                .orderByDesc(PetPostFavorite::getId));
+        List<Map<String, Object>> out = new ArrayList<>(favs.size());
+        for (PetPostFavorite f : favs) {
+            PetPost p = postMapper.selectById(f.getPostId());
+            if (p == null) continue; // 帖子已删除
+            out.add(toView(p, key));
+        }
+        return out;
+    }
+
+    /* ================= 举报 ================= */
+
+    @Override
+    public void addReport(Long postId, String reporter, String reason) {
+        requirePost(postId);
+        String text = trimTo(reason, 200);
+        if (!StringUtils.hasText(text)) {
+            throw bad(400, "bad_request", "请填写举报理由");
+        }
+        String key = trimTo(reporter, 20);
+        Long already = reportMapper.selectCount(new LambdaQueryWrapper<PetPostReport>()
+                .eq(PetPostReport::getPostId, postId)
+                .eq(PetPostReport::getReporter, key));
+        if (already != null && already > 0) {
+            throw bad(400, "already", "你已举报过这篇帖子，请等待管理员处理");
+        }
+        PetPostReport r = new PetPostReport();
+        r.setPostId(postId);
+        r.setReporter(key);
+        r.setReason(text);
+        r.setStatus("pending");
+        r.setCreatedAt(LocalDateTime.now());
+        reportMapper.insert(r);
+    }
+
+    /* ================= 后台举报处理 ================= */
+
+    @Override
+    public List<Map<String, Object>> adminListReports() {
+        // 待处理的排前面，同状态按时间倒序；最多返回 200 条
+        List<PetPostReport> reports = reportMapper.selectList(new LambdaQueryWrapper<PetPostReport>()
+                .orderByAsc(PetPostReport::getStatus)
+                .orderByDesc(PetPostReport::getCreatedAt)
+                .last("LIMIT 200"));
+        List<Map<String, Object>> out = new ArrayList<>(reports.size());
+        for (PetPostReport r : reports) {
+            Map<String, Object> v = new LinkedHashMap<>();
+            v.put("id", r.getId());
+            v.put("postId", r.getPostId());
+            v.put("reporter", r.getReporter());
+            v.put("reason", r.getReason());
+            v.put("status", r.getStatus());
+            v.put("createdAt", toMillis(r.getCreatedAt()));
+            v.put("handledAt", toMillis(r.getHandledAt()));
+            PetPost p = postMapper.selectById(r.getPostId());
+            if (p != null) {
+                v.put("postTitle", p.getTitle());
+                v.put("postAuthor", p.getAuthor());
+                String c = p.getContent() == null ? "" : p.getContent();
+                v.put("postExcerpt", c.length() > 60 ? c.substring(0, 60) + "…" : c);
+                v.put("postExists", true);
+            } else {
+                v.put("postExists", false);
+            }
+            out.add(v);
+        }
+        return out;
+    }
+
+    @Override
+    public Map<String, Object> adminHandleReport(Long reportId, String action) {
+        PetPostReport r = reportMapper.selectById(reportId);
+        if (r == null) {
+            throw bad(404, "not_found", "举报记录不存在");
+        }
+        if (!"pending".equals(r.getStatus())) {
+            throw bad(400, "handled", "该举报已处理过");
+        }
+        if ("delete".equals(action)) {
+            // 删帖处理：delete 内部会清理媒体/点赞/评论/收藏/举报记录，
+            // 所以先把举报置为 deleted 再删（否则会被连带清掉，无法留档）
+            r.setStatus("deleted");
+            r.setHandledAt(LocalDateTime.now());
+            reportMapper.updateById(r);
+            PetPost p = postMapper.selectById(r.getPostId());
+            if (p != null) {
+                delete(p.getId(), p.getAuthor()); // 传帖主本人绕过归属校验
+            }
+        } else if ("dismiss".equals(action)) {
+            r.setStatus("dismissed");
+            r.setHandledAt(LocalDateTime.now());
+            reportMapper.updateById(r);
+        } else {
+            throw bad(400, "bad_action", "处理动作只能是 dismiss 或 delete");
+        }
+        Map<String, Object> v = new LinkedHashMap<>();
+        v.put("id", r.getId());
+        v.put("postId", r.getPostId());
+        v.put("status", r.getStatus());
+        v.put("handledAt", toMillis(r.getHandledAt()));
+        return v;
     }
 
     /* ================= 视图组装 ================= */
@@ -296,8 +463,21 @@ public class PostServiceImpl implements PostService {
             cm.put("author", c.getAuthor());
             cm.put("authorName", c.getAuthorName());
             cm.put("content", c.getContent());
+            // 楼中楼：replyToId 非空表示这是对某条评论的回复
+            cm.put("replyToId", c.getReplyToId() == null ? null : String.valueOf(c.getReplyToId()));
+            cm.put("replyToAuthor", c.getReplyToAuthor());
             cm.put("createdAt", toMillis(c.getCreatedAt()));
             commentList.add(cm);
+        }
+
+        // 收藏：总数 + 当前用户是否已收藏
+        Long favCount = favoriteMapper.selectCount(new LambdaQueryWrapper<PetPostFavorite>()
+                .eq(PetPostFavorite::getPostId, p.getId()));
+        boolean favorited = false;
+        if (StringUtils.hasText(userKey)) {
+            favorited = favoriteMapper.selectCount(new LambdaQueryWrapper<PetPostFavorite>()
+                    .eq(PetPostFavorite::getPostId, p.getId())
+                    .eq(PetPostFavorite::getUserKey, userKey)) > 0;
         }
 
         Map<String, Object> v = new LinkedHashMap<>();
@@ -312,6 +492,8 @@ public class PostServiceImpl implements PostService {
         v.put("media", mediaList);
         v.put("likes", likeKeys);
         v.put("comments", commentList);
+        v.put("favoriteCount", favCount == null ? 0 : favCount);
+        v.put("favorited", favorited);
         return v;
     }
 

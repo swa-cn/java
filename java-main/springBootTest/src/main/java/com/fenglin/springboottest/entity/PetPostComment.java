@@ -27,6 +27,12 @@ public class PetPostComment {
     /** 评论内容（<=300） */
     private String content;
 
+    /** 回复的目标评论 id（null = 顶层评论；楼中楼） */
+    private Long replyToId;
+
+    /** 被回复人的登录名（冗余存储，用于前端展示「回复 @xxx」） */
+    private String replyToAuthor;
+
     /** 评论时间 */
     private LocalDateTime createdAt;
 
@@ -44,6 +50,12 @@ public class PetPostComment {
 
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
+
+    public Long getReplyToId() { return replyToId; }
+    public void setReplyToId(Long replyToId) { this.replyToId = replyToId; }
+
+    public String getReplyToAuthor() { return replyToAuthor; }
+    public void setReplyToAuthor(String replyToAuthor) { this.replyToAuthor = replyToAuthor; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

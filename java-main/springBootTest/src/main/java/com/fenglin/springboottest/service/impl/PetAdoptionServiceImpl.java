@@ -1,17 +1,28 @@
 package com.fenglin.springboottest.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.fenglin.springboottest.entity.AppUser;
 import com.fenglin.springboottest.entity.Pet;
 import com.fenglin.springboottest.entity.PetFriend;
 import com.fenglin.springboottest.entity.PetGiftLog;
 import com.fenglin.springboottest.entity.PetInteractLog;
+import com.fenglin.springboottest.entity.PetPost;
+import com.fenglin.springboottest.entity.PetPostComment;
+import com.fenglin.springboottest.entity.PetPostFavorite;
+import com.fenglin.springboottest.entity.PetPostLike;
 import com.fenglin.springboottest.entity.PetSpecies;
 import com.fenglin.springboottest.entity.PetTaskProgress;
 import com.fenglin.springboottest.entity.PetUserResource;
+import com.fenglin.springboottest.mapper.AppUserMapper;
 import com.fenglin.springboottest.mapper.PetFriendMapper;
 import com.fenglin.springboottest.mapper.PetGiftLogMapper;
 import com.fenglin.springboottest.mapper.PetInteractLogMapper;
 import com.fenglin.springboottest.mapper.PetMapper;
+import com.fenglin.springboottest.mapper.PetPostCommentMapper;
+import com.fenglin.springboottest.mapper.PetPostFavoriteMapper;
+import com.fenglin.springboottest.mapper.PetPostLikeMapper;
+import com.fenglin.springboottest.mapper.PetPostMapper;
 import com.fenglin.springboottest.mapper.PetSpeciesMapper;
 import com.fenglin.springboottest.mapper.PetTaskProgressMapper;
 import com.fenglin.springboottest.mapper.PetUserResourceMapper;
@@ -59,6 +70,11 @@ public class PetAdoptionServiceImpl implements PetAdoptionService {
     private final PetInteractLogMapper interactMapper;
     private final PetGiftLogMapper giftMapper;
     private final PetFriendMapper friendMapper;
+    private final PetPostMapper postMapper;
+    private final AppUserMapper userMapper;
+    private final PetPostCommentMapper commentMapper;
+    private final PetPostLikeMapper likeMapper;
+    private final PetPostFavoriteMapper favoriteMapper;
 
     public PetAdoptionServiceImpl(PetSpeciesMapper speciesMapper,
                                   PetUserResourceMapper resourceMapper,
@@ -66,7 +82,12 @@ public class PetAdoptionServiceImpl implements PetAdoptionService {
                                   PetTaskProgressMapper taskMapper,
                                   PetInteractLogMapper interactMapper,
                                   PetGiftLogMapper giftMapper,
-                                  PetFriendMapper friendMapper) {
+                                  PetFriendMapper friendMapper,
+                                  PetPostMapper postMapper,
+                                  AppUserMapper userMapper,
+                                  PetPostCommentMapper commentMapper,
+                                  PetPostLikeMapper likeMapper,
+                                  PetPostFavoriteMapper favoriteMapper) {
         this.speciesMapper = speciesMapper;
         this.resourceMapper = resourceMapper;
         this.petMapper = petMapper;
@@ -74,6 +95,11 @@ public class PetAdoptionServiceImpl implements PetAdoptionService {
         this.interactMapper = interactMapper;
         this.giftMapper = giftMapper;
         this.friendMapper = friendMapper;
+        this.postMapper = postMapper;
+        this.userMapper = userMapper;
+        this.commentMapper = commentMapper;
+        this.likeMapper = likeMapper;
+        this.favoriteMapper = favoriteMapper;
     }
 
     /* ============================ 工具 ============================ */
@@ -456,6 +482,138 @@ public class PetAdoptionServiceImpl implements PetAdoptionService {
         Map<String, Object> m = dashboard(owner);
         m.put("reward", Map.of("nutrient", GIFT_NUTRIENT, "food", GIFT_FOOD));
         return m;
+    }
+
+    /* ============================ 排行榜 ============================ */
+
+    @Override
+    public Map<String, Object> ranking() {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("ok", true);
+
+        // 亲密度 Top10：已孵化宠物按亲密度倒序
+        List<Pet> topPets = petMapper.selectList(new LambdaQueryWrapper<Pet>()
+                .eq(Pet::getStatus, "hatched")
+                .orderByDesc(Pet::getIntimacy)
+                .orderByDesc(Pet::getLastInteract)
+                .last("LIMIT 10"));
+        List<Map<String, Object>> intimacyTop = new ArrayList<>(topPets.size());
+        int rank = 1;
+        for (Pet p : topPets) {
+            Map<String, Object> v = new LinkedHashMap<>();
+            v.put("rank", rank++);
+            v.put("owner", p.getUserKey());
+            v.put("ownerName", displayName(p.getUserKey()));
+            v.put("petName", p.getName());
+            v.put("speciesId", p.getSpeciesId());
+            v.put("intimacy", p.getIntimacy());
+            intimacyTop.add(v);
+        }
+        m.put("intimacyTop", intimacyTop);
+
+        // 活跃榜：按发帖数 Top10（group by author）
+        QueryWrapper<PetPost> qw = new QueryWrapper<>();
+        qw.select("author", "COUNT(*) AS cnt").groupBy("author");
+        List<Map<String, Object>> rows = postMapper.selectMaps(qw);
+        rows.sort((a, b) -> Long.compare(
+                ((Number) b.getOrDefault("cnt", 0)).longValue(),
+                ((Number) a.getOrDefault("cnt", 0)).longValue()));
+        List<Map<String, Object>> activeTop = new ArrayList<>();
+        int arank = 1;
+        for (Map<String, Object> row : rows) {
+            if (activeTop.size() >= 10) break;
+            Object author = row.get("author");
+            if (author == null || String.valueOf(author).isBlank()) continue;
+            Map<String, Object> v = new LinkedHashMap<>();
+            v.put("rank", arank++);
+            v.put("author", author);
+            v.put("authorName", displayName(String.valueOf(author)));
+            v.put("posts", ((Number) row.getOrDefault("cnt", 0)).longValue());
+            activeTop.add(v);
+        }
+        m.put("activeTop", activeTop);
+        return m;
+    }
+
+    /** 用户展示名：昵称优先，无昵称用用户名 */
+    private String displayName(String username) {
+        if (username == null || username.isBlank()) return "匿名";
+        QueryWrapper<AppUser> qw = new QueryWrapper<>();
+        qw.apply("LOWER(username) = {0}", username.toLowerCase());
+        AppUser u = userMapper.selectOne(qw);
+        if (u != null && u.getNickname() != null && !u.getNickname().isBlank()) {
+            return u.getNickname();
+        }
+        return username;
+    }
+
+    /* ============================ 成就徽章 ============================ */
+
+    @Override
+    public Map<String, Object> achievements(String owner) {
+        // 数据收集（全部实时计算，无单独成就表）
+        List<Pet> pets = petMapper.selectList(new LambdaQueryWrapper<Pet>()
+                .eq(Pet::getUserKey, owner));
+        long petCount = pets.size();
+        long hatchedCount = pets.stream()
+                .filter(p -> "hatched".equals(p.getStatus())).count();
+        int maxIntimacy = pets.stream()
+                .mapToInt(p -> p.getIntimacy() == null ? 0 : p.getIntimacy())
+                .max().orElse(0);
+        long interactTotal = interactMapper.selectList(new LambdaQueryWrapper<PetInteractLog>()
+                        .eq(PetInteractLog::getUserKey, owner)).stream()
+                .mapToInt(il -> il.getInteractCount() == null ? 0 : il.getInteractCount()).sum();
+        long friendCount = friendMapper.selectCount(new LambdaQueryWrapper<PetFriend>()
+                .eq(PetFriend::getOwnerKey, owner).eq(PetFriend::getStatus, "friend"));
+        long postCount = postMapper.selectCount(new LambdaQueryWrapper<PetPost>()
+                .eq(PetPost::getAuthor, owner));
+        // 收到的赞 = 自己全部帖子的点赞总数
+        List<PetPost> myPosts = postMapper.selectList(new LambdaQueryWrapper<PetPost>()
+                .eq(PetPost::getAuthor, owner));
+        long likesReceived = 0;
+        if (!myPosts.isEmpty()) {
+            List<Long> ids = myPosts.stream().map(PetPost::getId).toList();
+            likesReceived = likeMapper.selectCount(new LambdaQueryWrapper<PetPostLike>()
+                    .in(PetPostLike::getPostId, ids));
+        }
+        long commentCount = commentMapper.selectCount(new LambdaQueryWrapper<PetPostComment>()
+                .eq(PetPostComment::getAuthor, owner));
+        long favCount = favoriteMapper.selectCount(new LambdaQueryWrapper<PetPostFavorite>()
+                .eq(PetPostFavorite::getUserKey, owner));
+        long giftSent = giftMapper.selectCount(new LambdaQueryWrapper<PetGiftLog>()
+                .eq(PetGiftLog::getUserKey, owner));
+
+        List<Map<String, Object>> list = new ArrayList<>();
+        list.add(badge("hatch1", "初次见面", "孵化第一只毛孩子", "🥚", hatchedCount, 1));
+        list.add(badge("pets3", "多子多福", "拥有 3 只宠物", "🐾", petCount, 3));
+        list.add(badge("intimacy100", "心有灵犀", "任一宠物亲密度满 100", "💗", maxIntimacy, 100));
+        list.add(badge("interact25", "贴贴大师", "累计摸摸 25 次", "🤚", interactTotal, 25));
+        list.add(badge("friends3", "呼朋唤友", "好友达到 3 位", "👥", friendCount, 3));
+        list.add(badge("post5", "晒宠达人", "发布 5 条动态", "📸", postCount, 5));
+        list.add(badge("likes10", "人气之星", "帖子收到 10 个赞", "❤️", likesReceived, 10));
+        list.add(badge("comment10", "热心肠", "发表 10 条评论", "💬", commentCount, 10));
+        list.add(badge("fav5", "收藏家", "收藏 5 篇帖子", "⭐", favCount, 5));
+        list.add(badge("gift10", "慷慨大使", "给好友赠送礼物 10 次", "🎁", giftSent, 10));
+
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("ok", true);
+        m.put("achievements", list);
+        return m;
+    }
+
+    /** 组装一枚徽章：unlocked = current >= target；progress 截断到 target 便于前端画进度条 */
+    private Map<String, Object> badge(String id, String title, String desc, String icon,
+                                      long current, long target) {
+        Map<String, Object> v = new LinkedHashMap<>();
+        v.put("id", id);
+        v.put("title", title);
+        v.put("desc", desc);
+        v.put("icon", icon);
+        v.put("current", current);
+        v.put("target", target);
+        v.put("unlocked", current >= target);
+        v.put("progress", Math.min(current, target));
+        return v;
     }
 
     /* ============================ 辅助 ============================ */

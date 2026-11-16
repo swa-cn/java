@@ -39,4 +39,17 @@ public interface PetAdoptionService {
 
     /** 给宠物改名 */
     Map<String, Object> rename(String owner, String petId, String name);
+
+    /**
+     * 排行榜：{ intimacyTop: [{rank, owner, ownerName, petName, speciesId, intimacy}],
+     *          activeTop:   [{rank, author, authorName, posts}] }
+     * 各取前 10 名。
+     */
+    Map<String, Object> ranking();
+
+    /**
+     * 成就徽章（实时按数据计算，无单独成就表）：
+     * { achievements: [{ id, title, desc, icon, unlocked, current, target }] }
+     */
+    Map<String, Object> achievements(String owner);
 }

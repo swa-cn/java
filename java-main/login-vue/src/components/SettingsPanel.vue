@@ -63,6 +63,31 @@
           </div>
         </section>
 
+        <!-- ============ 修改密码 ============ -->
+        <section class="sp-sec">
+          <h3 class="sp-sec-title">修改密码</h3>
+          <p class="sp-hint">至少 8 位、含 2 种字符（大小写 / 数字 / 符号）</p>
+          <p v-if="pwMsg.text" class="sp-pw-msg" :class="{ ok: pwMsg.ok }">{{ pwMsg.text }}</p>
+          <label class="sp-field">
+            <span class="sp-label">原密码</span>
+            <input class="sp-input" type="password" v-model="pwForm.oldPassword" autocomplete="current-password" />
+          </label>
+          <label class="sp-field">
+            <span class="sp-label">新密码</span>
+            <input class="sp-input" type="password" v-model="pwForm.newPassword" autocomplete="new-password" />
+          </label>
+          <label class="sp-field">
+            <span class="sp-label">确认新密码</span>
+            <input class="sp-input" type="password" v-model="pwForm.confirm" autocomplete="new-password" />
+          </label>
+          <button
+            type="button"
+            class="sp-pw-btn"
+            :disabled="pwBusy || !pwForm.oldPassword || !pwForm.newPassword"
+            @click="onChangePassword"
+          >{{ pwBusy ? '提交中…' : '确认修改' }}</button>
+        </section>
+
         <!-- ============ 界面字体 ============ -->
         <section class="sp-sec">
           <h3 class="sp-sec-title">界面字体</h3>
@@ -94,6 +119,7 @@
 import { reactive, ref, computed, watch } from 'vue'
 import { prefs, FONT_OPTIONS, setFont } from '../composables/usePersonalization'
 import { useAuth, parseUserTags } from '../composables/useAuth'
+import { changePassword, validatePassword } from '../api/auth'
 
 defineEmits(['close', 'logout'])
 
@@ -121,6 +147,45 @@ function addTag() {
 function removeTag(t) {
   const i = form.tags.indexOf(t)
   if (i > -1) form.tags.splice(i, 1)
+}
+
+/* ---------- 修改密码 ---------- */
+const pwForm = reactive({ oldPassword: '', newPassword: '', confirm: '' })
+const pwMsg = reactive({ text: '', ok: false })
+const pwBusy = ref(false)
+
+async function onChangePassword() {
+  pwMsg.text = ''
+  if (pwForm.newPassword !== pwForm.confirm) {
+    pwMsg.ok = false
+    pwMsg.text = '两次输入的新密码不一致'
+    return
+  }
+  const policyErr = validatePassword(pwForm.newPassword)
+  if (policyErr) {
+    pwMsg.ok = false
+    pwMsg.text = policyErr
+    return
+  }
+  pwBusy.value = true
+  try {
+    const res = await changePassword(pwForm.oldPassword, pwForm.newPassword)
+    if (res && res.ok) {
+      pwMsg.ok = true
+      pwMsg.text = res.message || '密码修改成功'
+      pwForm.oldPassword = ''
+      pwForm.newPassword = ''
+      pwForm.confirm = ''
+    } else {
+      pwMsg.ok = false
+      pwMsg.text = (res && res.message) || '修改失败，请稍后再试'
+    }
+  } catch (e) {
+    pwMsg.ok = false
+    pwMsg.text = (e && e.message) || '修改失败，请稍后再试'
+  } finally {
+    pwBusy.value = false
+  }
 }
 
 // 任意资料变动 → 回写当前用户并持久化（本地立即生效；后端在 useAuth 内防抖落库）
@@ -220,6 +285,34 @@ watch(
   font-size: 12px;
   font-weight: 700;
 }
+
+/* 修改密码 */
+.sp-hint { margin: 0 0 10px; font-size: 11.5px; color: var(--ink-soft); }
+.sp-pw-msg {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(232, 93, 117, 0.1);
+  color: #c0392b;
+  font-size: 12px;
+  font-weight: 700;
+}
+.sp-pw-msg.ok { background: rgba(62, 196, 130, 0.12); color: #1e8e5a; }
+.sp-pw-btn {
+  width: 100%;
+  border: 2px solid var(--pink);
+  background: var(--soft);
+  color: var(--pink-deep);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 9px 0;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.16s ease;
+}
+.sp-pw-btn:hover:not(:disabled) { background: var(--soft-2); transform: translateY(-1px); }
+.sp-pw-btn:disabled { opacity: 0.6; cursor: default; }
 
 .sp-field { display: block; margin-bottom: 14px; }
 .sp-field:last-child { margin-bottom: 0; }

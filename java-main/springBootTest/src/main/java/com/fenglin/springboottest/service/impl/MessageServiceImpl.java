@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.fenglin.springboottest.entity.PetMessage;
 import com.fenglin.springboottest.mapper.PetMessageMapper;
 import com.fenglin.springboottest.service.MessageService;
+import com.fenglin.springboottest.websocket.ChatWebSocketHandler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,9 +26,11 @@ import java.util.Map;
 public class MessageServiceImpl implements MessageService {
 
     private final PetMessageMapper messageMapper;
+    private final ChatWebSocketHandler chatSocket;
 
-    public MessageServiceImpl(PetMessageMapper messageMapper) {
+    public MessageServiceImpl(PetMessageMapper messageMapper, ChatWebSocketHandler chatSocket) {
         this.messageMapper = messageMapper;
+        this.chatSocket = chatSocket;
     }
 
     @Override
@@ -129,6 +132,20 @@ public class MessageServiceImpl implements MessageService {
         theirs.setReadFlag(false);
         theirs.setCreatedAt(now);
         messageMapper.insert(theirs);
+
+        // 实时推送：收件人立刻收到提醒（发件人自己也推一份，用于多标签页同步）。
+        // 推送失败/对方不在线不影响消息落库，前端轮询仍兜底。
+        Map<String, Object> push = new LinkedHashMap<>();
+        push.put("type", "message");
+        push.put("from", ownerKey);
+        push.put("fromName", fromName);
+        push.put("to", peerKey);
+        push.put("text", content);
+        push.put("createdAt", now.toString());
+        chatSocket.notifyUser(peerKey, push);
+        Map<String, Object> selfPush = new LinkedHashMap<>(push);
+        selfPush.put("self", true);
+        chatSocket.notifyUser(ownerKey, selfPush);
 
         return msgView(mine, ownerKey);
     }

@@ -92,6 +92,51 @@
         </button>
       </div>
     </section>
+
+    <!-- ============ 我的收藏 ============ -->
+    <section class="mine">
+      <header class="mine-head">
+        <div>
+          <h3 class="mine-title">
+            <span class="mine-dot">藏</span>
+            我的收藏
+          </h3>
+          <p class="mine-sub">
+            共收藏 <strong>{{ favPosts.length }}</strong> 篇帖子
+          </p>
+        </div>
+        <button type="button" class="mine-refresh" :disabled="favLoading" @click="loadFavorites">
+          {{ favLoading ? '刷新中…' : '刷新' }}
+        </button>
+      </header>
+
+      <div v-if="favLoading && !favPosts.length" class="mine-tip">正在加载收藏…</div>
+
+      <div v-else-if="favPosts.length" class="fav-list">
+        <article
+          v-for="p in favPosts"
+          :key="p.id"
+          class="fav-card"
+          @click="$emit('open-post', p.id)"
+        >
+          <div class="fav-cover">
+            <PostMedia v-if="coverOf(p)" :media="coverOf(p)" />
+            <div v-else class="fav-cover-empty" :style="{ background: tintOf(p) }">
+              {{ iconOf(p) }}
+            </div>
+          </div>
+          <div class="fav-body">
+            <span class="mc-cat" :style="{ background: colorOf(p) }">{{ nameOf(p) }}</span>
+            <h4 class="fav-title">{{ p.title || excerpt(p.content, 20) }}</h4>
+            <p class="fav-meta">⭐ {{ p.favoriteCount || 0 }} · ♥ {{ (p.likes || []).length }} · {{ formatTime(p.createdAt) }}</p>
+          </div>
+        </article>
+      </div>
+
+      <div v-else class="mine-empty">
+        <p>还没有收藏。看到喜欢的帖子点「☆ 收藏」就能存这里~</p>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -99,7 +144,7 @@
 import { computed, ref, watch, onMounted } from 'vue'
 import PetMascot from './PetMascot.vue'
 import PostMedia from './PostMedia.vue'
-import { fetchPosts } from '../api/post'
+import { fetchPosts, fetchFavorites } from '../api/post'
 import { parseUserTags } from '../composables/useAuth'
 import { excerpt, formatTime, isLiked } from '../composables/postStore'
 import { categoryName, categoryColor, categoryIcon } from '../composables/petData'
@@ -144,7 +189,8 @@ const loading = ref(false)
 async function load() {
   loading.value = true
   try {
-    const res = await fetchPosts({ author: userKey.value })
+    // 后端已支持 author 过滤（只允许查自己的帖子），一次拉 50 条
+    const res = await fetchPosts({ author: userKey.value, page: 1, size: 50 })
     const items = (res && res.items) || []
     // 新的排前面
     myPosts.value = items
@@ -157,9 +203,15 @@ async function load() {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  loadFavorites()
+})
 // 切换账号（退出后再登录其它账号）时重新拉取
-watch(userKey, load)
+watch(userKey, () => {
+  load()
+  loadFavorites()
+})
 
 const totalLikes = computed(() =>
   myPosts.value.reduce((n, p) => n + (p.likes || []).length, 0)
@@ -167,6 +219,22 @@ const totalLikes = computed(() =>
 const totalComments = computed(() =>
   myPosts.value.reduce((n, p) => n + (p.comments || []).length, 0)
 )
+
+/* ---------- 我的收藏 ---------- */
+const favPosts = ref([])
+const favLoading = ref(false)
+
+async function loadFavorites() {
+  favLoading.value = true
+  try {
+    const res = await fetchFavorites(userKey.value)
+    favPosts.value = (res && res.items) || []
+  } catch (e) {
+    favPosts.value = []
+  } finally {
+    favLoading.value = false
+  }
+}
 
 /* ---------- 卡片展示辅助 ---------- */
 function coverOf(p) {
@@ -393,6 +461,57 @@ defineExpose({ load })
   filter: drop-shadow(0 8px 14px rgba(124, 78, 140, 0.3));
 }
 .btn-ghost.small { padding: 8px 20px; font-size: 13px; }
+
+/* ---------- 我的收藏 ---------- */
+.fav-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  padding-top: 16px;
+}
+.fav-card {
+  display: flex;
+  gap: 12px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 18px;
+  padding: 10px;
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.2s ease, border-color 0.18s ease;
+}
+.fav-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--pink);
+  box-shadow: 0 16px 28px -16px rgba(124, 78, 140, 0.45);
+}
+.fav-cover {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  border-radius: 13px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #ffe3c2 0%, #ffd0e4 100%);
+}
+.fav-cover-empty {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--pink-deep);
+}
+.fav-body { min-width: 0; flex: 1; }
+.fav-title {
+  margin: 6px 0 3px;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fav-meta { margin: 0; font-size: 11px; font-weight: 700; color: var(--ink-dim); }
 
 /* ---------- 响应式 ---------- */
 @media (max-width: 640px) {
