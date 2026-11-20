@@ -11,7 +11,7 @@
  Target Server Version : 80039 (8.0.39)
  File Encoding         : 65001
 
- Date: 20/11/2026 16:18:59
+ Date: 20/11/2026 16:35:22
 */
 
 SET NAMES utf8mb4;
@@ -35,7 +35,7 @@ CREATE TABLE `app_user`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_username`(`username` ASC) USING BTREE,
   UNIQUE INDEX `uk_email`(`email` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 11 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 11 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户账户' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of app_user
@@ -92,7 +92,7 @@ CREATE TABLE `pet_breed`  (
   `suitable_for` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_category_sort`(`category_id` ASC, `sort_no` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 25 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 25 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '宠物品种目录' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_breed
@@ -133,7 +133,7 @@ CREATE TABLE `pet_category`  (
   `sort_no` int NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_sort`(`sort_no` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '宠物分类目录' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_category
@@ -157,7 +157,7 @@ CREATE TABLE `pet_follow`  (
   UNIQUE INDEX `uk_follower_followee`(`follower_key` ASC, `followee_key` ASC) USING BTREE,
   INDEX `idx_followee`(`followee_key` ASC) USING BTREE,
   INDEX `idx_follower`(`follower_key` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户关注关系' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of pet_follow
@@ -179,7 +179,7 @@ CREATE TABLE `pet_friend`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_owner_friend`(`owner_key` ASC, `friend_key` ASC) USING BTREE,
   INDEX `idx_owner_status`(`owner_key` ASC, `status` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 11 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 11 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '好友关系' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_friend
@@ -260,7 +260,7 @@ CREATE TABLE `pet_knowledge`  (
   `updated_at` datetime NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_cat`(`cat` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 17 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 17 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '养宠知识文章' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_knowledge
@@ -297,7 +297,7 @@ CREATE TABLE `pet_message`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_owner_peer`(`owner_key` ASC, `peer_key` ASC) USING BTREE,
   INDEX `idx_owner_created`(`owner_key` ASC, `created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 23 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 23 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户私信消息' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_message
@@ -341,7 +341,7 @@ CREATE TABLE `pet_post`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_category`(`category` ASC) USING BTREE,
   INDEX `idx_created`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '社区帖子' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_post
@@ -364,7 +364,7 @@ CREATE TABLE `pet_post_comment`  (
   `reply_to_author` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_post`(`post_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 7 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 7 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '帖子评论' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_post_comment
@@ -388,7 +388,7 @@ CREATE TABLE `pet_post_favorite`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_post_user`(`post_id` ASC, `user_key` ASC) USING BTREE,
   INDEX `idx_user`(`user_key` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '帖子收藏' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_post_favorite
@@ -405,7 +405,7 @@ CREATE TABLE `pet_post_like`  (
   `created_at` datetime NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_post_user`(`post_id` ASC, `user_key` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '帖子点赞' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_post_like
@@ -428,7 +428,7 @@ CREATE TABLE `pet_post_media`  (
   `sort_no` int NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_post`(`post_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '帖子媒体（图片/视频）' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_post_media
@@ -449,7 +449,7 @@ CREATE TABLE `pet_post_report`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_post_reporter`(`post_id` ASC, `reporter` ASC) USING BTREE,
   INDEX `idx_status`(`status` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '帖子举报记录' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_post_report
