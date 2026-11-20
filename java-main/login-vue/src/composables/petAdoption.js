@@ -73,6 +73,25 @@ export const speciesList = ref([...PET_TYPES])
 /** 真实好友列表（后端返回；用于好友赠送入口与列表） */
 export const friendsList = ref([])
 
+/** 仅设置当前用户标识（远程模式使用，不覆盖后端状态） */
+export function setPetUserKey(userKey) {
+  petGame.userKey = userKey || 'guest'
+}
+
+/** 只刷新赠送相关状态（用于领取方页面在不重载的情况下看到新礼物） */
+export function setRemoteGifts(g = {}) {
+  petGame.gifts = {
+    date: todayStr(),
+    sentCount: g.sentCount || 0,
+    sentTo: g.sentTo || {},
+    claimCount: g.claimCount || 0,
+    pending: Array.isArray(g.pending)
+      ? g.pending.map((p) => ({ id: p.id, fromKey: p.fromKey, fromName: p.fromName || '' }))
+      : []
+  }
+  syncLocalGifts(true) // 只补本地账单独有的 pending，保留后端计数
+}
+
 /**
  * 把后端 dashboard 映射到本地 petGame，使组件渲染层无需感知数据来源。
  * 后端任务用 claimed 表示已领取，这里统一映射为 done 以兼容组件逻辑。
@@ -95,15 +114,7 @@ export function setRemoteState(d) {
   const today = todayStr()
   petGame.interact = { date: today, count: (d.interact && d.interact.count) || 0 }
   // 后端礼物态：sentCount/sentTo/claimCount/pending
-  const g = d.gifts || {}
-  petGame.gifts = {
-    date: today,
-    sentCount: g.sentCount || 0,
-    sentTo: g.sentTo || {},
-    claimCount: g.claimCount || 0,
-    pending: Array.isArray(g.pending) ? g.pending.map((p) => ({ id: p.id, fromKey: p.fromKey })) : []
-  }
-  syncLocalGifts() // 本地兜底：用跨账号账单补全 pending
+  setRemoteGifts(d.gifts || {})
 }
 
 /* ---------------- 工具函数 ---------------- */
@@ -361,15 +372,28 @@ function saveLedger(list) {
     /* 忽略 */
   }
 }
-/** 把账单里「指向我」的 pending 礼物同步进 petGame.gifts.pending */
-function syncLocalGifts() {
+/**
+ * 把本地账单里「指向我」的 pending 礼物同步进 petGame.gifts.pending。
+ * keepRemoteGifts=true 时以后端 dashboard 为准：只补充本地账单独有的 pending，
+ * 绝不覆盖 sentCount / sentTo / claimCount，否则赠送成功后按钮与次数会被重置。
+ */
+function syncLocalGifts(keepRemoteGifts = false) {
   const me = petGame.userKey
   const today = todayStr()
   const ledger = loadLedger()
-  petGame.gifts.pending = ledger
+  const localPending = ledger
     .filter((g) => g.toKey === me && g.status === 'pending')
     .map((g) => ({ id: g.id, fromKey: g.fromKey }))
-  // 重新统计今日已送/已领（按本地账单，避免和后端态叠加时重复）
+  if (keepRemoteGifts) {
+    const remotePending = Array.isArray(petGame.gifts.pending) ? petGame.gifts.pending : []
+    const remoteIds = new Set(remotePending.map((p) => String(p.id)))
+    petGame.gifts.pending = remotePending.concat(
+      localPending.filter((p) => !remoteIds.has(String(p.id)))
+    )
+    return
+  }
+  petGame.gifts.pending = localPending
+  // 本地模式：按本地账单统计今日已送/已领（避免和后端态叠加时重复）
   petGame.gifts.sentCount = ledger.filter(
     (g) => g.fromKey === me && g.date === today
   ).length

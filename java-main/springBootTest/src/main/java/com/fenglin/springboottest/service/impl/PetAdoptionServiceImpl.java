@@ -27,6 +27,7 @@ import com.fenglin.springboottest.mapper.PetSpeciesMapper;
 import com.fenglin.springboottest.mapper.PetTaskProgressMapper;
 import com.fenglin.springboottest.mapper.PetUserResourceMapper;
 import com.fenglin.springboottest.service.PetAdoptionService;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -268,6 +269,7 @@ public class PetAdoptionServiceImpl implements PetAdoptionService {
             Map<String, Object> v = new LinkedHashMap<>();
             v.put("id", g.getId());
             v.put("fromKey", g.getUserKey());
+            v.put("fromName", displayName(g.getUserKey())); // 领取方直接展示赠送者昵称，不再依赖本地好友表
             v.put("date", g.getGiftDate());
             pendingView.add(v);
         }
@@ -454,7 +456,12 @@ public class PetAdoptionServiceImpl implements PetAdoptionService {
         g.setFriendKey(friendKey); // 领取方
         g.setGiftDate(date);
         g.setStatus("pending");
-        giftMapper.insert(g);
+        try {
+            giftMapper.insert(g);
+        } catch (DuplicateKeyException e) {
+            // 并发下唯一索引 uk_gift(user_key, friend_key, gift_date) 兜底：同一好友一天仍只算一次
+            return fail("already");
+        }
         return dashboard(owner);
     }
 

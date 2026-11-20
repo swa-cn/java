@@ -91,6 +91,7 @@ async function httpPost(path, body) {
 export async function loadState(owner) {
   return withFallback(
     async () => {
+      local.setPetUserKey(owner) // 远程模式也要标记当前用户，供本地账单补全待领取使用
       const d = await httpGet('/adoption/state?owner=' + encodeURIComponent(owner))
       local.setRemoteState(d)
       return d
@@ -102,6 +103,14 @@ export async function loadState(owner) {
       return null
     }
   )
+}
+
+/** 只刷新赠送状态：领取方页面无需重载即可看到好友新送的礼物（不走本地兜底，避免覆盖其它状态） */
+export async function refreshGifts(owner) {
+  const d = await httpGet('/adoption/state?owner=' + encodeURIComponent(owner))
+  local.setPetUserKey(owner)
+  local.setRemoteGifts(d && d.gifts)
+  return d
 }
 
 /* =====================================================================

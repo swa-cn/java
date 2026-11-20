@@ -261,9 +261,9 @@
         </h3>
         <ul v-if="petGame.gifts.pending.length" class="gift-list">
           <li v-for="p in petGame.gifts.pending" :key="p.id" class="gift">
-            <span class="gift-ava">{{ friendName(p.fromKey).charAt(0) }}</span>
+            <span class="gift-ava">{{ (p.fromName || friendName(p.fromKey)).charAt(0) }}</span>
             <div class="gift-main">
-              <h4 class="gift-name">{{ friendName(p.fromKey) }}</h4>
+              <h4 class="gift-name">{{ p.fromName || friendName(p.fromKey) }}</h4>
               <p class="gift-sub">送你 🌱10 + 🍖1</p>
             </div>
             <button class="gift-btn" :disabled="!canClaimGift" @click="onGift(p.id)">领取</button>
@@ -446,6 +446,7 @@ import {
 } from '../composables/petAdoption'
 import {
   loadState,
+  refreshGifts,
   adopt as apiAdopt,
   hatch as apiHatch,
   feed as apiFeed,
@@ -531,7 +532,32 @@ function openAchv() {
   loadAchv()
 }
 
-onUnmounted(() => clearInterval(rankTimer))
+/* ---------- 赠送页：进入或停留时刷新待领取列表 ---------- */
+let giftTimer = null
+async function refreshGiftState() {
+  if (!props.user?.username) return
+  try {
+    await refreshGifts(props.user.username)
+  } catch (e) {
+    /* 后端暂不可用时保留当前状态，不做本地覆盖 */
+  }
+}
+watch(
+  () => tab.value,
+  (v) => {
+    clearInterval(giftTimer)
+    giftTimer = null
+    if (v === 'gift') {
+      refreshGiftState()
+      giftTimer = setInterval(refreshGiftState, 20000)
+    }
+  }
+)
+
+onUnmounted(() => {
+  clearInterval(rankTimer)
+  clearInterval(giftTimer)
+})
 
 // 物种 / 好友列表均来自 petAdoption.js（后端数据同步或本地兜底）
 const petTypes = speciesList
