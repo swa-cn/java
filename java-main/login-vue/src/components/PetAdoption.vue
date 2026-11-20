@@ -383,8 +383,8 @@
         <div class="modal">
           <button class="modal-close" @click="closeJumpModal">×</button>
           <div class="modal-emoji">🏃</div>
-          <h3 class="modal-title">{{ jumpInfo.mode === 'fun' ? '陪宠物跳障碍 · 小游戏' : '陪宠物跳障碍' }}</h3>
-          <p class="modal-sub">点击屏幕或按 <b>空格</b> 让毛孩子跳起，<b>空中还能再跳一次</b>，躲开 🌵，越过 12 个障碍即获胜！</p>
+          <h3 class="modal-title">{{ jumpInfo.mode === 'fun' ? '陪宠物跳障碍 · 无尽模式' : '陪宠物跳障碍' }}</h3>
+          <p class="modal-sub">点击屏幕或按 <b>空格</b> 让毛孩子跳起，<b>空中还能再跳一次</b>，躲开 🌵、跳起来吃 🪙，看你能跑多远！</p>
           <div class="jump-wrap">
             <canvas
               ref="jumpCanvas"
@@ -394,7 +394,9 @@
               @pointerdown="onJumpTap"
             ></canvas>
             <div v-if="jumpInfo.status === 'lose'" class="jump-over">
-              <p>{{ jumpInfo.petEmoji }} 撞到啦！已越过 {{ jumpInfo.passed }}/12</p>
+              <p>{{ jumpInfo.petEmoji }} 撞到啦！</p>
+              <p class="jump-score">越过 <b>{{ jumpInfo.passed }}</b> 个障碍 · 吃到 🪙 <b>{{ jumpInfo.coins || 0 }}</b> 枚</p>
+              <p v-if="jumpInfo.newRecord" class="rec">🏆 刷新最佳纪录！</p>
               <button class="modal-btn" @click="startJump(jumpInfo.mode, jumpInfo.petEmoji)">再来一次 🔁</button>
             </div>
             <div v-else-if="jumpInfo.status === 'win' && jumpInfo.mode === 'fun'" class="jump-over">
@@ -403,13 +405,13 @@
               <button class="modal-btn" @click="startJump('fun', jumpInfo.petEmoji)">再来一局 🔁</button>
             </div>
           </div>
-          <p class="modal-sub">已越过 <b>{{ jumpInfo.passed }}/12</b> · 点击/空格跳跃 · 支持二段跳 🪽</p>
-          <p v-if="jumpInfo.mode === 'fun'" class="modal-sub fun-tag">纯娱乐模式，随时可退出，不影响任务进度～</p>
+          <p class="modal-sub">已越过 <b>{{ jumpInfo.passed }}</b> 个 · 🪙 <b>{{ jumpInfo.coins || 0 }}</b> 枚 · 点击/空格跳跃 · 二段跳 🪽</p>
+          <p v-if="jumpInfo.mode === 'fun'" class="modal-sub fun-tag">纯娱乐无尽模式，随时可退出，不影响任务进度～</p>
           <div v-if="jumpInfo.mode === 'fun'" class="rank-card">
             <span class="rank-ico">{{ jumpRank(bestJump).e }}</span>
             <div class="rank-main">
               <b class="rank-title">{{ jumpRank(bestJump).t }}</b>
-              <span class="rank-sub">最佳越过 {{ bestJump }}/12</span>
+              <span class="rank-sub">最佳越过 {{ bestJump }} 个 · 最多 🪙 {{ bestCoins }} 枚</span>
             </div>
           </div>
         </div>
@@ -1039,16 +1041,25 @@ function collectItem(it) {
 
 /* ---------- 跳障碍小游戏 ---------- */
 const jumpCanvas = ref(null)
-const jumpInfo = ref({ status: 'playing', passed: 0, mode: 'fun' })
+const jumpInfo = ref({ status: 'playing', passed: 0, coins: 0, mode: 'fun' })
 // 纯娱乐模式的最佳成绩（本地存，刷新不丢）
 const bestJump = ref(Number(localStorage.getItem('pet_jump_best') || 0))
+const bestCoins = ref(Number(localStorage.getItem('pet_jump_coins') || 0))
 function recordJumpBest() {
+  let fresh = false
   const passed = jumpInfo.value.passed
   if (passed > bestJump.value) {
     bestJump.value = passed
     localStorage.setItem('pet_jump_best', String(passed))
-    jumpInfo.value.newRecord = true
+    fresh = true
   }
+  const coins = jumpInfo.value.coins || 0
+  if (coins > bestCoins.value) {
+    bestCoins.value = coins
+    localStorage.setItem('pet_jump_coins', String(coins))
+    fresh = true
+  }
+  if (fresh) jumpInfo.value.newRecord = true
 }
 // 程序化音效（Web Audio，无需外部文件）
 let actx = null
@@ -1094,17 +1105,22 @@ function sfx(type) {
   } else if (type === 'hit') {
     beep(150, 0, 0.2, 'square', 0.2)
     beep(80, 0.02, 0.22, 'square', 0.16)
+  } else if (type === 'coin') {
+    // 吃金币：两声上行叮咚
+    beep(988, 0, 0.07, 'square', 0.12)
+    beep(1319, 0.06, 0.14, 'square', 0.1)
   } else if (type === 'win') {
     beep(660, 0, 0.12, 'triangle', 0.2)
     beep(880, 0.13, 0.18, 'triangle', 0.2)
   }
 }
-// 最佳成绩称号
+// 最佳成绩称号（无尽模式，门槛相应提高）
 function jumpRank(best) {
-  if (best >= 12) return { t: '传奇驯兽师', e: '👑' }
-  if (best >= 9) return { t: '跳跃大师', e: '🥇' }
-  if (best >= 6) return { t: '灵巧好手', e: '🥈' }
-  if (best >= 3) return { t: '见习骑士', e: '🥉' }
+  if (best >= 50) return { t: '传说·踏云者', e: '👑' }
+  if (best >= 30) return { t: '传奇驯兽师', e: '🏆' }
+  if (best >= 20) return { t: '跳跃大师', e: '🥇' }
+  if (best >= 12) return { t: '灵巧好手', e: '🥈' }
+  if (best >= 6) return { t: '见习骑士', e: '🥉' }
   return { t: '萌新训练生', e: '🐣' }
 }
 let jctx = null
@@ -1148,7 +1164,7 @@ function startJump(mode, emoji) {
   if (!cv) return
   jctx = cv.getContext('2d')
   // 把本局宠物记进状态，重开时从状态回传，避免回落到默认 🐱
-  jumpInfo.value = { status: 'playing', passed: 0, mode: mode || 'fun', newRecord: false, petEmoji: emoji || '🐱' }
+  jumpInfo.value = { status: 'playing', passed: 0, coins: 0, mode: mode || 'fun', newRecord: false, petEmoji: emoji || '🐱' }
   jstate = {
     petY: 156,
     vy: 0,
@@ -1156,10 +1172,15 @@ function startJump(mode, emoji) {
     jumpBuf: 0,
     airJumps: 1,
     obstacles: [],
+    coins: [],
+    fx: [],
     spawnTimer: 0,
     spawnGap: 66,
+    coinTimer: 0,
+    coinGap: 44,
     speed: 2.7,
     passed: 0,
+    coinCount: 0,
     running: true,
     t: 0,
     petEmoji: jumpInfo.value.petEmoji
@@ -1192,30 +1213,43 @@ function startJump(mode, emoji) {
       }
     }
     if (s.jumpBuf > 0) s.jumpBuf--
-    // 生成障碍（难度温和递增：间隔保底 48 帧，保证落地后有余量再起跳）
+    // 生成障碍（难度温和递增：速度/高度有上限，保证可以无限游玩）
     s.spawnTimer++
     if (s.spawnTimer >= s.spawnGap) {
       s.spawnTimer = 0
-      const base = Math.max(48, 66 - s.passed * 1.2)
+      const base = Math.max(50, 66 - s.passed * 0.9)
       s.spawnGap = base + Math.floor(Math.random() * 10)
       const h = 20 + Math.floor(Math.random() * (6 + Math.min(8, s.passed)))
       s.obstacles.push({ x: W, w: 16 + Math.floor(Math.random() * 6), h, passed: false })
     }
-    // 移动 / 计分 / 碰撞
+    // 生成金币：偶尔来一串（1~3 枚，弧形排布，需跳起才能吃到）
+    s.coinTimer++
+    if (s.coinTimer >= s.coinGap) {
+      s.coinTimer = 0
+      s.coinGap = 38 + Math.floor(Math.random() * 26)
+      const n = 1 + Math.floor(Math.random() * 3)
+      const lanes = [groundY - 40, groundY - 58, groundY - 74]
+      const lane = lanes[Math.floor(Math.random() * lanes.length)]
+      for (let i = 0; i < n; i++) {
+        const arc = n > 1 ? Math.sin((i / (n - 1)) * Math.PI) * 12 : 0
+        s.coins.push({ x: W + i * 22, y: lane - arc, r: 7, got: false, phase: Math.random() * 6 })
+      }
+    }
+    // 宠物判定框（各内缩几像素，给玩家一点擦边宽容）
+    const x1 = petX + 4,
+      y1 = s.petY - petH + 4,
+      w1 = petW - 8,
+      h1 = petH - 6
+    // 障碍：移动 / 计分 / 碰撞
     for (const o of s.obstacles) {
       o.x -= s.speed
       if (!o.passed && o.x + o.w < petX) {
         o.passed = true
         s.passed++
-        // 难度温和递增：速度上限 4.4，保证障碍间距始终大于滞空位移
-        s.speed = Math.min(4.4, 2.7 + s.passed * 0.12)
+        // 速度上限 4.4，保证障碍间距始终大于滞空位移
+        s.speed = Math.min(4.4, 2.7 + s.passed * 0.1)
         jumpInfo.value.passed = s.passed
       }
-      // 判定框各内缩几像素，给玩家一点擦边宽容
-      const x1 = petX + 4,
-        y1 = s.petY - petH + 4,
-        w1 = petW - 8,
-        h1 = petH - 6
       const x2 = o.x + 3,
         y2 = groundY - o.h + 3,
         w2 = o.w - 6,
@@ -1228,15 +1262,48 @@ function startJump(mode, emoji) {
       }
     }
     s.obstacles = s.obstacles.filter((o) => o.x > -40)
-    // 胜利：越过 12 个障碍
-    if (s.passed >= 12) {
+    // 金币：移动 / 吃取
+    for (const g of s.coins) {
+      g.x -= s.speed
+      g.phase += 0.15
+      if (
+        !g.got &&
+        g.x + g.r > x1 && g.x - g.r < x1 + w1 &&
+        g.y + g.r > y1 && g.y - g.r < y1 + h1
+      ) {
+        g.got = true
+        s.coinCount++
+        jumpInfo.value.coins = s.coinCount
+        sfx('coin')
+        // 吃到撒一把闪光粒子
+        for (let k = 0; k < 6; k++) {
+          s.fx.push({
+            x: g.x,
+            y: g.y,
+            vx: (Math.random() - 0.5) * 3,
+            vy: -1 - Math.random() * 2,
+            life: 18 + Math.floor(Math.random() * 8),
+            max: 26
+          })
+        }
+      }
+    }
+    s.coins = s.coins.filter((g) => g.x > -30 && !g.got)
+    // 粒子更新
+    for (const f of s.fx) {
+      f.x += f.vx
+      f.y += f.vy
+      f.vy += 0.12
+      f.life--
+    }
+    s.fx = s.fx.filter((f) => f.life > 0)
+    // 任务模式：越过 12 个障碍即完成任务；娱乐模式：无尽，撞到才结束
+    if (jumpInfo.value.mode === 'task' && s.passed >= 12) {
       s.running = false
       jumpInfo.value.status = 'win'
       stopJump()
       sfx('win')
-      // 任务模式：自动完成 jump 任务；娱乐模式：仅显示胜利并记录最佳，不完成任务
-      if (jumpInfo.value.mode === 'fun') recordJumpBest()
-      else finishTask()
+      finishTask()
       return
     }
     drawJump(W, H, groundY, petX, petW, petH)
@@ -1271,6 +1338,44 @@ function drawJump(W, H, groundY, petX, petW, petH) {
     c.font = Math.round(o.h * 0.92) + 'px serif'
     c.fillText('🌵', o.x + o.w / 2, groundY)
   }
+  // 金币（旋转的金色圆 + 高光 + 内圈 $ 纹理）
+  c.textAlign = 'center'
+  c.textBaseline = 'middle'
+  for (const g of jstate.coins) {
+    // 用余弦模拟硬币翻转的宽窄变化
+    const face = Math.abs(Math.cos(g.phase))
+    const rw = Math.max(2, g.r * (0.35 + 0.65 * face))
+    c.save()
+    c.translate(g.x, g.y)
+    // 外发光
+    c.fillStyle = 'rgba(255, 200, 60, 0.28)'
+    c.beginPath()
+    c.arc(0, 0, g.r + 4, 0, Math.PI * 2)
+    c.fill()
+    // 金色币身
+    c.fillStyle = '#f7b500'
+    c.beginPath()
+    c.ellipse(0, 0, rw, g.r, 0, 0, Math.PI * 2)
+    c.fill()
+    c.strokeStyle = '#e08e00'
+    c.lineWidth = 1.5
+    c.stroke()
+    if (face > 0.5) {
+      c.fillStyle = '#fff3c4'
+      c.font = 'bold ' + Math.round(g.r * 1.1) + 'px sans-serif'
+      c.fillText('¢', 0, 1)
+    }
+    c.restore()
+  }
+  // 吃金币的闪光粒子
+  for (const f of jstate.fx) {
+    c.globalAlpha = Math.max(0, f.life / f.max)
+    c.fillStyle = '#ffd23f'
+    c.beginPath()
+    c.arc(f.x, f.y, 2.2, 0, Math.PI * 2)
+    c.fill()
+  }
+  c.globalAlpha = 1
   // 宠物（动态：待机轻微浮动 + 跳跃挤压拉伸）
   c.save()
   const pcx = petX + petW / 2
@@ -1293,12 +1398,27 @@ function drawJump(W, H, groundY, petX, petW, petH) {
   c.font = '30px serif'
   c.fillText(jstate.petEmoji || '🐱', 0, 0)
   c.restore()
-  // 计分
-  c.fillStyle = '#557'
-  c.font = '13px sans-serif'
+  // 计分（无尽模式：手绘小图标 + 数字，避免部分系统缺少 emoji 字体）
   c.textAlign = 'left'
+  c.textBaseline = 'middle'
+  // 障碍：绿色小仙人掌点
+  c.fillStyle = '#4caf50'
+  c.beginPath()
+  c.arc(14, 15, 5, 0, Math.PI * 2)
+  c.fill()
+  // 金币：金色小圆
+  c.fillStyle = '#f7b500'
+  c.beginPath()
+  c.arc(72, 15, 5, 0, Math.PI * 2)
+  c.fill()
+  c.strokeStyle = '#e08e00'
+  c.lineWidth = 1
+  c.stroke()
+  c.fillStyle = '#557'
+  c.font = 'bold 13px sans-serif'
   c.textBaseline = 'top'
-  c.fillText('越过 ' + jstate.passed + '/12', 8, 8)
+  c.fillText(String(jstate.passed), 22, 9)
+  c.fillText(String(jstate.coinCount || 0), 80, 9)
 }
 
 async function onTaskClaim(taskId) {
@@ -1860,6 +1980,8 @@ async function onGift(giftId) {
   font-weight: 700;
   margin: 0 0 12px;
 }
+.jump-over p.jump-score { font-size: 13px; font-weight: 500; color: #ffe9a8; }
+.jump-over p.jump-score b { font-size: 16px; color: #ffd23f; }
 .fun-tag { color: #ffb35c; font-weight: 700; }
 .rank-card {
   display: flex;
