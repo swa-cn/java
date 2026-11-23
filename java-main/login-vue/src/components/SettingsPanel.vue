@@ -63,29 +63,40 @@
           </div>
         </section>
 
-        <!-- ============ 修改密码 ============ -->
+        <!-- ============ 账号安全：修改密码放入其中，默认收起 ============ -->
         <section class="sp-sec">
-          <h3 class="sp-sec-title">修改密码</h3>
-          <p class="sp-hint">至少 8 位、含 2 种字符（大小写 / 数字 / 符号）</p>
-          <p v-if="pwMsg.text" class="sp-pw-msg" :class="{ ok: pwMsg.ok }">{{ pwMsg.text }}</p>
-          <label class="sp-field">
-            <span class="sp-label">原密码</span>
-            <input class="sp-input" type="password" v-model="pwForm.oldPassword" autocomplete="current-password" />
-          </label>
-          <label class="sp-field">
-            <span class="sp-label">新密码</span>
-            <input class="sp-input" type="password" v-model="pwForm.newPassword" autocomplete="new-password" />
-          </label>
-          <label class="sp-field">
-            <span class="sp-label">确认新密码</span>
-            <input class="sp-input" type="password" v-model="pwForm.confirm" autocomplete="new-password" />
-          </label>
+          <h3 class="sp-sec-title">账号安全</h3>
           <button
             type="button"
-            class="sp-pw-btn"
-            :disabled="pwBusy || !pwForm.oldPassword || !pwForm.newPassword"
-            @click="onChangePassword"
-          >{{ pwBusy ? '提交中…' : '确认修改' }}</button>
+            class="sp-sub-toggle"
+            :aria-expanded="pwExpanded"
+            @click="pwExpanded = !pwExpanded"
+          >
+            <span class="sp-sub-title">修改密码</span>
+            <span class="sp-toggle-arrow" :class="{ open: pwExpanded }">›</span>
+          </button>
+          <div v-if="pwExpanded" class="sp-pw-panel">
+            <p class="sp-hint">至少 8 位、含 2 种字符（大小写 / 数字 / 符号）</p>
+            <p v-if="pwMsg.text" class="sp-pw-msg" :class="{ ok: pwMsg.ok }">{{ pwMsg.text }}</p>
+            <label class="sp-field">
+              <span class="sp-label">原密码</span>
+              <input class="sp-input" type="password" v-model="pwForm.oldPassword" autocomplete="current-password" />
+            </label>
+            <label class="sp-field">
+              <span class="sp-label">新密码</span>
+              <input class="sp-input" type="password" v-model="pwForm.newPassword" autocomplete="new-password" />
+            </label>
+            <label class="sp-field">
+              <span class="sp-label">确认新密码</span>
+              <input class="sp-input" type="password" v-model="pwForm.confirm" autocomplete="new-password" />
+            </label>
+            <button
+              type="button"
+              class="sp-pw-btn"
+              :disabled="pwBusy || !pwForm.oldPassword || !pwForm.newPassword"
+              @click="onChangePassword"
+            >{{ pwBusy ? '提交中…' : '确认修改' }}</button>
+          </div>
         </section>
 
         <!-- ============ 界面字体 ============ -->
@@ -150,6 +161,7 @@ function removeTag(t) {
 }
 
 /* ---------- 修改密码 ---------- */
+const pwExpanded = ref(false) // 默认收起，不直接展示表单
 const pwForm = reactive({ oldPassword: '', newPassword: '', confirm: '' })
 const pwMsg = reactive({ text: '', ok: false })
 const pwBusy = ref(false)
@@ -285,6 +297,37 @@ watch(
   font-size: 12px;
   font-weight: 700;
 }
+
+/* 账号安全：可折叠子项 */
+.sp-sub-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 14px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: var(--soft);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.sp-sub-toggle:hover { border-color: var(--pink); background: var(--soft-2); }
+.sp-sub-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.sp-toggle-arrow {
+  color: var(--pink-deep);
+  font-size: 20px;
+  line-height: 1;
+  transform: rotate(0deg);
+  transition: transform 0.18s ease;
+}
+.sp-toggle-arrow.open { transform: rotate(90deg); }
+.sp-pw-panel { margin-top: 12px; }
 
 /* 修改密码 */
 .sp-hint { margin: 0 0 10px; font-size: 11.5px; color: var(--ink-soft); }

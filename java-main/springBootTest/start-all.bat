@@ -52,8 +52,8 @@ if not exist "%FRONTEND%\package.json" (
 )
 
 rem --- 前端依赖缺失则自动安装 ---
-if not exist "%FRONTEND%\node_modules" (
-    echo [信息] 检测到 node_modules 缺失, 正在安装前端依赖, 请稍候...
+if not exist "%FRONTEND%\node_modules\.bin\vite.cmd" (
+    echo [信息] 检测到前端依赖不完整, 缺少 vite 命令, 正在安装/修复前端依赖, 请稍候...
     pushd "%FRONTEND%"
     call npm install --registry=https://registry.npmmirror.com
     if errorlevel 1 (
