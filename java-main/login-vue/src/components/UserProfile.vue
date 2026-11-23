@@ -167,26 +167,28 @@
         <article
           v-for="p in posts"
           :key="p.id"
-          class="up-card-item"
+          class="up-row"
           @click="$emit('open-post', p.id)"
         >
-          <div class="up-cover">
+          <div class="up-thumb">
             <PostMedia v-if="coverOf(p)" :media="coverOf(p)" />
-            <div v-else class="up-cover-empty" :style="{ background: tintOf(p) }">
+            <div v-else class="up-thumb-empty" :style="{ background: tintOf(p) }">
               {{ iconOf(p) }}
             </div>
-            <span v-if="(p.media || []).length > 1" class="up-count">
-              共 {{ p.media.length }} 张
+            <span v-if="(p.media || []).length > 1" class="up-thumb-count">
+              {{ p.media.length }} 张
             </span>
           </div>
 
-          <div class="up-body">
-            <span class="up-cat" :style="{ background: colorOf(p) }">{{ nameOf(p) }}</span>
-            <h4 class="up-title">{{ p.title || excerpt(p.content, 18) }}</h4>
-            <p class="up-excerpt">{{ excerpt(p.content, 46) }}</p>
-            <div class="up-meta">
+          <div class="up-row-body">
+            <div class="up-row-title-line">
+              <span class="up-row-cat" :style="{ background: colorOf(p) }">{{ nameOf(p) }}</span>
+              <h4 class="up-row-title">{{ p.title || excerpt(p.content, 18) }}</h4>
+            </div>
+            <p class="up-row-excerpt">{{ excerpt(p.content, 46) }}</p>
+            <div class="up-row-meta">
               <span>{{ formatTime(p.createdAt) }}</span>
-              <span class="up-stats-inline">
+              <span class="up-row-stats">
                 <em>♥ {{ (p.likes || []).length }}</em>
                 <em>💬 {{ (p.comments || []).length }}</em>
               </span>
@@ -656,80 +658,80 @@ defineExpose({ reload: loadAll })
 }
 .up-tip { padding: 22px 0; text-align: center; font-size: 13px; color: var(--ink-soft); }
 
-.up-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
-.up-card-item {
-  display: flex;
-  gap: 12px;
-  background: var(--card);
+.up-list {
   border: 2px solid var(--line);
   border-radius: 18px;
-  padding: 10px;
+  background: var(--card);
+  overflow: hidden;
+}
+.up-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
   cursor: pointer;
-  transition: transform 0.16s ease, box-shadow 0.2s ease, border-color 0.18s ease;
+  transition: background 0.16s ease;
 }
-.up-card-item:hover {
-  transform: translateY(-3px);
-  border-color: var(--pink);
-  box-shadow: 0 16px 28px -16px rgba(124, 78, 140, 0.45);
-}
-.up-cover {
+.up-row + .up-row { border-top: 1px dashed var(--line); }
+.up-row:hover { background: var(--soft); }
+.up-thumb {
   position: relative;
   flex: none;
-  width: 100px;
-  height: 100px;
-  border-radius: 13px;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
   overflow: hidden;
   background: linear-gradient(135deg, #ffe3c2 0%, #ffd0e4 100%);
 }
-.up-cover-empty {
+.up-thumb-empty {
   display: grid;
   place-items: center;
   width: 100%;
   height: 100%;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--pink-deep);
 }
-.up-count {
+.up-thumb-count {
   position: absolute;
-  right: 5px;
-  bottom: 5px;
-  padding: 2px 7px;
+  right: 3px;
+  bottom: 3px;
+  padding: 1px 5px;
   border-radius: 999px;
   background: rgba(44, 36, 51, 0.6);
   color: var(--on-accent);
   font-size: 10px;
   font-weight: 800;
 }
-.up-body { min-width: 0; flex: 1; }
-.up-cat {
-  display: inline-block;
-  padding: 1px 9px;
+.up-row-body { min-width: 0; flex: 1; }
+.up-row-title-line { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.up-row-cat {
+  flex: none;
+  padding: 1px 8px;
   border-radius: 999px;
   color: var(--on-accent);
   font-size: 10.5px;
   font-weight: 800;
 }
-.up-title {
-  margin: 6px 0 3px;
+.up-row-title {
+  margin: 0;
   font-size: 14px;
   font-weight: 800;
-  line-height: 1.35;
+  line-height: 1.4;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
-.up-excerpt {
-  margin: 0 0 8px;
+.up-row-excerpt {
+  margin: 3px 0 5px;
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.4;
   color: var(--ink-soft);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
-.up-meta {
+.up-row-meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -738,8 +740,8 @@ defineExpose({ reload: loadAll })
   font-weight: 700;
   color: var(--ink-dim);
 }
-.up-stats-inline { display: flex; gap: 10px; }
-.up-stats-inline em { font-style: normal; }
+.up-row-stats { display: flex; gap: 10px; }
+.up-row-stats em { font-style: normal; }
 
 /* ---------- 空状态 ---------- */
 .up-empty { text-align: center; padding: 26px 16px 8px; color: var(--ink-soft); }
@@ -771,7 +773,7 @@ defineExpose({ reload: loadAll })
   .up-info-card { margin: 12px 16px 0; padding: 14px 16px; }
   .up-info-row dt { width: 56px; }
   .up-sec { padding: 18px 16px 24px; }
-  .up-list { grid-template-columns: 1fr; gap: 10px; }
-  .up-cover { width: 86px; height: 86px; }
+  .up-row { padding: 10px; gap: 10px; }
+  .up-thumb { width: 48px; height: 48px; }
 }
 </style>

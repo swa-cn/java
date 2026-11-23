@@ -26,6 +26,8 @@ import java.util.Map;
  *  POST /api/adoption/gift/claim         { giftId }                -> dashboard + reward（领取好友赠送）
  *  POST /api/adoption/rename             { petId, name }           -> dashboard
  *  GET  /api/adoption/ranking            -> 排行榜（亲密度/活跃用户）
+ *  GET  /api/adoption/achievements       -> 成就徽章（含 claimed / reward）
+ *  POST /api/adoption/achievement/claim  { achievementId } -> dashboard + reward（领取成就奖励）
  *
  * 写操作返回最新 dashboard，便于前端一次刷新。失败返回 { ok:false, reason }。
  * 身份（2026-11 起）：owner 一律取登录会话用户，前端传参仅作兼容、忽略 —— 养宠数据只能操作自己的。
@@ -109,6 +111,12 @@ public class PetAdoptionController {
     @GetMapping("/achievements")
     public Map<String, Object> achievements(HttpServletRequest request) {
         return service.achievements(CurrentUser.require(request));
+    }
+
+    /** 领取成就奖励：POST /api/adoption/achievement/claim { achievementId } -> dashboard + reward */
+    @PostMapping("/achievement/claim")
+    public Map<String, Object> claimAchievement(@RequestBody Map<String, Object> body, HttpServletRequest request) {
+        return service.claimAchievement(CurrentUser.require(request), str(body, "achievementId"));
     }
 
     private static String str(Map<String, Object> body, String key) {

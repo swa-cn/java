@@ -16,6 +16,8 @@
 //  POST /adoption/gift/send     { owner, friendKey }   -> 我赠送好友（落 pending）
 //  POST /adoption/gift/claim    { owner, giftId }      -> 领取好友的赠送
 //  POST /adoption/rename        { owner, petId, name }
+//  GET  /adoption/achievements             -> 成就徽章（含 claimed / reward）
+//  POST /adoption/achievement/claim { owner, achievementId } -> dashboard + reward
 //
 // dashboard 字段：{ species[], nutrients, food, pets[], tasks[],
 //   interact{count,limit,canInteract},
@@ -160,7 +162,10 @@ export async function fetchAchievements(owner) {
     () => httpGet('/adoption/achievements'),
     () => ({
       ok: true,
-      achievements: ACHIEVEMENT_TPL.map((a) => ({ ...a, current: 0, unlocked: false, progress: 0 }))
+      achievements: ACHIEVEMENT_TPL.map((a) => ({
+        ...a, current: 0, unlocked: false, progress: 0, claimed: false,
+        reward: { food: 3, nutrient: 5 }
+      }))
     })
   )
 }
@@ -236,6 +241,25 @@ export async function rename(owner, petId, name) {
   return withFallback(
     async () => normalizeRemote(await httpPost('/adoption/rename', { owner, petId, name })),
     () => local.renamePet(petId, name)
+  )
+}
+
+/** 领取成就奖励（每成就一次）：远程成功会把返回的 dashboard 同步进 petGame */
+export async function claimAchievement(owner, achievementId) {
+  return withFallback(
+    async () => normalizeRemote(await httpPost('/adoption/achievement/claim', { owner, achievementId })),
+    () => {
+      // 本地兜底：用 localStorage 记录已领取，防止重复领
+      const KEY = 'mengchong.achv_claimed.v1'
+      let claimed = []
+      try { claimed = JSON.parse(localStorage.getItem(KEY) || '[]') } catch (e) { claimed = [] }
+      if (claimed.includes(achievementId)) return { ok: false, reason: 'done' }
+      claimed.push(achievementId)
+      localStorage.setItem(KEY, JSON.stringify(claimed))
+      local.petGame.food = (local.petGame.food || 0) + 3
+      local.petGame.nutrients = (local.petGame.nutrients || 0) + 5
+      return { ok: true, reward: { food: 3, nutrient: 5 } }
+    }
   )
 }
 

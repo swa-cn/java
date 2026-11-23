@@ -49,7 +49,11 @@ public interface PetAdoptionService {
 
     /**
      * 成就徽章（实时按数据计算，无单独成就表）：
-     * { achievements: [{ id, title, desc, icon, unlocked, current, target }] }
+     * { achievements: [{ id, title, desc, icon, unlocked, current, target,
+     *                    claimed, reward:{food, nutrient} }] }
      */
     Map<String, Object> achievements(String owner);
+
+    /** 领取成就奖励（必须已解锁且未领取过；每成就每用户一次） */
+    Map<String, Object> claimAchievement(String owner, String achievementId);
 }

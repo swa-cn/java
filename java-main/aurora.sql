@@ -11,7 +11,7 @@
  Target Server Version : 80039 (8.0.39)
  File Encoding         : 65001
 
- Date: 20/11/2026 16:35:22
+ Date: 23/11/2026 11:40:35
 */
 
 SET NAMES utf8mb4;
@@ -69,12 +69,30 @@ CREATE TABLE `pet`  (
 -- ----------------------------
 -- Records of pet
 -- ----------------------------
-INSERT INTO `pet` VALUES ('p1a1b1f65c92245', 'eee', 'cat', '???', 'hatched', 22, 56, 88, 1793987075218, 1793987082135, 0, 1795160875866);
-INSERT INTO `pet` VALUES ('p1a1c816e6c9dbe', 'admin', 'hamster', '11', 'hatched', 48, 81, 97, 1794358306505, 1794358379454, 1794799497289, 1794799481128);
-INSERT INTO `pet` VALUES ('p1a1e263078341e0', 'admin', 'rabbit', '垂耳兔', 'hatched', 22, 100, 91, 1794799503235, 1794799522278, 1795161676516, 1795161667540);
-INSERT INTO `pet` VALUES ('p1a1f7fa2764a0b8', 'admin', 'fish', '小金鱼', 'hatched', 7, 60, 86, 1795161728868, 1795161751638, 0, 1795162378697);
-INSERT INTO `pet` VALUES ('p1a1f7fb7ebc664a', 'rrr', 'bird', '玄凤鹦鹉', 'hatched', 6, 85, 85, 1795161816764, 1795161834183, 1795162053934, 0);
-INSERT INTO `pet` VALUES ('p1a1f7fc1311b630', 'rrr', 'dog', '小柯基', 'hatched', 5, 60, 82, 1795161854737, 1795161915836, 0, 1795162041861);
+INSERT INTO `pet` VALUES ('p1a1b1f65c92245', 'eee', 'cat', '???', 'hatched', 22, 54, 86, 1793987075218, 1793987082135, 0, 1795160875866);
+INSERT INTO `pet` VALUES ('p1a1c816e6c9dbe', 'admin', 'hamster', '11', 'hatched', 48, 79, 95, 1794358306505, 1794358379454, 1794799497289, 1794799481128);
+INSERT INTO `pet` VALUES ('p1a1e263078341e0', 'admin', 'rabbit', '垂耳兔', 'hatched', 22, 98, 89, 1794799503235, 1794799522278, 1795161676516, 1795161667540);
+INSERT INTO `pet` VALUES ('p1a1f7fa2764a0b8', 'admin', 'fish', '小金鱼', 'hatched', 7, 58, 84, 1795161728868, 1795161751638, 0, 1795162378697);
+INSERT INTO `pet` VALUES ('p1a1f7fb7ebc664a', 'rrr', 'bird', '玄凤鹦鹉', 'hatched', 6, 83, 83, 1795161816764, 1795161834183, 1795162053934, 0);
+INSERT INTO `pet` VALUES ('p1a1f7fc1311b630', 'rrr', 'dog', '小柯基', 'hatched', 5, 58, 80, 1795161854737, 1795161915836, 0, 1795162041861);
+
+-- ----------------------------
+-- Table structure for pet_achievement_claim
+-- ----------------------------
+DROP TABLE IF EXISTS `pet_achievement_claim`;
+CREATE TABLE `pet_achievement_claim`  (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `user_key` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '用户标识',
+  `achievement_id` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '成就ID',
+  `claimed_at` bigint NOT NULL COMMENT '领取时间戳',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_achv_claim`(`user_key` ASC, `achievement_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '成就奖励领取记录(每用户每成就一次)' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of pet_achievement_claim
+-- ----------------------------
+INSERT INTO `pet_achievement_claim` VALUES (2, 'admin', 'hatch1', 1795405205540);
 
 -- ----------------------------
 -- Table structure for pet_breed
@@ -157,7 +175,7 @@ CREATE TABLE `pet_follow`  (
   UNIQUE INDEX `uk_follower_followee`(`follower_key` ASC, `followee_key` ASC) USING BTREE,
   INDEX `idx_followee`(`followee_key` ASC) USING BTREE,
   INDEX `idx_follower`(`follower_key` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户关注关系' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户关注关系' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_follow
@@ -534,7 +552,7 @@ CREATE TABLE `pet_user_resource`  (
 -- ----------------------------
 -- Records of pet_user_resource
 -- ----------------------------
-INSERT INTO `pet_user_resource` VALUES ('admin', 6, 0, 1795161751636);
+INSERT INTO `pet_user_resource` VALUES ('admin', 11, 3, 1795405205551);
 INSERT INTO `pet_user_resource` VALUES ('eee', 23, 2, 1795160778472);
 INSERT INTO `pet_user_resource` VALUES ('rrr', 2, 1, 1795162053929);
 

@@ -48,7 +48,7 @@ public class PostController {
         this.postService = postService;
     }
 
-    /** 帖子分页列表：category 为空返回全部分类；author 仅接受当前登录用户（查自己的帖子） */
+    /** 帖子分页列表：category 为空返回全部分类；author 可按任意作者筛选（自己的 / 他人主页） */
     @GetMapping("/posts")
     public Map<String, Object> list(@RequestParam(required = false) String category,
                                     @RequestParam(required = false) String author,
@@ -56,10 +56,9 @@ public class PostController {
                                     @RequestParam(required = false) Integer size,
                                     HttpServletRequest request) {
         String me = CurrentUser.get(request);
-        // author 查询是"我的发帖记录"场景：必须登录，且只能查自己的
-        if (author != null && !author.isBlank()) {
-            author = CurrentUser.require(request);
-        }
+        // 帖子本就是公开内容（发现页所有人可见），按作者筛选只是公开数据的过滤，
+        // 不做"只能查自己"的限制，否则别人点进 TA 的主页会看到空的帖子列表。
+        // me 仍传给 Service 用于计算点赞/收藏等"我"相关状态。
         int pageNo = page == null || page < 1 ? 1 : page;
         int pageSize = size == null || size < 1 ? DEFAULT_PAGE_SIZE : Math.min(size, MAX_PAGE_SIZE);
         Map<String, Object> data = postService.page(category, author, me, pageNo, pageSize);

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.fenglin.springboottest.entity.AppUser;
 import com.fenglin.springboottest.entity.Pet;
+import com.fenglin.springboottest.entity.PetAchievementClaim;
 import com.fenglin.springboottest.entity.PetFriend;
 import com.fenglin.springboottest.entity.PetGiftLog;
 import com.fenglin.springboottest.entity.PetInteractLog;
@@ -15,6 +16,7 @@ import com.fenglin.springboottest.entity.PetSpecies;
 import com.fenglin.springboottest.entity.PetTaskProgress;
 import com.fenglin.springboottest.entity.PetUserResource;
 import com.fenglin.springboottest.mapper.AppUserMapper;
+import com.fenglin.springboottest.mapper.PetAchievementClaimMapper;
 import com.fenglin.springboottest.mapper.PetFriendMapper;
 import com.fenglin.springboottest.mapper.PetGiftLogMapper;
 import com.fenglin.springboottest.mapper.PetInteractLogMapper;
@@ -52,6 +54,9 @@ public class PetAdoptionServiceImpl implements PetAdoptionService {
     private static final int GIFT_SEND_LIMIT = 3;    // 每日赠送（送出）上限
     private static final int GIFT_NUTRIENT = 10;     // 每次赠送养分
     private static final int GIFT_FOOD = 1;          // 每次赠送食物
+    // 成就奖励：每枚已解锁成就可领取一次，食物 + 养分
+    private static final int ACHV_REWARD_FOOD = 3;
+    private static final int ACHV_REWARD_NUTRIENT = 5;
 
     /** 任务模板（与前端 petAdoption.js 对齐） */
     private static final List<TaskTpl> TASK_TEMPLATES = List.of(
@@ -76,6 +81,7 @@ public class PetAdoptionServiceImpl implements PetAdoptionService {
     private final PetPostCommentMapper commentMapper;
     private final PetPostLikeMapper likeMapper;
     private final PetPostFavoriteMapper favoriteMapper;
+    private final PetAchievementClaimMapper achievementClaimMapper;
 
     public PetAdoptionServiceImpl(PetSpeciesMapper speciesMapper,
                                   PetUserResourceMapper resourceMapper,
@@ -88,7 +94,8 @@ public class PetAdoptionServiceImpl implements PetAdoptionService {
                                   AppUserMapper userMapper,
                                   PetPostCommentMapper commentMapper,
                                   PetPostLikeMapper likeMapper,
-                                  PetPostFavoriteMapper favoriteMapper) {
+                                  PetPostFavoriteMapper favoriteMapper,
+                                  PetAchievementClaimMapper achievementClaimMapper) {
         this.speciesMapper = speciesMapper;
         this.resourceMapper = resourceMapper;
         this.petMapper = petMapper;
@@ -101,6 +108,7 @@ public class PetAdoptionServiceImpl implements PetAdoptionService {
         this.commentMapper = commentMapper;
         this.likeMapper = likeMapper;
         this.favoriteMapper = favoriteMapper;
+        this.achievementClaimMapper = achievementClaimMapper;
     }
 
     /* ============================ 工具 ============================ */
@@ -602,9 +610,57 @@ public class PetAdoptionServiceImpl implements PetAdoptionService {
         list.add(badge("fav5", "收藏家", "收藏 5 篇帖子", "⭐", favCount, 5));
         list.add(badge("gift10", "慷慨大使", "给好友赠送礼物 10 次", "🎁", giftSent, 10));
 
+        // 领取状态：已领取的成就 ID 集合
+        List<String> claimedIds = achievementClaimMapper.selectList(new LambdaQueryWrapper<PetAchievementClaim>()
+                        .eq(PetAchievementClaim::getUserKey, owner)).stream()
+                .map(PetAchievementClaim::getAchievementId).toList();
+        // 每枚成就附带奖励内容与领取状态
+        for (Map<String, Object> a : list) {
+            a.put("claimed", claimedIds.contains(String.valueOf(a.get("id"))));
+            a.put("reward", Map.of("food", ACHV_REWARD_FOOD, "nutrient", ACHV_REWARD_NUTRIENT));
+        }
+
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("ok", true);
         m.put("achievements", list);
+        return m;
+    }
+
+    @Override
+    public Map<String, Object> claimAchievement(String owner, String achievementId) {
+        if (achievementId == null || achievementId.isBlank()) return fail("unknown");
+        // 已领取过 -> 拒绝重复领取
+        Long claimed = achievementClaimMapper.selectCount(new LambdaQueryWrapper<PetAchievementClaim>()
+                .eq(PetAchievementClaim::getUserKey, owner)
+                .eq(PetAchievementClaim::getAchievementId, achievementId));
+        if (claimed != null && claimed > 0) return fail("done");
+        // 复用 achievements() 的实时计算校验：成就必须存在且已解锁
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> all = (List<Map<String, Object>>) achievements(owner).get("achievements");
+        Map<String, Object> target = all.stream()
+                .filter(a -> achievementId.equals(a.get("id"))).findFirst().orElse(null);
+        if (target == null) return fail("unknown");
+        if (!Boolean.TRUE.equals(target.get("unlocked"))) return fail("locked");
+
+        PetAchievementClaim c = new PetAchievementClaim();
+        c.setUserKey(owner);
+        c.setAchievementId(achievementId);
+        c.setClaimedAt(now());
+        try {
+            achievementClaimMapper.insert(c);
+        } catch (DuplicateKeyException e) {
+            // 并发下唯一索引兜底
+            return fail("done");
+        }
+        // 发放奖励到用户资源
+        PetUserResource r = getOrCreateResource(owner);
+        r.setFood((r.getFood() == null ? 0 : r.getFood()) + ACHV_REWARD_FOOD);
+        r.setNutrients((r.getNutrients() == null ? 0 : r.getNutrients()) + ACHV_REWARD_NUTRIENT);
+        r.setUpdatedAt(now());
+        resourceMapper.updateById(r);
+
+        Map<String, Object> m = dashboard(owner);
+        m.put("reward", Map.of("food", ACHV_REWARD_FOOD, "nutrient", ACHV_REWARD_NUTRIENT));
         return m;
     }
 

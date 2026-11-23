@@ -154,15 +154,25 @@
           v-for="a in achvList"
           :key="a.id"
           class="achv-card"
-          :class="{ locked: !a.unlocked }"
+          :class="{ locked: !a.unlocked, claimed: a.claimed }"
         >
-          <span class="achv-icon">{{ a.unlocked ? a.icon : '🔒' }}</span>
+          <span class="achv-icon" :class="{ locked: !a.unlocked }">{{ a.unlocked ? a.icon : '🔒' }}</span>
           <h4 class="achv-title">{{ a.title }}</h4>
-          <p class="achv-desc">{{ a.desc }}</p>
-          <div class="achv-bar"><i :style="{ width: Math.min(100, (a.progress / a.target) * 100) + '%' }"></i></div>
           <p class="achv-num">
-            {{ a.unlocked ? '已解锁 🎉' : `${Math.min(a.current, a.target)} / ${a.target}` }}
+            {{ a.unlocked ? '已解锁' : `${Math.min(a.current, a.target)}/${a.target}` }}
           </p>
+          <p v-if="a.reward" class="achv-reward">🍖×{{ a.reward.food }} · 🌱+{{ a.reward.nutrient }}</p>
+          <button
+            v-if="a.unlocked"
+            type="button"
+            class="achv-claim"
+            :class="{ got: a.claimed }"
+            :disabled="a.claimed || claimingId === a.id"
+            @click="claimAchv(a)"
+          >
+            {{ a.claimed ? '✓ 已领取' : (claimingId === a.id ? '领取中…' : '领取奖励') }}
+          </button>
+          <span class="achv-tip">完成条件：{{ a.desc }}</span>
         </div>
       </div>
     </section>
@@ -459,7 +469,8 @@ import {
   claimGift as apiClaimGift,
   rename as apiRename,
   fetchRanking,
-  fetchAchievements
+  fetchAchievements,
+  claimAchievement as apiClaimAchievement
 } from '../api/adoption'
 import Pet3DPlayground from './Pet3DPlayground.vue'
 
@@ -521,10 +532,19 @@ function emojiOf(speciesId) {
 const achvList = ref([])
 const unlockedCount = computed(() => achvList.value.filter((a) => a.unlocked).length)
 
-async function loadAchv() {
+async function loadAchv(justClaimedId) {
   try {
     const r = await fetchAchievements(props.user?.username)
-    if (r && r.ok) achvList.value = r.achievements || []
+    if (r && r.ok) {
+      const list = r.achievements || []
+      // 领取后刷新时，强制保留刚领取成就的「已领取」状态，
+      // 避免本地兜底模板(claimed 恒为 false)把按钮覆盖回「领取奖励」
+      if (justClaimedId) {
+        const t = list.find((x) => x.id === justClaimedId)
+        if (t) t.claimed = true
+      }
+      achvList.value = list
+    }
   } catch (e) {
     /* 加载失败不打断页面 */
   }
@@ -532,6 +552,34 @@ async function loadAchv() {
 function openAchv() {
   tab.value = 'achv'
   loadAchv()
+}
+
+// 领取成就奖励：食物 + 养分，每枚成就仅一次
+const claimingId = ref('')
+async function claimAchv(a) {
+  if (!a.unlocked || a.claimed || claimingId.value) return
+  claimingId.value = a.id
+  try {
+    const r = await apiClaimAchievement(props.user.username, a.id)
+    if (r.ok) {
+      // 立即把当前卡片标记为已领取，按钮瞬间变成「✓ 已领取」
+      a.claimed = true
+      showToast(`领取成功！🍖 食物 ×${r.reward.food} · 🌱 养分 +${r.reward.nutrient}`)
+      await loadAchv(a.id) // 后台刷新，并保留刚领取的已领取状态
+    } else if (r.reason === 'done') {
+      a.claimed = true
+      showToast('这枚成就的奖励已领取过啦')
+      await loadAchv(a.id)
+    } else if (r.reason === 'locked') {
+      showToast('成就还没达成，不能领取哦')
+    } else {
+      showToast('领取失败，请稍后再试')
+    }
+  } catch (e) {
+    showToast('领取失败，请稍后再试')
+  } finally {
+    claimingId.value = ''
+  }
 }
 
 /* ---------- 赠送页：进入或停留时刷新待领取列表 ---------- */
@@ -1774,6 +1822,118 @@ async function onGift(giftId) {
 }
 .panel-count { font-size: 12px; color: #99a; font-weight: 500; }
 .panel-tip.empty { color: #99a; font-size: 13px; padding: 8px 4px; }
+
+/* 成就徽章：集邮册 3 列 */
+.achv-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.achv-card {
+  position: relative;
+  text-align: center;
+  padding: 14px 6px;
+  background: var(--card);
+  border: 2px solid var(--pink);
+  border-radius: 16px;
+  cursor: help;
+}
+.achv-card.locked { border-color: var(--line); background: var(--soft); }
+.achv-tip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%) translateY(4px);
+  width: max-content;
+  max-width: 180px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(52, 40, 62, 0.94);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: center;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  z-index: 10;
+}
+.achv-tip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: rgba(52, 40, 62, 0.94);
+}
+.achv-card:hover .achv-tip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+.achv-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 8px;
+  border-radius: 50%;
+  background: var(--hero-1);
+  font-size: 24px;
+  line-height: 1;
+}
+.achv-icon.locked { background: var(--line); filter: grayscale(1); opacity: 0.6; }
+.achv-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.achv-card.locked .achv-title { color: var(--ink-dim); }
+.achv-num {
+  margin: 5px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pink-deep);
+}
+.achv-card.locked .achv-num { color: var(--ink-dim); }
+.achv-reward {
+  margin: 4px 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #c98a2e;
+}
+.achv-card.locked .achv-reward { color: var(--ink-dim); }
+.achv-claim {
+  margin-top: 8px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--pink), var(--pink-deep));
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+.achv-claim:hover:not(:disabled) { transform: translateY(-1px); opacity: 0.9; }
+.achv-claim.got,
+.achv-claim:disabled {
+  background: var(--line);
+  color: var(--ink-dim);
+  cursor: default;
+  opacity: 1;
+}
+@media (max-width: 400px) {
+  .achv-grid { gap: 7px; }
+  .achv-card { padding: 12px 4px; }
+  .achv-icon { width: 40px; height: 40px; font-size: 20px; }
+}
 
 /* 提示 */
 .toast {

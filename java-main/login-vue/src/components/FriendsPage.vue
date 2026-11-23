@@ -327,22 +327,23 @@ const localReason = computed(() => messageRuntime.reason || friendRuntime.reason
 
 async function load() {
   loading.value = true
+  // 四个请求彼此独立：某个失败（如登录态失效、会话接口异常）只清空它自己对应的列表，
+  // 不再因为一个请求失败就把好友/申请/会话全部清空，避免误以为「好友全没了」。
+  const loadOne = async (fn, target) => {
+    try {
+      const res = await fn()
+      target.value = (res && res.items) || []
+    } catch (e) {
+      target.value = []
+    }
+  }
   try {
-    const [f, p, i, c] = await Promise.all([
-      fetchFriends(ownerKey.value, 'friend'),
-      fetchPending(ownerKey.value),
-      fetchIncoming(ownerKey.value),
-      fetchConversations(ownerKey.value)
+    await Promise.all([
+      loadOne(() => fetchFriends(ownerKey.value, 'friend'), friends),
+      loadOne(() => fetchPending(ownerKey.value), pending),
+      loadOne(() => fetchIncoming(ownerKey.value), incoming),
+      loadOne(() => fetchConversations(ownerKey.value), conversations)
     ])
-    friends.value = (f && f.items) || []
-    pending.value = (p && p.items) || []
-    incoming.value = (i && i.items) || []
-    conversations.value = (c && c.items) || []
-  } catch (e) {
-    friends.value = []
-    pending.value = []
-    incoming.value = []
-    conversations.value = []
   } finally {
     loading.value = false
     // 通知外层（导航栏）刷新未读红点数字
