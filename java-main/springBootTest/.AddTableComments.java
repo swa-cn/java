@@ -28,7 +28,12 @@ class AddTableComments {
     public static void main(String[] args) throws Exception {
         Class.forName("com.mysql.cj.jdbc.Driver");
         String url = "jdbc:mysql://localhost:3306/aurora?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true";
-        try (Connection conn = DriverManager.getConnection(url, "root", "123456")) {
+        String dbPassword = System.getenv("DB_PASSWORD");
+        if (dbPassword == null || dbPassword.isEmpty()) {
+            System.err.println("请先设置环境变量 DB_PASSWORD");
+            return;
+        }
+        try (Connection conn = DriverManager.getConnection(url, "root", dbPassword)) {
             System.out.println("=== 修改前 ===");
             Map<String, String> before = readComments(conn);
             for (String t : COMMENTS.keySet()) {

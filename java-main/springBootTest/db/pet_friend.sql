@@ -5,7 +5,7 @@
 -- 本文件用于手动初始化 / 迁移到其它环境时执行。
 --
 -- 导入命令（Windows 命令行）：
---   mysql -uroot -p123456 --default-character-set=utf8mb4 < pet_friend.sql
+--   mysql -uroot -p$DB_PASSWORD --default-character-set=utf8mb4 < pet_friend.sql
 -- =====================================================================
 
 CREATE DATABASE IF NOT EXISTS aurora CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;

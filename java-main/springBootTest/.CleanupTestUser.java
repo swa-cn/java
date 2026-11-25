@@ -7,7 +7,12 @@ class CleanupTestUser {
         String user = "fishtest01";
         String url = "jdbc:mysql://localhost:3306/aurora?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true";
         List<String[]> targets = new ArrayList<>();
-        try (Connection c = DriverManager.getConnection(url, "root", "123456")) {
+        String dbPassword = System.getenv("DB_PASSWORD");
+        if (dbPassword == null || dbPassword.isEmpty()) {
+            System.err.println("请先设置环境变量 DB_PASSWORD");
+            return;
+        }
+        try (Connection c = DriverManager.getConnection(url, "root", dbPassword)) {
             String sql = "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS "
                     + "WHERE TABLE_SCHEMA='aurora' "
                     + "AND (TABLE_NAME LIKE 'pet%' OR TABLE_NAME='app_user') "

@@ -60,7 +60,7 @@ public class PostServiceImpl implements PostService {
     private static final long MAX_VIDEO = 60L * 1024 * 1024;
     private static final int MAX_IMAGES = 9;
     private static final int MAX_VIDEOS = 1;
-    private static final List<String> CATEGORIES = Arrays.asList("cat", "dog", "small", "bird", "fish");
+    private static final List<String> CATEGORIES = Arrays.asList("cat", "dog", "small", "bird", "fish", "reptile", "exotic", "farm");
 
     private final PetPostMapper postMapper;
     private final PetPostMediaMapper mediaMapper;

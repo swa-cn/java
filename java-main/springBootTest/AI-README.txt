@@ -6,7 +6,7 @@ AI 助手备忘录 (写给未来的 AI 会话: 接到"启动项目"类请求时, 请先读完本文件再动手,
 - 位置: D:\workSpace\java\java-main\springBootTest  (2026-10-21 从桌面迁移至此; 三个 .bat 全部用 %~dp0 相对路径, 迁移无需修改)
         (注意: C:\Users\Administrator\Desktop\java-main 与 C:\Users\Administrator\Desktop\springBootTest 都是旧副本, 别搞混)
 - 技术栈: Spring Boot 3.4.5 + Java 21 (Zulu) + MyBatis-Plus + MySQL
-- 数据库: localhost:3306, 用户 root, 密码 123456, 库名 aurora (表 app_user 会自动初始化; 注册已改为图形验证码, 无邮箱/邮件验证码)
+- 数据库: localhost:3306, 用户 root, 密码见 application-local.properties(DB_PASSWORD), 库名 aurora (表 app_user 会自动初始化; 注册已改为图形验证码, 无邮箱/邮件验证码)
 - 启动后端口 8081, profile=dev, 访问 http://localhost:8081/
 - 前端项目(独立目录): D:\workSpace\java\java-main\login-vue (Vue 3 + Vite, 端口 5173, /api 已代理到后端 8081; 是否走真实后端取决 .env.local 的 VITE_USE_MOCK, 见坑 7)
 - 本机每次开机重置: node_modules 和 target 会被删除, 脚本不依赖这两个文件夹 (前端缺 node_modules 时 start-all.bat 会自动 npm install)
@@ -35,8 +35,8 @@ bash 手动启动后端:
 7. 【前后端没连上】先看 login-vue 的 .env.local —— 它优先级高于 .env, 其中 VITE_USE_MOCK 写成 true 时, 前端走纯 localStorage mock, 后端一个请求都收不到 (现象: 页面能注册登录, 但数据库里没数据).
    快速判定当前运行模式: curl -s --noproxy "*" http://localhost:5173/src/api/auth.js | head -1 看 "VITE_USE_MOCK" 是 "true" 还是 "false".
    改完 env 必须重启 npm run dev 才生效.
-   反向确认真的打到后端了: mysql -uroot -p123456 -e "SELECT id,username,email,LEFT(password,7),created_at FROM aurora.app_user\G" —— password 是 $2a$10$ 开头的 BCrypt(长 60)就说明是后端写的库.
-8. 【验证接口用 localhost, 不要用 127.0.0.1】本机注入了 HTTP_PROXY/HTTPS_PROXY=http://127.0.0.1:63380: 访问 http://127.0.0.1:5173/ 会被代理拦截返回 502(极易误判成前端挂了), 而加 --noproxy "*" 绕开代理后, 又会因 Vite 只监听 IPv6 [::1] 返回 000. 统一用 localhost: 8081 / 5173 都正常.
+   反向确认真的打到后端了: mysql -uroot -p$DB_PASSWORD -e "SELECT id,username,email,LEFT(password,7),created_at FROM aurora.app_user\G" —— password 是 $2a$10$ 开头的 BCrypt(长 60)就说明是后端写的库.
+8. 【验证接口用 localhost, 不要用 127.0.0.1】本机注入了 HTTP_PROXY/HTTPS_PROXY=http://<本机代理>:63380: 访问 http://127.0.0.1:5173/ 会被代理拦截返回 502(极易误判成前端挂了), 而加 --noproxy "*" 绕开代理后, 又会因 Vite 只监听 IPv6 [::1] 返回 000. 统一用 localhost: 8081 / 5173 都正常.
 9. 【跑 scripts/test_auth.sh 会中途静默退出】脚本开头是 set -e, 而脚本里用了 curl -o /dev/null; 在本机沙箱里 curl 只能写项目目录内的文件, 写 /dev/null 或 /tmp 会返回退出码 23 (响应体在 -w 之后才写, 所以现象是"打印看着正常, 但脚本没了").
 10. 【注册改为图形验证码】2026-10 起注册不再收集邮箱:去掉了 email 输入框与邮件验证码(MailService/EmailCode/email_code 表已删), 改用图形验证码(CaptchaService, 内存 Map + 一次性消费 + 5 分钟过期). app_user.email 列已改为可空(NULL), 历史账号仍可邮箱登录. 接口: GET /api/auth/captcha -> {ok, captchaId, image(data URI), ttl}; POST /api/auth/register {username, password, nickname?, captchaId, captchaCode}.
    典型现象: 只输出到 "========== 0) 健康检查 ==========" 就结束.

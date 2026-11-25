@@ -27,7 +27,8 @@ const FALLBACK_CATEGORIES = [
       { name: '英国短毛猫', image: '/images/pets/cat_british.png', desc: '圆脸胖墩，慵懒小可爱' },
       { name: '缅因猫', image: '/images/pets/cat_maine.png', desc: '体型巨大，温柔的毛毛怪' },
       { name: '橘猫', image: '/images/pets/cat_orange.png', desc: '十橘九胖，干饭第一名' },
-      { name: '暹罗猫', image: '/images/pets/cat_siamese.png', desc: '话痨小煤球，超爱撒娇' }
+      { name: '暹罗猫', image: '/images/pets/cat_siamese.png', desc: '话痨小煤球，超爱撒娇' },
+      { name: '三花猫', image: '/images/pets/cat_calico.png', desc: '三色小仙女，温柔又亲人' }
     ]
   },
   {
@@ -41,7 +42,8 @@ const FALLBACK_CATEGORIES = [
       { name: '金毛', image: '/images/pets/dog_golden.png', desc: '暖男代表，温柔大暖炉' },
       { name: '柴犬', image: '/images/pets/dog_shiba.png', desc: '表情包担当，倔强又可爱' },
       { name: '哈士奇', image: '/images/pets/dog_husky.png', desc: '行走的拆迁队，二哈本哈' },
-      { name: '边牧', image: '/images/pets/dog_border.png', desc: '狗界智商天花板，运动健将' }
+      { name: '边牧', image: '/images/pets/dog_border.png', desc: '狗界智商天花板，运动健将' },
+      { name: '泰迪', image: '/images/pets/dog_poodle.png', desc: '卷毛小玩偶，机灵又粘人' }
     ]
   },
   {
@@ -54,7 +56,9 @@ const FALLBACK_CATEGORIES = [
       { name: '仓鼠', image: '/images/pets/hamster.png', desc: '腮帮子仓库，囤粮小能手' },
       { name: '龙猫', image: '/images/pets/small_chinchilla.png', desc: '软糯棉花糖，怕热小公主' },
       { name: '兔子', image: '/images/pets/small_rabbit.png', desc: '长耳吃货，安静又软萌' },
-      { name: '荷兰猪', image: '/images/pets/small_guinea.png', desc: '咕咕叫的小胖墩，超亲人' }
+      { name: '荷兰猪', image: '/images/pets/small_guinea.png', desc: '咕咕叫的小胖墩，超亲人' },
+      { name: '蜜袋鼯', image: '/images/pets/small_sugar_glider.png', desc: '会飞的小糖果，夜里撒娇' },
+      { name: '沙鼠', image: '/images/pets/small_gerbil.png', desc: '捧着瓜子的小圆球，爱囤粮' }
     ]
   },
   {
@@ -67,7 +71,9 @@ const FALLBACK_CATEGORIES = [
       { name: '鹦鹉', image: '/images/pets/bird.png', desc: '模仿达人，话痨小歌手' },
       { name: '文鸟', image: '/images/pets/bird_bunting.png', desc: '圆滚滚小白团，安静温顺' },
       { name: '玄凤', image: '/images/pets/bird_cockatiel.png', desc: '黄冠腮红，吹口哨高手' },
-      { name: '鸽子', image: '/images/pets/bird_pigeon.png', desc: '和平使者，咕咕小邮差' }
+      { name: '鸽子', image: '/images/pets/bird_pigeon.png', desc: '和平使者，咕咕小邮差' },
+      { name: '虎皮鹦鹉', image: '/images/pets/bird_budgie.png', desc: '斑纹小歌手，学舌小天才' },
+      { name: '牡丹鹦鹉', image: '/images/pets/bird_lovebird.png', desc: '粉色小情侣，甜到犯规' }
     ]
   },
   {
@@ -80,7 +86,54 @@ const FALLBACK_CATEGORIES = [
       { name: '金鱼', image: '/images/pets/fish.png', desc: '圆肚小福星，慢悠悠摆尾' },
       { name: '锦鲤', image: '/images/pets/fish_koi.png', desc: '好运象征，池中花团锦簇' },
       { name: '斗鱼', image: '/images/pets/fish_betta.png', desc: '飘逸长鳍，孤傲小武士' },
-      { name: '热带鱼', image: '/images/pets/fish_tropical.png', desc: '色彩斑斓，群游小精灵' }
+      { name: '热带鱼', image: '/images/pets/fish_tropical.png', desc: '色彩斑斓，群游小精灵' },
+      { name: '孔雀鱼', image: '/images/pets/fish_guppy.png', desc: '拖着彩虹裙摆，水中舞娘' },
+      { name: '小丑鱼', image: '/images/pets/fish_clownfish.png', desc: '橙白小丑服，海葵里捉迷藏' }
+    ]
+  },
+  {
+    id: 'reptile',
+    name: '爬宠',
+    icon: '爬',
+    color: '#2eb872',
+    image: '/images/pets/reptile.png',
+    breeds: [
+      { name: '乌龟', image: '/images/pets/reptile_turtle.png', desc: '慢悠悠的小寿星，背壳藏着小宇宙' },
+      { name: '蜥蜴', image: '/images/pets/reptile_lizard.png', desc: '攀爬小能手，鳞片闪着微光' },
+      { name: '守宫', image: '/images/pets/reptile_gecko.png', desc: '豹纹小可爱，夜里睁着大眼睛' },
+      { name: '陆龟', image: '/images/pets/reptile_tortoise.png', desc: '背着小房子的慢悠悠旅行家' },
+      { name: '变色龙', image: '/images/pets/reptile_chameleon.png', desc: '伪装大师，情绪写在身上' },
+      { name: '玉米蛇', image: '/images/pets/reptile_cornsnake.png', desc: '橙白小玉米，温顺不吓人' }
+    ]
+  },
+  {
+    id: 'exotic',
+    name: '异宠',
+    icon: '奇',
+    color: '#b06ad6',
+    image: '/images/pets/exotic.png',
+    breeds: [
+      { name: '刺猬', image: '/images/pets/exotic_hedgehog.png', desc: '软刺小团子，捧着苹果撒娇' },
+      { name: '狐狸', image: '/images/pets/exotic_fox.png', desc: '蓬松大尾巴，机灵又黏人' },
+      { name: '浣熊', image: '/images/pets/exotic_raccoon.png', desc: '黑眼罩小淘气，洗东西爱好者' },
+      { name: '耳廓狐', image: '/images/pets/exotic_fennec.png', desc: '大耳朵小雷达，沙漠萌主' },
+      { name: '水獭', image: '/images/pets/exotic_otter.png', desc: '抱着贝壳仰泳，撒娇高手' },
+      { name: '雪貂', image: '/images/pets/exotic_ferret.png', desc: '细长小懒虫，蜷成团秒睡' }
+    ]
+  },
+  {
+    id: 'farm',
+    name: '农场萌宠',
+    icon: '牧',
+    color: '#e8a33d',
+    image: '/images/pets/farm.png',
+    breeds: [
+      { name: '小羊', image: '/images/pets/farm_sheep.png', desc: '卷卷羊毛云朵，咩咩叫的小甜心' },
+      { name: '小猪', image: '/images/pets/farm_pig.png', desc: '圆滚滚小粉团，卷尾巴小懒虫' },
+      { name: '小鸭', image: '/images/pets/farm_duck.png', desc: '黄茸茸小水手，摇摇摆摆跟着走' },
+      { name: '小牛', image: '/images/pets/farm_calf.png', desc: '黑白花小奶球，叼着三叶草' },
+      { name: '小马', image: '/images/pets/farm_pony.png', desc: '蓬松小鬃毛，哒哒哒跑圈圈' },
+      { name: '小鹅', image: '/images/pets/farm_gosling.png', desc: '毛茸茸小管家，嘎嘎嘎巡逻' }
     ]
   }
 ]

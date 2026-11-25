@@ -11,7 +11,7 @@
  Target Server Version : 80039 (8.0.39)
  File Encoding         : 65001
 
- Date: 23/11/2026 11:40:35
+ Date: 25/11/2026 09:53:46
 */
 
 SET NAMES utf8mb4;
@@ -35,7 +35,7 @@ CREATE TABLE `app_user`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_username`(`username` ASC) USING BTREE,
   UNIQUE INDEX `uk_email`(`email` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 11 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户账户' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 15 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户账户' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of app_user
@@ -44,6 +44,10 @@ INSERT INTO `app_user` VALUES (3, 'eee', NULL, '33', NULL, NULL, '$2a$10$VQnTzzP
 INSERT INTO `app_user` VALUES (4, 'rrr', NULL, '44', NULL, NULL, '$2a$10$h45hCRiZST2bSXHXi/r4VuCu3XbdVIrBuK3sSvVpzslicUrtV/z5O', '2026-10-23 16:48:40', '2026-10-23 16:48:40', 1);
 INSERT INTO `app_user` VALUES (5, 'admin', 'admin@aurora.pet', '管理员', '2026-01-01', '[\"猫奴\",\"吃货\"]', '$2a$10$U8MRD3K.TdOWSYHAWpCqEezfXpoSKbDJ5y9uM1hg5.l1QGkreQDB6', '2026-10-26 11:04:18', '2026-11-16 11:24:13', 0);
 INSERT INTO `app_user` VALUES (6, 'qqq', NULL, '11', NULL, NULL, '$2a$10$mhowlnAVZzB7maCQLPpNN.odqhLWW5XDyoCTNa5yFsJkNw20M7r/S', '2026-10-28 08:58:05', '2026-10-28 08:58:05', 0);
+INSERT INTO `app_user` VALUES (11, 'Jelee_178', NULL, '渔舟唱晚', '2007-02-07', NULL, '$2a$10$YRWIvNpFYIn3W0ra9Y6mmOcuTmf3/5n9f9ouGM7t98vrEndHu7cSu', '2026-11-25 08:46:26', '2026-11-25 08:50:23', 1);
+INSERT INTO `app_user` VALUES (12, 'wwwww', NULL, NULL, NULL, NULL, '$2a$10$d7CH9PYTHqFR64w.uoSPgeemBNCxmR3DMlHbQ/Gze0IIsjcOR.2iy', '2026-11-25 08:48:07', '2026-11-25 08:48:07', 0);
+INSERT INTO `app_user` VALUES (13, 'yyyy', NULL, 'yyy', NULL, NULL, '$2a$10$rj9Pmc0skVjCsObz7x/I1.Pc/dutERkm3O2mVY6Iq8clqX/0vyyDq', '2026-11-25 08:48:12', '2026-11-25 08:48:12', 1);
+INSERT INTO `app_user` VALUES (14, 'Abc', NULL, 'Abc', NULL, NULL, '$2a$10$PH3YR2ASHMm5Dft12OqFFuIOLBSGLm2jlxqo9zxnnd8QW6nCHc23a', '2026-11-25 08:49:44', '2026-11-25 08:49:44', 1);
 
 -- ----------------------------
 -- Table structure for pet
@@ -69,12 +73,15 @@ CREATE TABLE `pet`  (
 -- ----------------------------
 -- Records of pet
 -- ----------------------------
-INSERT INTO `pet` VALUES ('p1a1b1f65c92245', 'eee', 'cat', '???', 'hatched', 22, 54, 86, 1793987075218, 1793987082135, 0, 1795160875866);
-INSERT INTO `pet` VALUES ('p1a1c816e6c9dbe', 'admin', 'hamster', '11', 'hatched', 48, 79, 95, 1794358306505, 1794358379454, 1794799497289, 1794799481128);
-INSERT INTO `pet` VALUES ('p1a1e263078341e0', 'admin', 'rabbit', '垂耳兔', 'hatched', 22, 98, 89, 1794799503235, 1794799522278, 1795161676516, 1795161667540);
-INSERT INTO `pet` VALUES ('p1a1f7fa2764a0b8', 'admin', 'fish', '小金鱼', 'hatched', 7, 58, 84, 1795161728868, 1795161751638, 0, 1795162378697);
-INSERT INTO `pet` VALUES ('p1a1f7fb7ebc664a', 'rrr', 'bird', '玄凤鹦鹉', 'hatched', 6, 83, 83, 1795161816764, 1795161834183, 1795162053934, 0);
-INSERT INTO `pet` VALUES ('p1a1f7fc1311b630', 'rrr', 'dog', '小柯基', 'hatched', 5, 58, 80, 1795161854737, 1795161915836, 0, 1795162041861);
+INSERT INTO `pet` VALUES ('p1a1b1f65c92245', 'eee', 'cat', '???', 'hatched', 22, 51, 83, 1793987075218, 1793987082135, 0, 1795160875866);
+INSERT INTO `pet` VALUES ('p1a1c816e6c9dbe', 'admin', 'hamster', '11', 'hatched', 48, 76, 92, 1794358306505, 1794358379454, 1794799497289, 1794799481128);
+INSERT INTO `pet` VALUES ('p1a1e263078341e0', 'admin', 'rabbit', '垂耳兔', 'hatched', 22, 95, 86, 1794799503235, 1794799522278, 1795161676516, 1795161667540);
+INSERT INTO `pet` VALUES ('p1a1f7fa2764a0b8', 'admin', 'fish', '小金鱼', 'hatched', 7, 55, 81, 1795161728868, 1795161751638, 0, 1795162378697);
+INSERT INTO `pet` VALUES ('p1a1f7fb7ebc664a', 'rrr', 'bird', '玄凤鹦鹉', 'hatched', 6, 80, 80, 1795161816764, 1795161834183, 1795162053934, 0);
+INSERT INTO `pet` VALUES ('p1a1f7fc1311b630', 'rrr', 'dog', '小柯基', 'hatched', 5, 55, 77, 1795161854737, 1795161915836, 0, 1795162041861);
+INSERT INTO `pet` VALUES ('p1a2102c2dc4b25', 'admin', 'cat', '布偶猫', 'hatched', 14, 83, 87, 1795567660484, 1795567676906, 1795567689943, 1795567688671);
+INSERT INTO `pet` VALUES ('p1a2102cfab053fe', 'Jelee_178', 'cat', '布偶猫', 'egg', 0, 60, 80, 1795567712944, NULL, 0, 0);
+INSERT INTO `pet` VALUES ('p1a2102ea652dd05', 'Abc', 'cat', '布偶猫', 'hatched', 12, 59, 89, 1795567822418, 1795567867228, 0, 1795567871102);
 
 -- ----------------------------
 -- Table structure for pet_achievement_claim
@@ -87,12 +94,14 @@ CREATE TABLE `pet_achievement_claim`  (
   `claimed_at` bigint NOT NULL COMMENT '领取时间戳',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_achv_claim`(`user_key` ASC, `achievement_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '成就奖励领取记录(每用户每成就一次)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '成就奖励领取记录(每用户每成就一次)' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_achievement_claim
 -- ----------------------------
 INSERT INTO `pet_achievement_claim` VALUES (2, 'admin', 'hatch1', 1795405205540);
+INSERT INTO `pet_achievement_claim` VALUES (3, 'admin', 'friends3', 1795568878771);
+INSERT INTO `pet_achievement_claim` VALUES (4, 'admin', 'pets3', 1795568879842);
 
 -- ----------------------------
 -- Table structure for pet_breed
@@ -110,7 +119,7 @@ CREATE TABLE `pet_breed`  (
   `suitable_for` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_category_sort`(`category_id` ASC, `sort_no` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 25 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '宠物品种目录' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 51 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '宠物品种目录' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_breed
@@ -137,6 +146,32 @@ INSERT INTO `pet_breed` VALUES (19, 'fish', '金鱼', '/images/pets/fish.png', '
 INSERT INTO `pet_breed` VALUES (20, 'fish', '锦鲤', '/images/pets/fish_koi.png', '好运象征，池中花团锦簇', 2, NULL, NULL, NULL);
 INSERT INTO `pet_breed` VALUES (21, 'fish', '斗鱼', '/images/pets/fish_betta.png', '飘逸长鳍，孤傲小武士', 3, NULL, NULL, NULL);
 INSERT INTO `pet_breed` VALUES (22, 'fish', '热带鱼', '/images/pets/fish_tropical.png', '色彩斑斓，群游小精灵', 4, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (25, 'reptile', '乌龟', '/images/pets/reptile_turtle.png', '慢悠悠的小寿星，背壳藏着小宇宙', 1, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (26, 'reptile', '蜥蜴', '/images/pets/reptile_lizard.png', '攀爬小能手，鳞片闪着微光', 2, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (27, 'reptile', '守宫', '/images/pets/reptile_gecko.png', '豹纹小可爱，夜里睁着大眼睛', 3, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (28, 'exotic', '刺猬', '/images/pets/exotic_hedgehog.png', '软刺小团子，捧着苹果撒娇', 1, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (29, 'exotic', '狐狸', '/images/pets/exotic_fox.png', '蓬松大尾巴，机灵又黏人', 2, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (30, 'exotic', '浣熊', '/images/pets/exotic_raccoon.png', '黑眼罩小淘气，洗东西爱好者', 3, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (31, 'farm', '小羊', '/images/pets/farm_sheep.png', '卷卷羊毛云朵，咩咩叫的小甜心', 1, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (32, 'farm', '小猪', '/images/pets/farm_pig.png', '圆滚滚小粉团，卷尾巴小懒虫', 2, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (33, 'farm', '小鸭', '/images/pets/farm_duck.png', '黄茸茸小水手，摇摇摆摆跟着走', 3, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (34, 'cat', '三花猫', '/images/pets/cat_calico.png', '三色小仙女，温柔又亲人', 6, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (35, 'dog', '泰迪', '/images/pets/dog_poodle.png', '卷毛小玩偶，机灵又粘人', 6, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (36, 'small', '蜜袋鼯', '/images/pets/small_sugar_glider.png', '会飞的小糖果，夜里撒娇', 5, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (37, 'small', '沙鼠', '/images/pets/small_gerbil.png', '捧着瓜子的小圆球，爱囤粮', 6, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (38, 'bird', '虎皮鹦鹉', '/images/pets/bird_budgie.png', '斑纹小歌手，学舌小天才', 5, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (39, 'bird', '牡丹鹦鹉', '/images/pets/bird_lovebird.png', '粉色小情侣，甜到犯规', 6, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (40, 'fish', '孔雀鱼', '/images/pets/fish_guppy.png', '拖着彩虹裙摆，水中舞娘', 5, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (41, 'fish', '小丑鱼', '/images/pets/fish_clownfish.png', '橙白小丑服，海葵里捉迷藏', 6, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (42, 'reptile', '陆龟', '/images/pets/reptile_tortoise.png', '背着小房子的慢悠悠旅行家', 4, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (43, 'reptile', '变色龙', '/images/pets/reptile_chameleon.png', '伪装大师，情绪写在身上', 5, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (44, 'reptile', '玉米蛇', '/images/pets/reptile_cornsnake.png', '橙白小玉米，温顺不吓人', 6, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (45, 'exotic', '耳廓狐', '/images/pets/exotic_fennec.png', '大耳朵小雷达，沙漠萌主', 4, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (46, 'exotic', '水獭', '/images/pets/exotic_otter.png', '抱着贝壳仰泳，撒娇高手', 5, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (47, 'exotic', '雪貂', '/images/pets/exotic_ferret.png', '细长小懒虫，蜷成团秒睡', 6, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (48, 'farm', '小牛', '/images/pets/farm_calf.png', '黑白花小奶球，叼着三叶草', 4, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (49, 'farm', '小马', '/images/pets/farm_pony.png', '蓬松小鬃毛，哒哒哒跑圈圈', 5, NULL, NULL, NULL);
+INSERT INTO `pet_breed` VALUES (50, 'farm', '小鹅', '/images/pets/farm_gosling.png', '毛茸茸小管家，嘎嘎嘎巡逻', 6, NULL, NULL, NULL);
 
 -- ----------------------------
 -- Table structure for pet_category
@@ -159,7 +194,10 @@ CREATE TABLE `pet_category`  (
 INSERT INTO `pet_category` VALUES ('bird', '鸟类', '啾', '#3ec4a8', '/images/pets/bird.png', 4);
 INSERT INTO `pet_category` VALUES ('cat', '猫类', '喵', '#ff6fa8', '/images/pets/cat.png', 1);
 INSERT INTO `pet_category` VALUES ('dog', '狗类', '汪', '#ff8a5c', '/images/pets/dog.png', 2);
+INSERT INTO `pet_category` VALUES ('exotic', '异宠', '奇', '#b06ad6', '/images/pets/exotic.png', 7);
+INSERT INTO `pet_category` VALUES ('farm', '农场萌宠', '牧', '#e8a33d', '/images/pets/farm.png', 8);
 INSERT INTO `pet_category` VALUES ('fish', '水族', '鱼', '#4ab3e8', '/images/pets/fish.png', 5);
+INSERT INTO `pet_category` VALUES ('reptile', '爬宠', '爬', '#2eb872', '/images/pets/reptile.png', 6);
 INSERT INTO `pet_category` VALUES ('small', '小宠', '啮', '#8b7bff', '/images/pets/hamster.png', 3);
 
 -- ----------------------------
@@ -197,7 +235,7 @@ CREATE TABLE `pet_friend`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_owner_friend`(`owner_key` ASC, `friend_key` ASC) USING BTREE,
   INDEX `idx_owner_status`(`owner_key` ASC, `status` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 11 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '好友关系' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 21 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '好友关系' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_friend
@@ -212,6 +250,16 @@ INSERT INTO `pet_friend` VALUES (7, 'qqq', 'eee', '33', 'friend', 'post', '2026-
 INSERT INTO `pet_friend` VALUES (8, 'qqq', 'rrr', '44', 'pending', 'comment', '2026-10-28 08:59:34', NULL);
 INSERT INTO `pet_friend` VALUES (9, 'eee', 'qqq', '11', 'friend', 'post', '2026-10-28 08:59:53', '2026-10-28 08:59:53');
 INSERT INTO `pet_friend` VALUES (10, 'eee', 'admin', '管理员', 'friend', 'post', '2026-10-28 08:59:53', '2026-10-28 08:59:53');
+INSERT INTO `pet_friend` VALUES (11, 'wwwww', 'eee', '33', 'pending', 'post', '2026-11-25 08:48:31', NULL);
+INSERT INTO `pet_friend` VALUES (12, 'wwwww', 'rrr', '44', 'pending', 'comment', '2026-11-25 08:48:38', NULL);
+INSERT INTO `pet_friend` VALUES (13, 'wwwww', 'admin', '管理员', 'friend', 'comment', '2026-11-25 08:48:39', '2026-11-25 09:05:46');
+INSERT INTO `pet_friend` VALUES (14, 'yyyy', 'rrr', '44', 'pending', 'comment', '2026-11-25 08:49:05', NULL);
+INSERT INTO `pet_friend` VALUES (15, 'yyyy', 'admin', '管理员', 'friend', 'comment', '2026-11-25 08:49:06', '2026-11-25 09:05:37');
+INSERT INTO `pet_friend` VALUES (16, 'yyyy', 'eee', '33', 'pending', 'post', '2026-11-25 08:49:09', NULL);
+INSERT INTO `pet_friend` VALUES (17, 'wwwww', 'yyyy', 'yyy', 'friend', 'comment', '2026-11-25 08:50:27', '2026-11-25 08:50:36');
+INSERT INTO `pet_friend` VALUES (18, 'yyyy', 'wwwww', 'wwwww', 'friend', 'comment', '2026-11-25 08:50:36', '2026-11-25 08:50:36');
+INSERT INTO `pet_friend` VALUES (19, 'admin', 'yyyy', 'yyy', 'friend', 'comment', '2026-11-25 09:05:37', '2026-11-25 09:05:37');
+INSERT INTO `pet_friend` VALUES (20, 'admin', 'wwwww', 'wwwww', 'friend', 'comment', '2026-11-25 09:05:46', '2026-11-25 09:05:46');
 
 -- ----------------------------
 -- Table structure for pet_gift_log
@@ -228,7 +276,7 @@ CREATE TABLE `pet_gift_log`  (
   UNIQUE INDEX `uk_gift`(`user_key` ASC, `friend_key` ASC, `gift_date` ASC) USING BTREE,
   INDEX `idx_gift_recipient`(`friend_key` ASC, `status` ASC) USING BTREE,
   INDEX `idx_gift_user`(`user_key` ASC, `gift_date` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 7 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '好友赠送记录（真实赠送/领取）' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 10 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '好友赠送记录（真实赠送/领取）' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_gift_log
@@ -238,6 +286,9 @@ INSERT INTO `pet_gift_log` VALUES (3, 'admin', 'eee', '2026-11-20', 'claimed', 1
 INSERT INTO `pet_gift_log` VALUES (4, 'eee', 'admin', '2026-11-20', 'claimed', 1795160926900);
 INSERT INTO `pet_gift_log` VALUES (5, 'eee', 'qqq', '2026-11-20', 'pending', NULL);
 INSERT INTO `pet_gift_log` VALUES (6, 'eee', 'rrr', '2026-11-20', 'claimed', 1795161914262);
+INSERT INTO `pet_gift_log` VALUES (7, 'admin', 'eee', '2026-11-25', 'pending', NULL);
+INSERT INTO `pet_gift_log` VALUES (8, 'admin', 'yyyy', '2026-11-25', 'pending', NULL);
+INSERT INTO `pet_gift_log` VALUES (9, 'admin', 'wwwww', '2026-11-25', 'pending', NULL);
 
 -- ----------------------------
 -- Table structure for pet_interact_log
@@ -250,7 +301,7 @@ CREATE TABLE `pet_interact_log`  (
   `interact_count` int NOT NULL DEFAULT 0 COMMENT '当日已摸次数',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_interact`(`user_key` ASC, `interact_date` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 8 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '每日互动次数' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 10 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '每日互动次数' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_interact_log
@@ -261,6 +312,8 @@ INSERT INTO `pet_interact_log` VALUES (4, 'admin', '2026-11-16', 5);
 INSERT INTO `pet_interact_log` VALUES (5, 'admin', '2026-11-20', 5);
 INSERT INTO `pet_interact_log` VALUES (6, 'eee', '2026-11-20', 1);
 INSERT INTO `pet_interact_log` VALUES (7, 'rrr', '2026-11-20', 1);
+INSERT INTO `pet_interact_log` VALUES (8, 'admin', '2026-11-25', 2);
+INSERT INTO `pet_interact_log` VALUES (9, 'Abc', '2026-11-25', 5);
 
 -- ----------------------------
 -- Table structure for pet_knowledge
@@ -283,9 +336,9 @@ CREATE TABLE `pet_knowledge`  (
 -- ----------------------------
 -- Records of pet_knowledge
 -- ----------------------------
-INSERT INTO `pet_knowledge` VALUES (1, 'cat', '新手养猫入门清单', '接猫回家前该准备什么、第一周怎么过渡，一篇说清。', '[\"新手\",\"准备\",\"用品\"]', '[{\"h\":\"接猫前的准备\",\"p\":\"提前备好猫粮（先问原主人喂的是什么牌子，避免突然换粮导致腹泻）、猫砂盆、猫砂、食盆水盆、猫抓板和一个可以让猫躲起来的半封闭窝。房间收好电线、百合花（对猫剧毒）和小零件。\"},{\"h\":\"到家第一周\",\"p\":\"把猫放到一个安静的小房间里，打开航空箱让它自己出来，不要强行抱或追。前几天只在这一个房间活动，吃喝如厕正常、开始主动探索后再逐步开放其他区域。\"},{\"h\":\"换粮要慢\",\"p\":\"换粮用 7 天过渡法：新粮比例从 25% 逐步加到 100%，混着喂，肠胃最不容易出问题。\"}]', 9, '2026-10-28 09:45:49', '2026-11-16 11:36:24');
-INSERT INTO `pet_knowledge` VALUES (2, 'cat', '猫咪疫苗时间表', '猫三联、狂犬疫苗什么时候打、要不要每年补一针。', '[\"疫苗\",\"健康\",\"幼猫\"]', '[{\"h\":\"基础免疫\",\"p\":\"幼猫 8-9 周龄打第一针猫三联（防猫瘟、杯状病毒、疱疹病毒），之后每隔 3-4 周各补一针，共 2-3 针；最后一针在 16 周龄以后打完。狂犬疫苗一般 12 周龄后接种一针。\"},{\"h\":\"加强针\",\"p\":\"成年猫之后每 1-3 年加强一次，具体听兽医根据抗体水平和生活方式评估，室内猫和散养猫的方案不一样。\"},{\"h\":\"注意事项\",\"p\":\"疫苗要在健康状态下接种，感冒、拉肚子期间先治病。打完针留院观察 20-30 分钟再走。\"}]', 5, '2026-10-28 09:45:49', '2026-11-20 15:50:08');
-INSERT INTO `pet_knowledge` VALUES (3, 'cat', '猫咪驱虫这样做', '体内体外、频率多少、用什么药一次讲明白。', '[\"驱虫\",\"健康\"]', '[{\"h\":\"体外驱虫（跳蚤、虱子）\",\"p\":\"滴剂拨开后颈毛发滴在皮肤上，猫舔不到的位置。频率一般每月一次；纯室内猫且环境干净可以放宽到 1-2 个月一次。\"},{\"h\":\"体内驱虫（蛔虫、绦虫等）\",\"p\":\"幼猫 6、8、12 周龄各驱一次，之后每 3 个月一次；喂生骨肉或爱捕猎的猫要更勤。\"},{\"h\":\"用药注意\",\"p\":\"认准猫用驱虫药，犬用药物里的某些成分（如氯菊酯）对猫剧毒。体重决定剂量，用药前称一下体重。\"}]', 3, '2026-10-28 09:45:49', '2026-11-20 15:50:11');
+INSERT INTO `pet_knowledge` VALUES (1, 'cat', '新手养猫入门清单', '接猫回家前该准备什么、第一周怎么过渡，一篇说清。', '[\"新手\",\"准备\",\"用品\"]', '[{\"h\":\"接猫前的准备\",\"p\":\"提前备好猫粮（先问原主人喂的是什么牌子，避免突然换粮导致腹泻）、猫砂盆、猫砂、食盆水盆、猫抓板和一个可以让猫躲起来的半封闭窝。房间收好电线、百合花（对猫剧毒）和小零件。\"},{\"h\":\"到家第一周\",\"p\":\"把猫放到一个安静的小房间里，打开航空箱让它自己出来，不要强行抱或追。前几天只在这一个房间活动，吃喝如厕正常、开始主动探索后再逐步开放其他区域。\"},{\"h\":\"换粮要慢\",\"p\":\"换粮用 7 天过渡法：新粮比例从 25% 逐步加到 100%，混着喂，肠胃最不容易出问题。\"}]', 10, '2026-10-28 09:45:49', '2026-11-25 08:47:14');
+INSERT INTO `pet_knowledge` VALUES (2, 'cat', '猫咪疫苗时间表', '猫三联、狂犬疫苗什么时候打、要不要每年补一针。', '[\"疫苗\",\"健康\",\"幼猫\"]', '[{\"h\":\"基础免疫\",\"p\":\"幼猫 8-9 周龄打第一针猫三联（防猫瘟、杯状病毒、疱疹病毒），之后每隔 3-4 周各补一针，共 2-3 针；最后一针在 16 周龄以后打完。狂犬疫苗一般 12 周龄后接种一针。\"},{\"h\":\"加强针\",\"p\":\"成年猫之后每 1-3 年加强一次，具体听兽医根据抗体水平和生活方式评估，室内猫和散养猫的方案不一样。\"},{\"h\":\"注意事项\",\"p\":\"疫苗要在健康状态下接种，感冒、拉肚子期间先治病。打完针留院观察 20-30 分钟再走。\"}]', 6, '2026-10-28 09:45:49', '2026-11-25 08:47:23');
+INSERT INTO `pet_knowledge` VALUES (3, 'cat', '猫咪驱虫这样做', '体内体外、频率多少、用什么药一次讲明白。', '[\"驱虫\",\"健康\"]', '[{\"h\":\"体外驱虫（跳蚤、虱子）\",\"p\":\"滴剂拨开后颈毛发滴在皮肤上，猫舔不到的位置。频率一般每月一次；纯室内猫且环境干净可以放宽到 1-2 个月一次。\"},{\"h\":\"体内驱虫（蛔虫、绦虫等）\",\"p\":\"幼猫 6、8、12 周龄各驱一次，之后每 3 个月一次；喂生骨肉或爱捕猎的猫要更勤。\"},{\"h\":\"用药注意\",\"p\":\"认准猫用驱虫药，犬用药物里的某些成分（如氯菊酯）对猫剧毒。体重决定剂量，用药前称一下体重。\"}]', 4, '2026-10-28 09:45:49', '2026-11-25 08:47:26');
 INSERT INTO `pet_knowledge` VALUES (4, 'cat', '猫咪喂食与饮食禁忌', '喂多少次、喝多少水，以及那些绝对不能碰的东西。', '[\"喂食\",\"禁忌\",\"饮水\"]', '[{\"h\":\"喂食频率\",\"p\":\"幼猫（2-6 月龄）一天 3-4 顿少食多餐；成年猫一天 2-3 顿即可。定量定时比自由采食更容易监控食欲变化。\"},{\"h\":\"喝水很重要\",\"p\":\"猫天生不爱喝水，慢性缺水容易伤肾和泌尿系统。多放几个水碗、用水循环泵或喂湿粮罐头都能明显增加饮水量。\"},{\"h\":\"危险食物清单\",\"p\":\"巧克力、洋葱、大蒜、葡萄/葡萄干、木糖醇、酒精、生鸡蛋清都不能喂；百合花全株对猫剧毒，养猫家里不要出现。牛奶多数猫乳糖不耐受，喝了容易腹泻。\"}]', 2, '2026-10-28 09:45:49', '2026-10-30 15:58:18');
 INSERT INTO `pet_knowledge` VALUES (5, 'dog', '狗狗社会化黄金期', '3-14 周龄是性格塑造的关键窗口，错过很难补。', '[\"训练\",\"幼犬\",\"社会化\"]', '[{\"h\":\"什么是社会化\",\"p\":\"让幼犬在 3-14 周龄的敏感期里，安全地接触各种各样的人（戴帽子、打伞、小孩）、声音（吸尘器、雷声）、车辆和其他友善的狗，形成「这些都没什么大不了」的经验。\"},{\"h\":\"怎么做\",\"p\":\"每次接触保持短、愉快、可退出。幼犬主动想探索就鼓励，害怕就拉开距离，绝不硬塞。疫苗没打齐前可以抱着出门看世界，不落地也有用。\"},{\"h\":\"错过会怎样\",\"p\":\"缺乏社会化的狗成年后更容易胆小、敏感、对陌生人和狗过度反应，后天改善需要花数倍的时间。\"}]', 1, '2026-10-28 09:45:49', '2026-10-28 09:47:17');
 INSERT INTO `pet_knowledge` VALUES (6, 'dog', '狗狗绝对不能吃的食物', '很多人食对狗有毒，这份黑名单请背下来。', '[\"食物\",\"禁忌\",\"安全\"]', '[{\"h\":\"高危食物\",\"p\":\"巧克力和咖啡因（可可碱中毒）、葡萄和葡萄干（急性肾衰）、木糖醇（口香糖、部分花生酱，血糖骤降）、洋葱大蒜（溶血）、酒精、夏威夷果。\"},{\"h\":\"容易被忽视的\",\"p\":\"煮熟的鸡鸭骨头会碎裂成尖刺，容易划伤食道；玉米芯、果核有噎住和梗阻风险；高盐高油的剩饭菜长期吃会伤胰腺和肾脏。\"},{\"h\":\"误食了怎么办\",\"p\":\"记下吃了什么、大概多少量、什么时候吃的，立刻联系宠物医院，2 小时内催吐效果最好，不要自己乱喂家庭药品。\"}]', 1, '2026-10-28 09:45:49', '2026-10-30 16:49:28');
@@ -315,7 +368,7 @@ CREATE TABLE `pet_message`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_owner_peer`(`owner_key` ASC, `peer_key` ASC) USING BTREE,
   INDEX `idx_owner_created`(`owner_key` ASC, `created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 23 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户私信消息' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 35 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户私信消息' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_message
@@ -342,6 +395,18 @@ INSERT INTO `pet_message` VALUES (19, 'eee', 'admin', '管理员', 'eee', '33', 
 INSERT INTO `pet_message` VALUES (20, 'admin', 'eee', '33', 'eee', '33', '1', 1, '2026-10-30 16:35:03');
 INSERT INTO `pet_message` VALUES (21, 'eee', 'admin', '管理员', 'eee', '33', 'j', 1, '2026-10-30 16:35:04');
 INSERT INTO `pet_message` VALUES (22, 'admin', 'eee', '33', 'eee', '33', 'j', 1, '2026-10-30 16:35:04');
+INSERT INTO `pet_message` VALUES (23, 'admin', 'eee', '33', 'admin', '管理员', 'sdsd', 1, '2026-11-25 08:48:57');
+INSERT INTO `pet_message` VALUES (24, 'eee', 'admin', '管理员', 'admin', '管理员', 'sdsd', 0, '2026-11-25 08:48:57');
+INSERT INTO `pet_message` VALUES (25, 'wwwww', 'yyyy', 'yyy', 'wwwww', 'wwwww', 'lllllll', 1, '2026-11-25 08:50:48');
+INSERT INTO `pet_message` VALUES (26, 'yyyy', 'wwwww', 'wwwww', 'wwwww', 'wwwww', 'lllllll', 0, '2026-11-25 08:50:48');
+INSERT INTO `pet_message` VALUES (27, 'admin', 'wwwww', 'wwwww', 'admin', '管理员', 'shazi', 1, '2026-11-25 09:05:53');
+INSERT INTO `pet_message` VALUES (28, 'wwwww', 'admin', '管理员', 'admin', '管理员', 'shazi', 0, '2026-11-25 09:05:53');
+INSERT INTO `pet_message` VALUES (29, 'admin', 'wwwww', 'wwwww', 'admin', '管理员', '啥子', 1, '2026-11-25 09:05:59');
+INSERT INTO `pet_message` VALUES (30, 'wwwww', 'admin', '管理员', 'admin', '管理员', '啥子', 0, '2026-11-25 09:05:59');
+INSERT INTO `pet_message` VALUES (31, 'admin', 'wwwww', 'wwwww', 'admin', '管理员', '傻子吧', 1, '2026-11-25 09:06:05');
+INSERT INTO `pet_message` VALUES (32, 'wwwww', 'admin', '管理员', 'admin', '管理员', '傻子吧', 0, '2026-11-25 09:06:05');
+INSERT INTO `pet_message` VALUES (33, 'admin', 'yyyy', 'yyy', 'admin', '管理员', '哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈', 1, '2026-11-25 09:06:31');
+INSERT INTO `pet_message` VALUES (34, 'yyyy', 'admin', '管理员', 'admin', '管理员', '哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈', 0, '2026-11-25 09:06:31');
 
 -- ----------------------------
 -- Table structure for pet_post
@@ -359,13 +424,14 @@ CREATE TABLE `pet_post`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_category`(`category` ASC) USING BTREE,
   INDEX `idx_created`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '社区帖子' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '社区帖子' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_post
 -- ----------------------------
 INSERT INTO `pet_post` VALUES (1, '1', '1', 'cat', '1', 'eee', '33', '2026-10-23 16:48:21');
 INSERT INTO `pet_post` VALUES (2, '测试帖', '身份校验后的真实发帖测试', 'cat', '', 'eee', '', '2026-11-16 11:14:36');
+INSERT INTO `pet_post` VALUES (3, '1', '1', 'cat', '1', 'yyyy', 'yyy', '2026-11-25 08:50:11');
 
 -- ----------------------------
 -- Table structure for pet_post_comment
@@ -382,7 +448,7 @@ CREATE TABLE `pet_post_comment`  (
   `reply_to_author` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_post`(`post_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 7 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '帖子评论' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 31 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '帖子评论' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_post_comment
@@ -393,6 +459,30 @@ INSERT INTO `pet_post_comment` VALUES (3, 1, 'admin', '管理员', '1', '2026-10
 INSERT INTO `pet_post_comment` VALUES (4, 1, 'admin', '管理员', '1', '2026-10-30 16:37:19', NULL, NULL);
 INSERT INTO `pet_post_comment` VALUES (5, 1, 'admin', '管理员', '22', '2026-10-30 16:41:17', NULL, NULL);
 INSERT INTO `pet_post_comment` VALUES (6, 1, 'admin', '管理员', 'ss', '2026-10-30 16:46:16', NULL, NULL);
+INSERT INTO `pet_post_comment` VALUES (7, 1, 'yyyy', 'yyy', 'dfgbfdff', '2026-11-25 08:48:55', NULL, NULL);
+INSERT INTO `pet_post_comment` VALUES (8, 1, 'yyyy', 'yyy', 'esagsgsg', '2026-11-25 08:48:56', NULL, NULL);
+INSERT INTO `pet_post_comment` VALUES (9, 1, 'yyyy', 'yyy', 'grwegsd', '2026-11-25 08:48:59', NULL, NULL);
+INSERT INTO `pet_post_comment` VALUES (10, 1, 'yyyy', 'yyy', 'dfvdv', '2026-11-25 08:49:29', NULL, NULL);
+INSERT INTO `pet_post_comment` VALUES (11, 1, 'yyyy', 'yyy', '11111', '2026-11-25 08:49:36', NULL, NULL);
+INSERT INTO `pet_post_comment` VALUES (12, 1, 'yyyy', 'yyy', '11111111111111111111111111', '2026-11-25 08:49:39', NULL, NULL);
+INSERT INTO `pet_post_comment` VALUES (13, 1, 'yyyy', 'yyy', '111111111111111111111', '2026-11-25 08:49:41', NULL, NULL);
+INSERT INTO `pet_post_comment` VALUES (14, 1, 'yyyy', 'yyy', '1111111111111111111111', '2026-11-25 08:49:43', NULL, NULL);
+INSERT INTO `pet_post_comment` VALUES (15, 1, 'yyyy', 'yyy', '111111111111111111111', '2026-11-25 08:49:45', NULL, NULL);
+INSERT INTO `pet_post_comment` VALUES (16, 1, 'yyyy', 'yyy', '111111111111111', '2026-11-25 08:49:48', NULL, NULL);
+INSERT INTO `pet_post_comment` VALUES (17, 1, 'yyyy', 'yyy', '1111111111111111111111', '2026-11-25 08:49:50', NULL, NULL);
+INSERT INTO `pet_post_comment` VALUES (18, 1, 'yyyy', 'yyy', '11111111111111111111', '2026-11-25 08:49:52', NULL, NULL);
+INSERT INTO `pet_post_comment` VALUES (19, 1, 'yyyy', 'yyy', '1111111111111111111111', '2026-11-25 08:49:54', NULL, NULL);
+INSERT INTO `pet_post_comment` VALUES (20, 1, 'yyyy', 'yyy', '111111111111111111111', '2026-11-25 08:49:57', NULL, NULL);
+INSERT INTO `pet_post_comment` VALUES (21, 3, 'yyyy', 'yyy', '11', '2026-11-25 08:50:16', NULL, NULL);
+INSERT INTO `pet_post_comment` VALUES (22, 3, 'yyyy', 'yyy', '11', '2026-11-25 08:50:17', NULL, NULL);
+INSERT INTO `pet_post_comment` VALUES (23, 3, 'yyyy', 'yyy', '111', '2026-11-25 08:50:19', NULL, NULL);
+INSERT INTO `pet_post_comment` VALUES (24, 3, 'yyyy', 'yyy', '11111111111111111', '2026-11-25 08:50:20', NULL, NULL);
+INSERT INTO `pet_post_comment` VALUES (25, 3, 'yyyy', 'yyy', '1111111111111111111', '2026-11-25 08:50:22', NULL, NULL);
+INSERT INTO `pet_post_comment` VALUES (26, 3, 'yyyy', 'yyy', '111111111111111111', '2026-11-25 08:50:24', NULL, NULL);
+INSERT INTO `pet_post_comment` VALUES (27, 3, 'yyyy', 'yyy', '1111111111111111111111', '2026-11-25 08:50:25', NULL, NULL);
+INSERT INTO `pet_post_comment` VALUES (28, 3, 'yyyy', 'yyy', '111111111111111111111111', '2026-11-25 08:50:27', NULL, NULL);
+INSERT INTO `pet_post_comment` VALUES (29, 3, 'yyyy', 'yyy', '111111111111111111111111111', '2026-11-25 08:50:29', NULL, NULL);
+INSERT INTO `pet_post_comment` VALUES (30, 3, 'yyyy', 'yyy', '1111111111111', '2026-11-25 08:50:31', NULL, NULL);
 
 -- ----------------------------
 -- Table structure for pet_post_favorite
@@ -423,7 +513,7 @@ CREATE TABLE `pet_post_like`  (
   `created_at` datetime NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_post_user`(`post_id` ASC, `user_key` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '帖子点赞' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '帖子点赞' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_post_like
@@ -431,6 +521,8 @@ CREATE TABLE `pet_post_like`  (
 INSERT INTO `pet_post_like` VALUES (1, 1, 'admin', '2026-10-30 16:36:45');
 INSERT INTO `pet_post_like` VALUES (2, 2, 'rrr', '2026-11-20 16:05:00');
 INSERT INTO `pet_post_like` VALUES (3, 1, 'rrr', '2026-11-20 16:05:04');
+INSERT INTO `pet_post_like` VALUES (4, 2, 'Jelee_178', '2026-11-25 08:47:01');
+INSERT INTO `pet_post_like` VALUES (5, 1, 'yyyy', '2026-11-25 08:49:32');
 
 -- ----------------------------
 -- Table structure for pet_post_media
@@ -514,7 +606,7 @@ CREATE TABLE `pet_task_progress`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_task`(`user_key` ASC, `task_id` ASC, `task_date` ASC) USING BTREE,
   INDEX `idx_task_user`(`user_key` ASC, `task_date` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 25 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '每日任务进度' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 36 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '每日任务进度' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pet_task_progress
@@ -536,6 +628,17 @@ INSERT INTO `pet_task_progress` VALUES (18, 'rrr', 'quiz', '2026-11-20', 1, 1);
 INSERT INTO `pet_task_progress` VALUES (19, 'rrr', 'walk', '2026-11-20', 1, 1);
 INSERT INTO `pet_task_progress` VALUES (20, 'rrr', 'jump', '2026-11-20', 1, 1);
 INSERT INTO `pet_task_progress` VALUES (21, 'rrr', 'like', '2026-11-20', 1, 1);
+INSERT INTO `pet_task_progress` VALUES (25, 'Jelee_178', 'like', '2026-11-25', 1, 1);
+INSERT INTO `pet_task_progress` VALUES (26, 'admin', 'sign', '2026-11-25', 1, 1);
+INSERT INTO `pet_task_progress` VALUES (27, 'admin', 'read', '2026-11-25', 1, 1);
+INSERT INTO `pet_task_progress` VALUES (28, 'Jelee_178', 'sign', '2026-11-25', 1, 1);
+INSERT INTO `pet_task_progress` VALUES (29, 'Jelee_178', 'jump', '2026-11-25', 1, 1);
+INSERT INTO `pet_task_progress` VALUES (30, 'yyyy', 'like', '2026-11-25', 1, 0);
+INSERT INTO `pet_task_progress` VALUES (31, 'yyyy', 'post', '2026-11-25', 1, 0);
+INSERT INTO `pet_task_progress` VALUES (32, 'Abc', 'sign', '2026-11-25', 1, 1);
+INSERT INTO `pet_task_progress` VALUES (33, 'Abc', 'read', '2026-11-25', 1, 1);
+INSERT INTO `pet_task_progress` VALUES (34, 'Abc', 'quiz', '2026-11-25', 1, 1);
+INSERT INTO `pet_task_progress` VALUES (35, 'Abc', 'walk', '2026-11-25', 1, 1);
 
 -- ----------------------------
 -- Table structure for pet_user_resource
@@ -552,8 +655,12 @@ CREATE TABLE `pet_user_resource`  (
 -- ----------------------------
 -- Records of pet_user_resource
 -- ----------------------------
-INSERT INTO `pet_user_resource` VALUES ('admin', 11, 3, 1795405205551);
+INSERT INTO `pet_user_resource` VALUES ('Abc', 7, 0, 1795567867224);
+INSERT INTO `pet_user_resource` VALUES ('admin', 18, 8, 1795568879850);
 INSERT INTO `pet_user_resource` VALUES ('eee', 23, 2, 1795160778472);
+INSERT INTO `pet_user_resource` VALUES ('Jelee_178', 16, 1, 1795567740172);
 INSERT INTO `pet_user_resource` VALUES ('rrr', 2, 1, 1795162053929);
+INSERT INTO `pet_user_resource` VALUES ('wwwww', 0, 0, 1795567756557);
+INSERT INTO `pet_user_resource` VALUES ('yyyy', 0, 0, 1795567759378);
 
 SET FOREIGN_KEY_CHECKS = 1;
